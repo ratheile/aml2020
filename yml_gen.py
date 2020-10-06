@@ -1,4 +1,4 @@
-from loaders import ConfigLoader
+from modules import ConfigLoader
 import argparse
 import os
 

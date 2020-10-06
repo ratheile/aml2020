@@ -1,0 +1,15 @@
+preprocessing:
+  outlier: true 
+  dim_red: true
+
+task: 
+  variant: option1 # or option2
+  cfg: arguments to f
+
+
+array:
+  - this: a
+    that: b
+
+  - this: d
+    that: e
