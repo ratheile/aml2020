@@ -74,7 +74,7 @@ if __name__ == "__main__":
       name = os.path.basename(run_cfg_path)
       run_cfg = ConfigLoader().from_file(run_cfg_path)
       logging.info(f'running experiment {id_ex + 1} with name {name}')
-      raffi.run(run_cfg)
+      raffi.run(run_cfg, env_cfg)
 
   elif user is User.francesco:
     pass

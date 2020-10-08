@@ -1,6 +1,10 @@
 preprocessing:
   outlier: true 
   dim_red: true
+  preproc3: true
+
+clustering:
+  method: SVM
 
 task: 
   variant: option1 # or option2
