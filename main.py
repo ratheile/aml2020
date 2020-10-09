@@ -10,6 +10,7 @@ import glob
 from enum import Enum
 
 from project1_raffi import main as raffi
+from project1_ines import main as ines
 
 
 class User(Enum):
@@ -46,7 +47,7 @@ if __name__ == "__main__":
   input_grp.add_argument('--cfg', type=file_path,
     help='The main config yaml file.')
 
-  input_grp.add_argument('--dir', type=dir_path, 
+  input_grp.add_argument('--dir', type=dir_path,
     help='The main config directory.')
 
   parser.add_argument('--user', type=User, required=True, choices=list(User))
@@ -65,9 +66,9 @@ if __name__ == "__main__":
   elif args.dir:
     logging.info("directory cfg mode")
     run_cfg_paths = glob.glob(f'{run_cfg_dir}/*.yml')
-  
+
   logging.info(f'Loading the data from: {env_cfg["datasets/project1/path"]}')
-  
+
   if user is User.raffi:
     # my "main" function
     for id_ex, run_cfg_path in enumerate(run_cfg_paths):
@@ -79,6 +80,10 @@ if __name__ == "__main__":
   elif user is User.francesco:
     pass
     # your init function goes here
+    
   elif user is User.ines:
-    pass
-    # your init function goes here
+    for id_ex, run_cfg_path in enumerate(run_cfg_paths):
+      name = os.path.basename(run_cfg_path)
+      run_cfg = ConfigLoader().from_file(run_cfg_path)
+      logging.info(f'running experiment {id_ex + 1} with name {name}')
+      ines.run(run_cfg, env_cfg) # this is the run function from you project-level main.py

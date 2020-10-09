@@ -81,6 +81,3 @@ reg_ridge.intercept_
 # Try PCA
 pca = PCA(n_components=10)
 pca.fit(X)
-
-
-
