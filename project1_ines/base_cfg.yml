@@ -1,4 +1,5 @@
 preprocessing:
+  nan: "mean"
   outlier: true 
   dim_red: true
   preproc3: true
