@@ -13,26 +13,27 @@ options_dict = {
   'option2' : option2
 }
 
-def run(rcfg):
-  # logging.info(rcfg)
+def run(run_cfg, env_cfg):
+  logging.warn(env_cfg)
 
-  if rcfg['preprocessing/outlier']:
+  if run_cfg['preprocessing/outlier']:
     logging.warn("outlier detection ... done")
 
-  if rcfg['preprocessing/dim_red']:
+  if run_cfg['preprocessing/dim_red']:
     logging.warn("dimensionality reduction ... done")
   
   # both syntax work 
   # ['outer']['inner']
   # outer/inner
   # the first is primarely used if you iterate over things
-  for i in rcfg['array']:
+  for i in run_cfg['array']:
     # seriously tho: never use this as a var name because of self ref!!!
     logging.error(f'this: {i["this"]} and that: {i["that"]}')
 
   # invoke different functions
-  result_f = options_dict[rcfg['task/variant']]
-  logging.info(result_f(rcfg['task']['cfg'])) 
+  result_f = options_dict[run_cfg['task/variant']]
+  logging.info(result_f(run_cfg['task']['cfg'])) 
+  logging.info(result_f(run_cfg['task/cfg'])) 
   
 
   
