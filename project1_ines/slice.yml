@@ -1,0 +1,7 @@
+experiment_name: ex2
+yml_output_folder: experiments/test1
+run_cfg:
+  preprocessing/outlier: [true, false]
+  preprocessing/dim_red: [true, false]
+  preprocessing/dim_red_type: ["rfe","rfecv"]
+  preprocessing/nan:    ['mean', 'median']

@@ -1,0 +1,21 @@
+preprocessing:
+  nan: "mean"
+  outlier: true 
+  dim_red: true
+  dim_red_type: "rfecv"
+  preproc3: true
+
+clustering:
+  method: SVM
+
+task: 
+  variant: option1 # or option2
+  cfg: arguments to f
+
+
+array:
+  - this: a
+    that: b
+
+  - this: d
+    that: e
