@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
+from sklearn.feature_selection import RFE, RFECV
 import matplotlib.pyplot as plt
 from scipy import stats
 import numpy as np
@@ -14,6 +15,23 @@ def fill_nan(X, method):
   # elif method == 'freq': # TODO: consider whether we want this option as well.
   #   X = X.apply(lambda col: col.fillna(col.mode()), axis=0)
   return X
+
+def feature_selection(X,y,method):
+  # Good read: https://scikit-learn.org/stable/modules/feature_selection.html
+  estimator = Ridge() # TODO: this is an assumption. Check it.
+  if method == "rfe":
+    selector = RFE(estimator, n_features_to_select=20, step=10, verbose=0)
+  elif method == "rfecv":
+    selector = RFECV(estimator, step=1, cv=5, verbose=0, min_features_to_select=20)
+
+  selector = selector.fit(X, y)
+  print('Original number of features is %s' % X.shape[1])
+  print("Final number of features : %d" % selector.n_features_)
+  X_red = selector.transform(X)
+  X_red = pd.DataFrame(X_red)
+
+  return X_red, selector
+
 
 def run(run_cfg, env_cfg):
   logging.warn(env_cfg)
@@ -36,8 +54,9 @@ def run(run_cfg, env_cfg):
 
   #Subtask 2: Feature selection
   if run_cfg['preprocessing/dim_red']:
+    X_red, selector = feature_selection(X,y,run_cfg['preprocessing/dim_red_type'])
+    # print(X_red.describe())
     logging.warn("dimensionality reduction ... done")
-  
 
   ############### UNUSED CODE ###############
   # both syntax work 
