@@ -18,11 +18,17 @@ def fill_nan(X, method):
 
 def feature_selection(X,y,method):
   # Good read: https://scikit-learn.org/stable/modules/feature_selection.html
-  estimator = Ridge() # TODO: this is an assumption. Check it.
+  # Different types of feature selection methods:
+  # 1. Filter methods: apply statistical measures to score features (corr coef and Chi^2).
+  # 2. Wrapper methods: consider feature selection a search problem (e.g. RFE)
+  # 3. Embedded methods: feature selection occurs with model training (e.g. LASSO)
+
+  estimator = Ridge() # TODO: this is an arbitrary choice and the result is influenced by this!
   if method == "rfe":
     selector = RFE(estimator, n_features_to_select=20, step=10, verbose=0)
   elif method == "rfecv":
     selector = RFECV(estimator, step=1, cv=5, verbose=0, min_features_to_select=20)
+  # TODO: consider other methods? e.g. tree-based feature selection + SelectFromModel?
 
   selector = selector.fit(X, y)
   print('Original number of features is %s' % X.shape[1])
@@ -54,8 +60,8 @@ def run(run_cfg, env_cfg):
 
   #Subtask 2: Feature selection
   if run_cfg['preprocessing/dim_red']:
-    X_red, selector = feature_selection(X,y,run_cfg['preprocessing/dim_red_type'])
-    # print(X_red.describe())
+    # Overwrites X with reduced version of X
+    X, selector = feature_selection(X,y,run_cfg['preprocessing/dim_red_type'])
     logging.warn("dimensionality reduction ... done")
 
   ############### UNUSED CODE ###############
@@ -68,6 +74,10 @@ def run(run_cfg, env_cfg):
     logging.error(f'this: {i["this"]} and that: {i["that"]}')
 
   # invoke different functions
+  options_dict = {
+  'option1' : option1,
+  'option2' : option2
+  }
   result_f = options_dict[run_cfg['task/variant']]
   logging.info(result_f(run_cfg['task']['cfg'])) 
   logging.info(result_f(run_cfg['task/cfg'])) 
