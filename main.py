@@ -11,11 +11,12 @@ from enum import Enum
 
 from project1_raffi import main as raffi
 from project1_ines import main as ines
+from project1_ffu import main as ffu
 
 
 class User(Enum):
   ines = 'ines'
-  francesco = 'franc'
+  francesco = 'ffu'
   raffi = 'raffi'
 
   def __str__(self):
@@ -78,8 +79,12 @@ if __name__ == "__main__":
       raffi.run(run_cfg, env_cfg)
 
   elif user is User.francesco:
-    pass
-    # your init function goes here
+    # my "main" function
+    for id_ex, run_cfg_path in enumerate(run_cfg_paths):
+      name = os.path.basename(run_cfg_path)
+      run_cfg = ConfigLoader().from_file(run_cfg_path)
+      logging.info(f'running experiment {id_ex + 1} with name {name}')
+      ffu.run(run_cfg, env_cfg)
     
   elif user is User.ines:
     for id_ex, run_cfg_path in enumerate(run_cfg_paths):

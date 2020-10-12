@@ -29,6 +29,8 @@ from sklearn.linear_model import \
   Ridge, \
   ElasticNet
 
+from sklearn.preprocessing import Normalizer 
+
 from autofeat import FeatureSelector, AutoFeatRegressor
 
 # Our code
@@ -53,11 +55,13 @@ df_Y = pd.read_csv(f"{env_cfg['datasets/project1/path']}/y_train.csv")
 
 #%% 
 imputer = SimpleImputer(missing_values=np.nan, strategy='median')
+normalizer = Normalizer()
 df_X[:] = imputer.fit_transform(df_X)
 
 # %%
 fsel = FeatureSelector(verbose=1)
 df_X_f = fsel.fit_transform(df_X.iloc[:,1:], df_Y['y'])
+# df_X_f[:] = normalizer.fit_transform(df_X_f)
 
 # %%
 def lasso_fit(reg_lasso, X, y):
@@ -86,7 +90,7 @@ def auto_crossval(model, X, y):
 
   return scores
 
-
+# early stopping
 # voting regressor
 # adaboostregressor (base: DecisionTreeRegressor)
 estimators = {
@@ -131,7 +135,7 @@ def pool_f(args):
 
 #%% train test
 X_train, X_test, y_train, y_test = train_test_split(
-  df_X_f, df_Y['y'], test_size=0.30)
+  df_X_f, df_Y['y'], test_size=0.05)
 
 
 #%%
@@ -140,6 +144,7 @@ args = [{
   'y': y_train.copy(deep=True),
   'task': t
 } for t in tasks]
+
 
 #%% compute train scores 
 train_scores = []
