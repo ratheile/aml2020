@@ -1,0 +1,26 @@
+preprocessing:
+  feature_removal: true
+  feature_removal_cvmin: 0.1
+  nan: "median"
+  y_corr: true
+  x_corr: true
+  x_corr_lb: 0.8
+  outlier_removal: true
+  outlier_cont_lim: 0.1
+  apply_pca: true
+  pca_n_comp: 2
+
+clustering:
+  method: SVM
+
+task: 
+  variant: option1 # or option2
+  cfg: arguments to f
+
+
+array:
+  - this: a
+    that: b
+
+  - this: d
+    that: e
