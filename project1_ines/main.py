@@ -43,7 +43,7 @@ def feature_selection(X,y,method):
 
   estimator = Ridge() # TODO: this is an arbitrary choice and the result is influenced by this!
   if method == "rfe":
-    selector = RFE(estimator, n_features_to_select=20, step=10, verbose=0)
+    selector = RFE(estimator, n_features_to_select=60, step=10, verbose=0)
   elif method == "rfecv":
     selector = RFECV(estimator, step=1, cv=5, verbose=0, min_features_to_select=20)
   # TODO: consider other methods? e.g. tree-based feature selection + SelectFromModel?
