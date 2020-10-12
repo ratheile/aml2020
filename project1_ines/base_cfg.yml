@@ -1,5 +1,5 @@
 preprocessing:
-  nan: "mean"
+  nan: "median"
   outlier: true 
   outlier_type: "isol_forest"
   dim_red: true
