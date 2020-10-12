@@ -1,6 +1,7 @@
 preprocessing:
   nan: "mean"
   outlier: true 
+  outlier_type: "isol_forest"
   dim_red: true
   dim_red_type: "rfecv"
   preproc3: true
