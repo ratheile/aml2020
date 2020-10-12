@@ -1,10 +1,11 @@
 import pandas as pd
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.feature_selection import RFE, RFECV
+from sklearn.ensemble import IsolationForest
+from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from scipy import stats
 import numpy as np
-from sklearn.decomposition import PCA
 import logging
 
 def fill_nan(X, method):
@@ -16,8 +17,25 @@ def fill_nan(X, method):
   #   X = X.apply(lambda col: col.fillna(col.mode()), axis=0)
   return X
 
+def outlier_detection(X,y,method):
+  if method == 'isol_forest':
+    clf = IsolationForest(random_state=0).fit(X)
+    y_pred_train = clf.predict(X)
+    # inliers = np.array(np.where(y_pred_train==1))
+    outliers = np.array(np.where(y_pred_train==-1))
+    # print(f"Here are a few examples of inliers:\n{inliers}")
+    # print(f"The total number of inliers is: {inliers.size}")
+    # print(f"Here are the detected outliers:\n{outliers}")
+    print(f"The total number of outliers removed: {outliers.size}")
+    outliers = outliers.tolist()
+    outliers = [ item for elem in outliers for item in elem]
+    X_inliers = X.drop(index=outliers)
+    y_inliers = y.drop(index=outliers)
+    return X_inliers, y_inliers
+
 def feature_selection(X,y,method):
   # Good read: https://scikit-learn.org/stable/modules/feature_selection.html
+  # Also: https://www.datacamp.com/community/tutorials/feature-selection-python
   # Different types of feature selection methods:
   # 1. Filter methods: apply statistical measures to score features (corr coef and Chi^2).
   # 2. Wrapper methods: consider feature selection a search problem (e.g. RFE)
@@ -31,7 +49,7 @@ def feature_selection(X,y,method):
   # TODO: consider other methods? e.g. tree-based feature selection + SelectFromModel?
 
   selector = selector.fit(X, y)
-  print('Original number of features is %s' % X.shape[1])
+  print('Original number of features : %s' % X.shape[1])
   print("Final number of features : %d" % selector.n_features_)
   X_red = selector.transform(X)
   X_red = pd.DataFrame(X_red)
@@ -56,6 +74,7 @@ def run(run_cfg, env_cfg):
 
   # Subtask 1: Outlier detection
   if run_cfg['preprocessing/outlier']:
+    X,y = outlier_detection(X,y,run_cfg['preprocessing/outlier_type'])
     logging.warn("outlier detection ... done")
 
   #Subtask 2: Feature selection
