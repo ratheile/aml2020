@@ -28,7 +28,7 @@ def feature_reduction(df_x,cvmin):
          if cv < cvmin:
              dropped_cols_cv.append(column)
              n = n+1
- print("dropped",n,"out of",n_tot)
+ print(f"dropped {n} out of {n_tot}")
  #drop the columns with mean = 0 and cv < cv_min
  df_x.drop(dropped_cols_mean,axis=1,inplace=True)
  df_x.drop(dropped_cols_cv,axis=1,inplace=True)
@@ -79,7 +79,7 @@ def extract_y_correlated(df_x,df_y):
  l1=["y"]+p_y_033_067.index.tolist()+p_y_n67_033.index.tolist()
  print(l1)
  df2 = df[l1]
- print("columns kept after correlation check with y:", len(l1))
+ print(f"columns kept after correlation check with y: {len(l1)}")
  return(df2)
 
 def drop_x_correlated(df,lb):
@@ -110,7 +110,7 @@ def drop_x_correlated(df,lb):
  for x in lc_clean:
     if x not in lc_unique:
         lc_unique.append(x)
- print("Dropping features with correlation higher than", lb,":")
+ print(f"Dropping features with correlation higher than {lb}:")
  print(lc_unique)
 
  #drop values from dataframe
@@ -145,7 +145,7 @@ def apply_pca(df, n_comp):
     pca = PCA(n_components=2)
     pca.fit(X_arr)
     X_pca=pca.transform(X_arr)
-    print("\nPC 1 with scaling:\n", pca.components_[0])
+    print(f"PC 1 with scaling:\n {pca.components_[0]}")
     return(X_pca, Y_arr)
 
 def normalize(df):
