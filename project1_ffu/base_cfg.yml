@@ -1,6 +1,6 @@
 preprocessing:
   feature_removal: true
-  feature_removal_cvmin: 0.1
+  feature_removal_cv_min: 0.1
   nan: "median"
   y_corr: true
   x_corr: true
