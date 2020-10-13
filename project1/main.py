@@ -206,18 +206,10 @@ def autofeat_dim_reduction(X,y):
   return X
 
 ######################## Raffael #######################################################
-def lasso_fit(reg_lasso, X, y):
-  reg_lasso = reg_lasso.fit(X, y)
-  # worse than simple linear model
-  reg_lasso.score(X, y)
-  return reg_lasso
-  
-def ridge_fit(reg_ridge, X,y):
-  # Same thing but with Ridge regression
-  reg_ridge = reg_ridge.fit(X, y)
-  # same as simple linear regression - might as well use this
-  reg_ridge.score(X, y)  
-  return reg_ridge 
+def simple_fit(model, X, y):
+  model = model.fit(X, y)
+  return model 
+
 
 def auto_crossval(model, X, y):
   rkf = RepeatedKFold(n_splits=10, n_repeats=2)
@@ -233,28 +225,28 @@ def cfg_to_estimators(run_cfg):
   elasticnet_cfg = run_cfg['models/elasticnet']
   lasso_cfg = run_cfg['models/lasso']
   ridge_cfg = run_cfg['models/ridge']
-
   estimators = {
     'elasticnet': {
-      'model': lambda: ElasticNet(alpha=elasticnet_cfg['alpha']),
-      'fit': lasso_fit,
+      'model': lambda: ElasticNet(alpha=1.01),
+      'fit': simple_fit,
       'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
       'validate': lambda m,X,y: m.score(m,X,y)
     },
     'lasso': {
-      'model': lambda: Lasso(alpha=lasso_cfg['alpha']),
-      'fit': lasso_fit,
+      'model': lambda: Lasso(alpha=1.01),
+      'fit': simple_fit,
       'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
       'validate': lambda m,X,y: m.score(m,X,y)
     },
     'ridge': {
-      'model': lambda: Ridge(alpha=ridge_cfg['alpha']),
-      'fit': ridge_fit,
+      'model': lambda: Ridge(alpha=1.01),
+      'fit': simple_fit,
       'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
       'validate': lambda m,X,y: m.score(m,X,y)
     },
     'lightgbm': {
       'model': lambda : lgbm.LGBMRegressor(),
+      'fit': simple_fit,
       'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
       'validate': lambda m,X,y: m.score(m,X,y)
     }
@@ -304,6 +296,7 @@ def run(run_cfg, env_cfg):
   datapath = env_cfg['datasets/project1/path']
   X = pd.read_csv(f'{datapath}/X_train.csv')
   y = pd.read_csv(f'{datapath}/y_train.csv')
+  X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
   # remove index column
   y = y.iloc[:,1:]
   X = X.iloc[:,1:]
@@ -314,17 +307,16 @@ def run(run_cfg, env_cfg):
 
   # remove outliers (rows/datapoints)
   if run_cfg['preproc/outlier/enabled']:
+    outlier_type = run_cfg['preproc/outlier/type']
     cont_lim =  run_cfg['preproc/outlier/cont_lim']
-  
     if run_cfg['preproc/outlier/impl'] == 'ines':
-      outlier_type = run_cfg['preproc/outlier/type']
-      rfe_method = run_cfg['preproc/rmf/rfe/method']
       X,y = find_isolation_forest_outlier(X,y,outlier_type, cont_lim)
     else:
       X = remove_isolation_forest_outlier(X, cont_lim)
 
+  rfe_method = run_cfg['preproc/rmf/rfe/method']
   rmf_pipelines = {
-    'ffe': lambda X,y: ffu_dim_reduction(run_cfg,X,y),
+    'ffu': lambda X,y: ffu_dim_reduction(run_cfg,X,y),
     'rfe': lambda X,y: rfe_dim_reduction(X,y,rfe_method),
     'auto' : lambda X,y: autofeat_dim_reduction(X,y)
   }
@@ -366,3 +358,21 @@ def run(run_cfg, env_cfg):
 
   train_scores_mean = pd.DataFrame( np.array(train_scores).T).mean()
   logging.info(train_scores_mean)
+
+  X_u = X_u[X_train.columns]
+  X_u[:] = fill_nan(X_u, run_cfg['preproc/imputer/strategy'])
+
+  for t_name in tasks:
+    model_dict = estimators[t_name]
+    model = model_dict['model']() # factory
+    fit_f = model_dict['fit'](model,X_train,y_train)
+    logging.info(model.score(X_test, y_test))
+    y_u = model.predict(X_u)
+    y_u_df =  pd.DataFrame({
+      'id': np.arange(0,len(y_u)).astype(float),
+      'y': y_u
+    })
+
+    if not os.path.exists('predictions'):
+      os.makedirs('predictions')
+    y_u_df.to_csv(f'predictions/{t_name}_y.csv', index=False)
