@@ -83,7 +83,7 @@ if __name__ == "__main__":
       name = os.path.basename(run_cfg_path)
       run_cfg = ConfigLoader().from_file(run_cfg_path)
       logging.info(f'running experiment {id_ex + 1} with name {name}')
-      ffu.run(run_cfg, env_cfg) # this is the run function from you project-level main.py
+      ffu.run(run_cfg, env_cfg)
     
   elif user is User.ines:
     for id_ex, run_cfg_path in enumerate(run_cfg_paths):
