@@ -1,0 +1,7 @@
+experiment_name: ex3
+yml_output_folder: experiments/test1
+run_cfg:
+  preprocessing/feature_removal_cvmin: [0.1,0.2,0.3,0.4]
+  preprocessing/x_corr_lb: [0.8,0.9]
+  preprocessing/outlier_cont_lim: [0.1,0.15,0.2]
+  preprocessing/apply_pca: ["true","false"]
