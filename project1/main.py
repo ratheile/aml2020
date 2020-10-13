@@ -35,114 +35,114 @@ def drop_feat_cov_constant(df_x, cvmin):
   # identify columns which contains constant values and some noise.
   # use the coefficient of variation CV as metric (CV = sigma/mean).
   # drop columns in which CV < cvmin.
-  dropped_cols_mean = []  # zero mean
-  dropped_cols_cv = []  # CV
+
+  dropped_cols_mean = [] #zero mean
+  dropped_cols_cv = [] #CV
   n = 0
   n_tot = len(df_x.columns)
   for column in df_x:
-      mean = df_x[column].astype("float").mean()
-      if mean == 0:
-          dropped_cols_mean.append(column)
-          n = n+1
-      else:
-          cv = df_x[column].astype("float").std()/mean
-          if cv < cvmin:
-              dropped_cols_cv.append(column)
-              n = n+1
-  logging.info(f"dropped {n} out of {n_tot}")
-  # drop the columns with mean = 0 and cv < cv_min
-  df_x.drop(dropped_cols_mean, axis=1, inplace=True)
-  df_x.drop(dropped_cols_cv, axis=1, inplace=True)
+    mean = df_x[column].astype("float").mean()
+    if mean == 0:
+      dropped_cols_mean.append(column)
+      n = n+1
+    else: 
+      cv = df_x[column].astype("float").std()/mean
+      if cv < cvmin:
+        dropped_cols_cv.append(column)
+        n = n+1
+  logging.info(f"COV - dropped {n} out of {n_tot}")
+  #drop the columns with mean = 0 and cv < cv_min
+  df_x.drop(dropped_cols_mean,axis=1,inplace=True)
+  df_x.drop(dropped_cols_cv,axis=1,inplace=True)
   return(df_x)
 
 
-
 def drop_feat_uncorrelated_y(df_x, df_y):
-  # calculate correlation with y and extract most correlated ones
+  #calculate correlation with y and extract most correlated ones    
 
-  # merge dataframes
-  df = pd.concat([df_y, df_x], axis=1)
+  #merge dataframes
+  df = pd.concat([df_y,df_x],axis=1)
 
-  # build the correlation matrix
+  #build the correlation matrix
   p = df.corr()
 
-  # bin the correlation coefficients in three different classes
+  #bin the correlation coefficients in three different classes
   p_y = p[["y"]]
   bins = np.linspace(-1, 1, 7)
-  group_names = ["neg[1-0.67]", "neg[0.67-0.33]",
-                "neg[0.33-0]", "[0-0.33]", "[0.33-0.67]", "[0.67-1]"]
-  p_y.loc[:, "y-binned"] = pd.cut(p_y.loc[:, "y"],
-                                  bins, labels=group_names, include_lowest=True)
-  logging.info("number of features by correlation bin")
+  group_names = ["neg[1-0.67]", "neg[0.67-0.33]", "neg[0.33-0]", "[0-0.33]", "[0.33-0.67]", "[0.67-1]"]
+  p_y.loc[:,"y-binned"] = pd.cut(p_y.loc[:,"y"], bins, labels=group_names, include_lowest=True)
+  logging.info("number of features by y-correlation bin:")
   logging.info(p_y["y-binned"].value_counts())
 
-  # features in top and bottom category
-  p_y_033_067 = p_y[p_y["y-binned"] == "[0.33-0.67]"]
-  p_y_n67_033 = p_y[p_y["y-binned"] == "neg[0.67-0.33]"]
-  l1 = ["y"]
-  l1.append = p_y_n67_033.index.tolist()
-  l1.append = p_y_033_067.tolist()
+  #features in top and bottom category
+  p_y_033_067 = p_y[p_y["y-binned"]=="[0.33-0.67]"]
+  p_y_n67_033 = p_y[p_y["y-binned"]=="neg[0.67-0.33]"]
+  #l1=["y"]
+  #l1.append(p_y_n67_033.index.tolist())
+  l1=["y"]+p_y_033_067.index.tolist()+p_y_n67_033.index.tolist()
+  logging.info(l1)
   df2 = df[l1]
   logging.info(f"columns kept after correlation check with y: {len(l1)}")
   return(df2)
 
 
-def drop_feat_correlated_x(df, lb):
-  # look at correlation between features
-
-  # sort the features by correlation and define a lower bound for correlation
-  p = df.corr()
+def drop_feat_correlated_x(df, lb):#look at correlation between features
+  #sort the features by correlation and define a lower bound for correlation
+  p= df.corr()
   c = p.abs()
   s = c.unstack()
   so = s.sort_values(kind="quicksort")
-  so = so[so >= lb]
-  # the upperbound is one by definition
-  so = so[so < 1]
+  so=so[so>=lb]
+  #the upperbound is one by definition
+  so=so[so<1]
 
-  # remove duplicated entries and create a unique list
-  sf = so.to_frame()  # series to dataframe
+  #remove duplicated entries and create a unique list
+  sf = so.to_frame() # series to dataframe
   sff = sf.drop_duplicates()
   lc_list = sff.index.tolist()
   sff.head(5)
 
-  lc_clean = []  # the elements are nested in touples of two. put them in a list
+  lc_clean = [] #the elements are nested in touples of two. put them in a list
   for lc in lc_list:
-      lc_clean.append(lc[0])
-      lc_clean.append(lc[1])
+    lc_clean.append(lc[0])
+    lc_clean.append(lc[1])
 
   # unique elements in the list
-  lc_unique = []
+  lc_unique = [] 
   for x in lc_clean:
-      if x not in lc_unique:
-          lc_unique.append(x)
+    if x not in lc_unique:
+        lc_unique.append(x)
   logging.info(f"Dropping features with correlation higher than {lb}:")
   logging.info(lc_unique)
 
-  # drop values from dataframe
-  df.drop(lc_unique, axis=1, inplace=True)
+  #drop values from dataframe
+  df.drop(lc_unique,axis=1,inplace=True)
   return(df)
 
-
-def remove_random_forest_outlier(df, cont_lim):
-  # use Isolation Forest to indentify outliers on the selected features
+def remove_isolation_forest_outlier(df, cont_lim):
+  #use Isolation Forest to indentify outliers on the selected features
   iso_Y_arr, iso_X_arr, df_colnames = df_to_array(df)
-
+  len_Y_outl = len(iso_Y_arr)
+  
   iso = IsolationForest(contamination=cont_lim)
   yhat = iso.fit_predict(iso_X_arr)
   mask = yhat != -1
-  logging.info(f"removing {len(iso_Y_arr)-len(mask)} outliers out of {len(iso_Y_arr)} datapoints")
   iso_X_arr, iso_Y_arr = iso_X_arr[mask, :], iso_Y_arr[mask]
 
-  numrows = len(iso_X_arr)
+  len_Y_inl = len_Y_outl-sum(mask)
+  logging.info(f"Outliers removal:")
+  logging.info(f"Removing {len_Y_inl} outliers out of {len_Y_outl} datapoints.")
+  
+  numrows = len(iso_X_arr)    
   numcols = len(iso_X_arr[0])
-  iso_arr = np.random.rand(numrows, numcols+1)
-  iso_arr[:, 0] = iso_Y_arr
-  iso_arr[:, 1:(numcols+1)] = iso_X_arr
+  iso_arr = np.random.rand(numrows,numcols+1)
+  iso_arr[:,0]=iso_Y_arr
+  iso_arr[:,1:(numcols+1)]=iso_X_arr
   df_iso = pd.DataFrame(data=iso_arr, columns=df_colnames)
   return(df_iso)
 
 
-def apply_pca(df, n_comp):
+def pca_dim_reduction(df, n_comp):
   X_arr, Y_arr = normalize(df)
 
   pca = PCA(n_components=2)
@@ -171,7 +171,7 @@ def df_to_array(df):
 ######################## Inês #######################################################
 
 
-def find_random_forest_outlier(X,y,method):
+def find_isolation_forest_outlier(X,y,method):
   if method == 'isol_forest':
     clf = IsolationForest(random_state=0).fit(X)
     y_pred_train = clf.predict(X)
@@ -187,7 +187,7 @@ def find_random_forest_outlier(X,y,method):
     y_inliers = y.drop(index=outliers)
     return X_inliers, y_inliers
 
-def feature_selection(X,y,method):
+def rfe_dim_reduction(X,y,method):
   # Good read: https://scikit-learn.org/stable/modules/feature_selection.html
   # Also: https://www.datacamp.com/community/tutorials/feature-selection-python
   # Different types of feature selection methods:
@@ -274,8 +274,8 @@ def pool_f(args):
   crossval_fit = model_dict['crossval_fit']
 
   # run the task:
-  X = args['X']
-  y = args['y']
+  X = task_args['X']
+  y = task_args['y']
   return (crossval_fit(model, X, y), model)
 
 
@@ -316,12 +316,19 @@ def run(run_cfg, env_cfg):
   # remove outliers (rows/datapoints)
   if run_cfg['preproc/outlier/enabled']:
     cont_lim =  run_cfg['preproc/outlier/cont_lim']
-    X = remove_random_forest_outlier(X, cont_lim)
+  
+    if run_cfg['preproc/outlier/impl'] == 'ines':
+      outlier_type = run_cfg['preproc/outlier/type']
+      rfe_method = run_cfg['preproc/dim_reduction/rfe/method']
+      X,y = find_isolation_forest_outlier(X,y,outlier_type)
+      X, selector = rfe_dim_reduction(X,y,rfe_method)
+    else:
+      X = remove_isolation_forest_outlier(X, cont_lim)
 
   # apply pca (with min max normalization)
   if run_cfg['preproc/dim_reduction/pca/enabled']:
     n_comp = run_cfg['preproc/dim_reduction/pca/n_comp']
-    X, y = apply_pca(X, n_comp)
+    X, y = pca_dim_reduction(X, n_comp)
 
   if run_cfg['preproc/normalize/enabled'] != 1:
     X, y = normalize(X)
@@ -338,18 +345,12 @@ def run(run_cfg, env_cfg):
     'y': y_train.copy(deep=True),
     'task': t
   } for t in tasks]
-
-  args = {
-    'estimators': estimators,
-    'task_args': task_args
-  }
+  args = [{'estimators':estimators,'task_args': a} for a in task_args]
 
   train_scores = []
-  trained_models = {}
   for i, arg in enumerate(args):
     s, m = pool_f(arg)
     train_scores.append(s)
-    trained_models[arg['task']] = m
 
   train_scores_mean = pd.DataFrame( np.array(train_scores).T).mean()
-  results_stat = pd.DataFrame([train_scores_mean])
+  logging.info(train_scores_mean)
