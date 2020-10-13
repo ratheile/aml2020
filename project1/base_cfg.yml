@@ -6,33 +6,31 @@ preproc:
   imputer:
     strategy: median # mean, median
 
-  rmf: # remove features
-    cov: # coefficient of variance
-      enabled: true
-      cvmin: 0.1
-    
-    x_corr:
-      enabled: true
-      lb: 0.8
-    
-    y_corr:
-      enabled: true
-
   outlier: # random forest
     enabled: true
     cont_lim: 0.1
     type: isol_forest
     impl: ines
-  
     
-  dim_reduction:
+  rmf: # remove features
+    pipeline: auto # auto, rfe, ffu
+    ffu: # Francesco
+      cov: # coefficient of variance
+        enabled: true
+        cvmin: 0.1
+      
+      x_corr:
+        enabled: true
+        lb: 0.8
+
+      y_corr:
+        enabled: true
     rfe:
       method: rfecv
     pca:
       enabled: false 
       n_comp: 2
 
-  
   normalize:
     enabled: true
     

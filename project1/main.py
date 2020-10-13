@@ -25,6 +25,7 @@ from sklearn.linear_model import \
     ElasticNet
 
 import lightgbm as lgbm
+from autofeat import FeatureSelector, AutoFeatRegressor
 
 from scipy import stats
 
@@ -197,7 +198,12 @@ def rfe_dim_reduction(X,y,method):
   X_red = selector.transform(X)
   X_red = pd.DataFrame(X_red)
 
-  return X_red, selector
+  return X_red
+  
+def autofeat_dim_reduction(X,y):
+  fsel = FeatureSelector(verbose=1)
+  X = fsel.fit_transform(X,y)
+  return X
 
 ######################## Raffael #######################################################
 def lasso_fit(reg_lasso, X, y):
@@ -317,11 +323,15 @@ def run(run_cfg, env_cfg):
     else:
       X = remove_isolation_forest_outlier(X, cont_lim)
 
+  rmf_pipelines = {
+    'ffe': lambda X,y: ffu_dim_reduction(run_cfg,X,y),
+    'rfe': lambda X,y: rfe_dim_reduction(X,y,rfe_method),
+    'auto' : lambda X,y: autofeat_dim_reduction(X,y)
+  }
+  
   # reduce data set dimensionality
-  if False:
-    X, selector = rfe_dim_reduction(X, y, rfe_method)
-  else:
-    X = ffu_dim_reduction(run_cfg, X, y)
+  rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
+  X = rmf_pipelines[rmf_pipeline_name](X,y)
 
   flag_normalize = run_cfg['preproc/normalize/enabled']
   if flag_normalize: 
