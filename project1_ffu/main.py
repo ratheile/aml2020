@@ -68,15 +68,16 @@ def extract_y_correlated(df_x,df_y):
  bins = np.linspace(-1, 1, 7)
  group_names = ["neg[1-0.67]", "neg[0.67-0.33]", "neg[0.33-0]", "[0-0.33]", "[0.33-0.67]", "[0.67-1]"]
  p_y.loc[:,"y-binned"] = pd.cut(p_y.loc[:,"y"], bins, labels=group_names, include_lowest=True)
- print("number of features by correlation bin")
+ print("number of features by y-correlation bin:")
  print(p_y["y-binned"].value_counts())
  
  #features in top and bottom category
  p_y_033_067 = p_y[p_y["y-binned"]=="[0.33-0.67]"]
  p_y_n67_033 = p_y[p_y["y-binned"]=="neg[0.67-0.33]"]
- l1=["y"]
- l1.append = p_y_n67_033.index.tolist()
- l1.append = p_y_033_067.tolist()
+ #l1=["y"]
+ #l1.append(p_y_n67_033.index.tolist())
+ l1=["y"]+p_y_033_067.index.tolist()+p_y_n67_033.index.tolist()
+ print(l1)
  df2 = df[l1]
  print("columns kept after correlation check with y:", len(l1))
  return(df2)
@@ -119,12 +120,16 @@ def drop_x_correlated(df,lb):
 def remove_outlier(df,cont_lim):
 #use Isolation Forest to indentify outliers on the selected features
     iso_Y_arr, iso_X_arr, df_colnames = df_to_array(df)
+    len_Y_outl = len(iso_Y_arr)
     
-    iso = IsolationForest(contamination=cont_lim) 
+    iso = IsolationForest(contamination=cont_lim)
     yhat = iso.fit_predict(iso_X_arr)
     mask = yhat != -1
-    print("removing",len(iso_Y_arr)-len(mask),"outliers out of", len(iso_Y_arr), "datapoints")
     iso_X_arr, iso_Y_arr = iso_X_arr[mask, :], iso_Y_arr[mask]
+
+    len_Y_inl = len_Y_outl-sum(mask)
+    print(f"Outliers removal:")
+    print(f"Removing {len_Y_inl} outliers out of {len_Y_outl} datapoints.")
     
     numrows = len(iso_X_arr)    
     numcols = len(iso_X_arr[0])
