@@ -139,41 +139,30 @@ def remove_isolation_forest_outlier(df, cont_lim):
   iso_arr[:,0]=iso_Y_arr
   iso_arr[:,1:(numcols+1)]=iso_X_arr
   df_iso = pd.DataFrame(data=iso_arr, columns=df_colnames)
+  # TODO: has to return y
   return(df_iso)
 
 
-def pca_dim_reduction(df, n_comp):
-  X_arr, Y_arr = normalize(df)
-
+def pca_dim_reduction(X, n_comp):
   pca = PCA(n_components=2)
-  pca.fit(X_arr)
-  X_pca = pca.transform(X_arr)
+  pca.fit(X)
+  X_pca = pca.transform(X)
   logging.info(f"\nPC 1 with scaling:\n { pca.components_[0]}")
-  return(X_pca, Y_arr)
+  return X
 
 
-def normalize(df):
-  Y_arr, X_arr, df_colnames = df_to_array(df)
-
+def normalize(X):
   min_max_scaler = MinMaxScaler()
-  X_arr_scaled = min_max_scaler.fit_transform(X_arr)
-  return(X_arr_scaled, Y_arr)
-
-
-def df_to_array(df):
-  Y_arr = df["y"].to_numpy()
-  df_x = df.drop(["y"], axis=1)
-  X_arr = df_x.to_numpy()
-  df_colnames = df.columns.tolist()
-  return(Y_arr, X_arr, df_colnames)
+  X_arr_scaled = min_max_scaler.fit_transform(X)
+  return X
 
 
 ######################## Inês #######################################################
 
 
-def find_isolation_forest_outlier(X,y,method):
+def find_isolation_forest_outlier(X,y,method, cont_lim):
   if method == 'isol_forest':
-    clf = IsolationForest(random_state=0).fit(X)
+    clf = IsolationForest(contamination=cont_lim).fit(X)
     y_pred_train = clf.predict(X)
     # inliers = np.array(np.where(y_pred_train==1))
     outliers = np.array(np.where(y_pred_train==-1))
@@ -284,6 +273,24 @@ def fill_nan(X, strategy):
   return(imputer.fit_transform(X))
 
 
+def ffu_dim_reduction(run_cfg, X,y):
+  # drop features by coefficient of variance
+  if run_cfg['preproc/rmf/ffu/cov/enabled']:
+    cvmin = run_cfg['preproc/rmf/ffu/cov/cvmin']
+    X = drop_feat_cov_constant(X, cvmin) 
+
+  # drop features by y correlation
+  if run_cfg['preproc/rmf/ffu/y_corr/enabled']:
+    Xy = drop_feat_uncorrelated_y(X, y)
+
+  # drop features by x correlation
+  if run_cfg['preproc/rmf/ffu/x_corr/enabled']:
+    lb = run_cfg['preproc/rmf/ffu/x_corr/lb']
+    Xy = drop_feat_correlated_x(Xy,lb)
+
+  X = Xy.drop(["y"],axis=1)
+  return(X)
+
 def run(run_cfg, env_cfg):
   ###################### Preprocessing ##############################
 
@@ -299,39 +306,34 @@ def run(run_cfg, env_cfg):
   # remove NaN 
   X[:] = fill_nan(X, run_cfg['preproc/imputer/strategy'])
 
-  # drop features by coefficient of variance
-  if run_cfg['preproc/rmf/cov/enabled']:
-    cvmin = run_cfg['preproc/rmf/cov/cvmin']
-    X = drop_feat_cov_constant(X, cvmin) 
-
-  # drop features by y correlation
-  if run_cfg['preproc/rmf/y_corr/enabled']:
-    X = drop_feat_uncorrelated_y(X, y)
-
-  # drop features by x correlation
-  if run_cfg['preproc/rmf/x_corr/enabled']:
-    lb = run_cfg['preproc/rmf/x_corr/lb']
-    X = drop_feat_correlated_x(X,lb)
-
   # remove outliers (rows/datapoints)
   if run_cfg['preproc/outlier/enabled']:
     cont_lim =  run_cfg['preproc/outlier/cont_lim']
   
     if run_cfg['preproc/outlier/impl'] == 'ines':
       outlier_type = run_cfg['preproc/outlier/type']
-      rfe_method = run_cfg['preproc/dim_reduction/rfe/method']
-      X,y = find_isolation_forest_outlier(X,y,outlier_type)
-      X, selector = rfe_dim_reduction(X,y,rfe_method)
+      rfe_method = run_cfg['preproc/rmf/rfe/method']
+      X,y = find_isolation_forest_outlier(X,y,outlier_type, cont_lim)
     else:
       X = remove_isolation_forest_outlier(X, cont_lim)
 
-  # apply pca (with min max normalization)
-  if run_cfg['preproc/dim_reduction/pca/enabled']:
-    n_comp = run_cfg['preproc/dim_reduction/pca/n_comp']
-    X, y = pca_dim_reduction(X, n_comp)
+  # reduce data set dimensionality
+  if False:
+    X, selector = rfe_dim_reduction(X, y, rfe_method)
+  else:
+    X = ffu_dim_reduction(run_cfg, X, y)
 
-  if run_cfg['preproc/normalize/enabled'] != 1:
-    X, y = normalize(X)
+  flag_normalize = run_cfg['preproc/normalize/enabled']
+  if flag_normalize: 
+    X = normalize(X)
+
+  # apply pca (with min max normalization)
+  if run_cfg['preproc/rmf/pca/enabled']:
+    if not flag_normalize: 
+      logging.error('Unnormalized data as PCA input!')
+    n_comp = run_cfg['preproc/rmf/pca/n_comp']
+    X = pca_dim_reduction(X, n_comp)
+
 
   ###################### Regression ##############################
   tasks = run_cfg['tasks']
