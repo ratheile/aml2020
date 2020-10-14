@@ -152,13 +152,25 @@ def pca_dim_reduction(X, n_comp):
   return X
 
 
+# def normalize(X,X_test,method):
+#   scaler_dic = {
+#     'minmax': MinMaxScaler(),
+#     'standard': StandardScaler(),
+#   }
+#   scaler = scaler_dic[method]
+#   scaler = scaler.fit(X)
+#   X_scaled = pd.DataFrame(scaler.transform(X), index=X.index, columns=X.columns)
+#   X_test_scaled = pd.DataFrame(scaler.transform(X_test), index=X_test.index, columns=X_test.columns)
+#   return X_scaled, X_test_scaled
+
 def normalize(X,method):
   scaler_dic = {
     'minmax': MinMaxScaler(),
     'standard': StandardScaler(),
   }
   scaler = scaler_dic[method]
-  X_scaled = pd.DataFrame(scaler.fit_transform(X), index=X.index, columns=X.columns)
+  scaler = scaler.fit(X)
+  X_scaled = pd.DataFrame(scaler.transform(X), index=X.index, columns=X.columns)
   return X_scaled
 
 
@@ -310,13 +322,15 @@ def run(run_cfg, env_cfg):
   X = X.iloc[:,1:]
   logging.info('Training dataset imported')
 
-  # Remove NaN 
-  X[:] = fill_nan(X, run_cfg['preproc/imputer/strategy'])
+  # Remove NaN from training and test data
+  X[:] = fill_nan(X, run_cfg['preproc/imputer/strategy'])  # train
+  X_u[:] = fill_nan(X_u, run_cfg['preproc/imputer/strategy'])  # test
 
   # Run first loop on drop_feat_cov_constant to remove features with 0 mean and constant signal
   # cvmin should be in the range 1e-4 for this task
   if run_cfg['preproc/zero_and_const/enabled']:
     X = drop_feat_cov_constant(X, run_cfg['preproc/zero_and_const/cvmin'])
+  X_u = X_u[X.columns]  # Drop these columns in the test set as well
 
   # Remove outliers (rows/datapoints)
   if run_cfg['preproc/outlier/enabled']:
@@ -326,21 +340,24 @@ def run(run_cfg, env_cfg):
     else:
       X = remove_isolation_forest_outlier(X, cont_lim)
 
+  # # Normalization training and test data
+  # flag_normalize = run_cfg['preproc/normalize/enabled']
+  # if flag_normalize: 
+  #   X, X_u = normalize(X, X_u, run_cfg['preproc/normalize/method'])
+
+  # Normalize
+  X = normalize(X, run_cfg['preproc/normalize/method'])
+  X_u = normalize(X_u, run_cfg['preproc/normalize/method'])
+  
+  # Reduce data set dimensionality
   rfe_method = run_cfg['preproc/rmf/rfe/method']
   rmf_pipelines = {
     'ffu': lambda X,y: ffu_dim_reduction(run_cfg,X,y),
     'rfe': lambda X,y: rfe_dim_reduction(X,y,rfe_method,run_cfg['preproc/rmf/rfe/estimator']),
     'auto' : lambda X,y: autofeat_dim_reduction(X,y)
   }
-  
-  # Reduce data set dimensionality
   rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
   X = rmf_pipelines[rmf_pipeline_name](X,y)
-
-  # Normalization
-  flag_normalize = run_cfg['preproc/normalize/enabled']
-  if flag_normalize: 
-    X = normalize(X, run_cfg['preproc/normalize/method'])
 
   # Apply pca (with min max normalization)
   if run_cfg['preproc/rmf/pca/enabled']:
@@ -373,12 +390,8 @@ def run(run_cfg, env_cfg):
   train_scores_mean.index = run_cfg['tasks']
   logging.info(train_scores_mean)
 
-  # Reduce dimensionality of test dataset based on preprocessing on training data 
+  # Reduce dimensionality of test dataset based on feature selection on training data 
   X_u = X_u[X_train.columns]
-  if flag_normalize: 
-    X_u = normalize(X_u, run_cfg['preproc/normalize/method'])
-  X_u[:] = fill_nan(X_u, run_cfg['preproc/imputer/strategy'])
-
 
   for t_name in tasks:
     model_dict = estimators[t_name]
