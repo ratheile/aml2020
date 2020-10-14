@@ -25,7 +25,7 @@ from sklearn.linear_model import \
     ElasticNet
 
 import lightgbm as lgbm
-from autofeat import FeatureSelector, AutoFeatRegressor
+#from autofeat import FeatureSelector, AutoFeatRegressor
 
 from scipy import stats
 
@@ -368,6 +368,9 @@ def run(run_cfg, env_cfg):
     fit_f = model_dict['fit'](model,X_train,y_train)
     logging.info(model.score(X_test, y_test))
     y_u = model.predict(X_u)
+    if len(y_u.shape) > 1:
+      yuf = y_u.flatten()
+      y_u = yuf
     y_u_df =  pd.DataFrame({
       'id': np.arange(0,len(y_u)).astype(float),
       'y': y_u
