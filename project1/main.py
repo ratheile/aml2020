@@ -25,7 +25,7 @@ from sklearn.linear_model import \
     ElasticNet
 
 import lightgbm as lgbm
-#from autofeat import FeatureSelector, AutoFeatRegressor
+from autofeat import FeatureSelector, AutoFeatRegressor
 
 from scipy import stats
 
@@ -304,6 +304,11 @@ def run(run_cfg, env_cfg):
 
   # remove NaN 
   X[:] = fill_nan(X, run_cfg['preproc/imputer/strategy'])
+
+  # run first loop on drop_feat_cov_constant to remove features with 0 mean and constant signal
+  # cvmin should be in the range 1e-4 for this task
+  if run_cfg['preproc/zero_and_const/enabled']:
+    X = drop_feat_cov_constant(X, run_cfg['preproc/zero_and_const/cvmin'])
 
   # remove outliers (rows/datapoints)
   if run_cfg['preproc/outlier/enabled']:

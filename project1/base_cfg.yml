@@ -6,6 +6,10 @@ preproc:
   imputer:
     strategy: median # mean, median
 
+  zero_and_const:
+    enabled: true
+    cvmin: 0.0001
+
   outlier: # random forest
     enabled: true
     cont_lim: 0.1
