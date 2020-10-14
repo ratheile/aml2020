@@ -12,6 +12,7 @@ from enum import Enum
 from project1_raffi import main as raffi
 from project1_ines import main as ines
 from project1_ffu import main as ffu
+from project1 import main as project1
 
 
 class User(Enum):
@@ -51,7 +52,7 @@ if __name__ == "__main__":
   input_grp.add_argument('--dir', type=dir_path,
     help='The main config directory.')
 
-  parser.add_argument('--user', type=User, required=True, choices=list(User))
+  parser.add_argument('--user', type=User, choices=list(User))
 
   args = parser.parse_args()
   env_cfg_path = args.env
@@ -91,3 +92,11 @@ if __name__ == "__main__":
       run_cfg = ConfigLoader().from_file(run_cfg_path)
       logging.info(f'running experiment {id_ex + 1} with name {name}')
       ines.run(run_cfg, env_cfg) # this is the run function from you project-level main.py
+
+  else:
+    # no user
+    for id_ex, run_cfg_path in enumerate(run_cfg_paths):
+      name = os.path.basename(run_cfg_path)
+      run_cfg = ConfigLoader().from_file(run_cfg_path)
+      logging.info(f'running experiment {id_ex + 1} with name {name}')
+      project1.run(run_cfg, env_cfg) # this is the run function from you project-level main.py

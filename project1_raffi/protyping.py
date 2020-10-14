@@ -1,7 +1,7 @@
 #%%
 # should provide auto reload
-%load_ext autoreload 
-%autoreload 2
+# %load_ext autoreload 
+# %autoreload 2
 # Path hack.import sys, os
 sys.path.insert(0, os.path.abspath('..'))
 
