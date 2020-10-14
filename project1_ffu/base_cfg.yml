@@ -1,12 +1,16 @@
 preprocessing:
   feature_removal: true
-  feature_removal_cv_min: 0.1
+  feature_removal_cv_min: 0.04
+  feature_removal_cv_max: 10000
+  extract_top_ETC: true
+  ETC_rs: 42
+  ETC_n_top: 60
   nan: "median"
-  y_corr: true
+  y_corr: false
   x_corr: true
-  x_corr_lb: 0.8
+  x_corr_lb: 0.9
   outlier_removal: true
-  outlier_cont_lim: 0.1
+  outlier_cont_lim: 0.3
   apply_pca: true
   pca_n_comp: 2
 
