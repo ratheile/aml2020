@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.feature_selection import RFE, RFECV
 from sklearn.ensemble import IsolationForest
-from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.decomposition import PCA
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
@@ -80,18 +80,15 @@ def remove_outlier(df_x, df_y,cont_lim):
     df_x_iso = pd.DataFrame(data=iso_X_arr, columns=df_x.columns.tolist())
     return(df_x_iso, df_y_iso)
 
-def extract_top_ETC(df_x,df_y,n_top,rnd_state):
+def extract_top_ETR(df_x,df_y,n_top,rnd_state,max_feat):
 # check feature importance with Extra Trees Classifier
 # https://towardsdatascience.com/feature-selection-techniques-in-machine-learning-with-python-f24e7da3f36e 
-  model = ExtraTreesClassifier(random_state=rnd_state)
-  print(df_x.head(3))
-  print(df_y.head(3))
+  model = ExtraTreesRegressor(random_state=rnd_state,max_features=max_feat)
   model.fit(df_x,df_y)
-  #print(model.feature_importances_)
   feat_importances = pd.Series(model.feature_importances_, index=df_x.columns)
-  #print(feat_importances.nlargest(rnd_state).index)
-  df_x_ETC = df_x[feat_importances.nlargest(rnd_state).index]
-  print(df_x_ETC.head(5))
+  #print(feat_importances.nlargest(n_top))
+  df_x_ETC = df_x[feat_importances.nlargest(n_top).index]
+  #print(df_x_ETC.head(5))
   return(df_x_ETC,df_y)
 
 def extract_y_correlated(df_x,df_y):
@@ -165,10 +162,9 @@ def apply_pca(df_x, n_comp):
     pca = PCA(n_components=2)
     pca.fit(df_x_norm)
     X_pca=pca.transform(df_x_norm)
-    print(X_pca)
     print(f"PC 1 with scaling:\n {pca.components_[0]}")
-    #df_x_pca = pd.DataFrame(data=X_pca,columns=df_x.columns.tolist())
-    return(X_pca)
+    df_x_pca = pd.DataFrame(data=X_pca,columns=["pc1", "pc2"])
+    return(df_x_pca)
 
 def normalize(df_x):
     #Y_arr, X_arr, df_colnames = df_to_array(df_x)
@@ -222,9 +218,6 @@ def run(run_cfg, env_cfg):
     df_y = pd.read_csv(fpath)
     df_y.drop(["id"],axis=1,inplace=True)
 
-    print(df_x.head(3))
-    print(df_y.head(3))
-
     #remove features by coefficient of variance
     if run_cfg['preprocessing/feature_removal']:
      df_x = feature_reduction(df_x,run_cfg['preprocessing/feature_removal_cv_min'],run_cfg['preprocessing/feature_removal_cv_max'])
@@ -237,7 +230,10 @@ def run(run_cfg, env_cfg):
      df_x, df_y = remove_outlier(df_x,df_y,run_cfg['preprocessing/outlier_cont_lim'])
 
     if run_cfg['preprocessing/extract_top_ETC']:
-     df_x, df_y = extract_top_ETC(df_x,df_y,run_cfg['preprocessing/ETC_n_top'],run_cfg['preprocessing/ETC_rs'])
+     df_x, df_y = extract_top_ETR(
+         df_x,df_y,run_cfg['preprocessing/ETR_n_top'],
+         run_cfg['preprocessing/ETR_rs'],
+         run_cfg['preprocessing/ETR_max_feat'])
     
     #extract features by y correlation
     if run_cfg['preprocessing/y_corr']:

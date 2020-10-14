@@ -27,8 +27,14 @@ preproc:
         enabled: true
         lb: 0.8
 
-      y_corr:
+      ETR: #Extra Tree Regressor
         enabled: true
+        n_top: 60
+        rnd_state: 0
+        max_feat: "auto"
+
+      y_corr: # coefficient of variance
+        enabled: false
     rfe:
       method: rfecv
     pca:
