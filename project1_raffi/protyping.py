@@ -52,6 +52,7 @@ print(env_cfg)
 #%%
 df_X = pd.read_csv(f"{env_cfg['datasets/project1/path']}/X_train.csv")
 df_Y = pd.read_csv(f"{env_cfg['datasets/project1/path']}/y_train.csv")
+df_X_u = pd.read_csv(f"{env_cfg['datasets/project1/path']}/X_test.csv") # unlabeled 
 
 #%% 
 imputer = SimpleImputer(missing_values=np.nan, strategy='median')
@@ -64,18 +65,9 @@ df_X_f = fsel.fit_transform(df_X.iloc[:,1:], df_Y['y'])
 # df_X_f[:] = normalizer.fit_transform(df_X_f)
 
 # %%
-def lasso_fit(reg_lasso, X, y):
-  reg_lasso = reg_lasso.fit(X, y)
-  # worse than simple linear model
-  reg_lasso.score(X, y)
-  return reg_lasso
-  
-def ridge_fit(reg_ridge, X,y):
-  # Same thing but with Ridge regression
-  reg_ridge = reg_ridge.fit(X, y)
-  # same as simple linear regression - might as well use this
-  reg_ridge.score(X, y)  
-  return reg_ridge 
+def simple_fit(model, X, y):
+  model = model.fit(X, y)
+  return model 
 
 def auto_crossval(model, X, y):
   rkf = RepeatedKFold(
@@ -96,24 +88,25 @@ def auto_crossval(model, X, y):
 estimators = {
   'elasticnet': {
     'model': lambda: ElasticNet(alpha=1.01),
-    'fit': lasso_fit,
+    'fit': simple_fit,
     'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
     'validate': lambda m,X,y: m.score(m,X,y)
   },
   'lasso': {
     'model': lambda: Lasso(alpha=1.01),
-    'fit': lasso_fit,
+    'fit': simple_fit,
     'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
     'validate': lambda m,X,y: m.score(m,X,y)
   },
   'ridge': {
     'model': lambda: Ridge(alpha=1.01),
-    'fit': ridge_fit,
+    'fit': simple_fit,
     'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
     'validate': lambda m,X,y: m.score(m,X,y)
   },
   'lightgbm': {
     'model': lambda : lgbm.LGBMRegressor(),
+    'fit': simple_fit,
     'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
     'validate': lambda m,X,y: m.score(m,X,y)
   }
@@ -148,11 +141,9 @@ args = [{
 
 #%% compute train scores 
 train_scores = []
-trained_models = {}
 for i, arg in enumerate(args):
   s, m = pool_f(arg)
   train_scores.append(s)
-  trained_models[arg['task']] = m
 
 # test_scores = []
 # for i, task in enumerate(tasks):
@@ -164,16 +155,33 @@ train_scores_mean = pd.DataFrame( np.array(train_scores).T).mean()
 results_stat = pd.DataFrame([train_scores_mean])
 
 #%%
-results_stat
 # multiprocessing does not work in the interactive
 # interpreter (stackoverflow)
 # with multiprocessing.Pool(1) as p: 
   # results = p.map(pool_f, args)
 
 
+def fill_nan(X, strategy):
+  imputer = SimpleImputer(missing_values=np.nan, strategy=strategy)
+  return(imputer.fit_transform(X))
 
+for t_name in tasks:
+  model_dict = estimators[t_name]
+  model = model_dict['model']() # factory
+  fit_f = model_dict['fit'](model,X_train,y_train)
+  print(model.score(X_test, y_test))
+  X_u = df_X_u[X_train.columns]
+  X_u[:] = fill_nan(X_u, 'median')
+  y_u = model.predict(X_u)
+  y_u_df =  pd.DataFrame({
+    'id': np.arange(0,len(y_u)).astype(float),
+    'y': y_u
+  })
+  
+  if not os.path.exists('predictions'):
+    os.makedirs('predictions')
+  y_u_df.to_csv(f'predictions/{t_name}_y.csv', index=False)
 
 
 # %%
-
 # %%
