@@ -304,20 +304,21 @@ def run(run_cfg, env_cfg):
   X = pd.read_csv(f'{datapath}/X_train.csv')
   y = pd.read_csv(f'{datapath}/y_train.csv')
   X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
-  # remove index column
+  
+  # Remove index column
   y = y.iloc[:,1:]
   X = X.iloc[:,1:]
   logging.info('Training dataset imported')
 
-  # remove NaN 
+  # Remove NaN 
   X[:] = fill_nan(X, run_cfg['preproc/imputer/strategy'])
 
-  # run first loop on drop_feat_cov_constant to remove features with 0 mean and constant signal
+  # Run first loop on drop_feat_cov_constant to remove features with 0 mean and constant signal
   # cvmin should be in the range 1e-4 for this task
   if run_cfg['preproc/zero_and_const/enabled']:
     X = drop_feat_cov_constant(X, run_cfg['preproc/zero_and_const/cvmin'])
 
-  # remove outliers (rows/datapoints)
+  # Remove outliers (rows/datapoints)
   if run_cfg['preproc/outlier/enabled']:
     cont_lim =  run_cfg['preproc/outlier/cont_lim']
     if run_cfg['preproc/outlier/impl'] == 'ines':
@@ -332,7 +333,7 @@ def run(run_cfg, env_cfg):
     'auto' : lambda X,y: autofeat_dim_reduction(X,y)
   }
   
-  # reduce data set dimensionality
+  # Reduce data set dimensionality
   rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
   X = rmf_pipelines[rmf_pipeline_name](X,y)
 
@@ -341,7 +342,7 @@ def run(run_cfg, env_cfg):
   if flag_normalize: 
     X = normalize(X, run_cfg['preproc/normalize/method'])
 
-  # apply pca (with min max normalization)
+  # Apply pca (with min max normalization)
   if run_cfg['preproc/rmf/pca/enabled']:
     if not flag_normalize: 
       logging.error('Unnormalized data as PCA input!')
@@ -369,8 +370,10 @@ def run(run_cfg, env_cfg):
     train_scores.append(s)
 
   train_scores_mean = pd.DataFrame( np.array(train_scores).T).mean()
+  train_scores_mean.index = run_cfg['tasks']
   logging.info(train_scores_mean)
 
+  # Reduce dimensionality of test dataset based on preprocessing on training data 
   X_u = X_u[X_train.columns]
   X_u[:] = fill_nan(X_u, run_cfg['preproc/imputer/strategy'])
 
