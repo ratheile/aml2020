@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.feature_selection import RFE, RFECV
-from sklearn.ensemble import IsolationForest
+from sklearn.ensemble import IsolationForest, GradientBoostingRegressor
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.impute import SimpleImputer
 
 from sklearn.model_selection import \
@@ -152,51 +152,58 @@ def pca_dim_reduction(X, n_comp):
   return X
 
 
-def normalize(X):
-  min_max_scaler = MinMaxScaler()
-  X_arr_scaled = min_max_scaler.fit_transform(X)
-  return X
+def normalize(X,method):
+  scaler_dic = {
+    'minmax': MinMaxScaler(),
+    'standard': StandardScaler(),
+  }
+  scaler = scaler_dic[method]
+  X_scaled = pd.DataFrame(scaler.fit_transform(X), index=X.index, columns=X.columns)
+  return X_scaled
 
 
 ######################## Inês #######################################################
 
 
-def find_isolation_forest_outlier(X,y,method, cont_lim):
-  if method == 'isol_forest':
-    clf = IsolationForest(contamination=cont_lim).fit(X)
-    y_pred_train = clf.predict(X)
-    # inliers = np.array(np.where(y_pred_train==1))
-    outliers = np.array(np.where(y_pred_train==-1))
-    # print(f"Here are a few examples of inliers:\n{inliers}")
-    # print(f"The total number of inliers is: {inliers.size}")
-    # print(f"Here are the detected outliers:\n{outliers}")
-    print(f"The total number of outliers removed: {outliers.size}")
-    outliers = outliers.tolist()
-    outliers = [ item for elem in outliers for item in elem]
-    X_inliers = X.drop(index=outliers)
-    y_inliers = y.drop(index=outliers)
-    return X_inliers, y_inliers
+def find_isolation_forest_outlier(X,y,cont_lim):
+  clf = IsolationForest(contamination=cont_lim).fit(X)
+  y_pred_train = clf.predict(X)
+  outliers = np.array(np.where(y_pred_train==-1))
+  print(f"Total number of outliers removed: {outliers.size}")
+  outliers = outliers.tolist()
+  outliers = [ item for elem in outliers for item in elem]
+  X_inliers = X.drop(index=outliers)
+  y_inliers = y.drop(index=outliers)
+  return X_inliers, y_inliers
 
-def rfe_dim_reduction(X,y,method):
+def rfe_dim_reduction(X,y,method,estimator):
   # Good read: https://scikit-learn.org/stable/modules/feature_selection.html
   # Also: https://www.datacamp.com/community/tutorials/feature-selection-python
   # Different types of feature selection methods:
   # 1. Filter methods: apply statistical measures to score features (corr coef and Chi^2).
   # 2. Wrapper methods: consider feature selection a search problem (e.g. RFE)
   # 3. Embedded methods: feature selection occurs with model training (e.g. LASSO)
-
-  estimator = Ridge() # TODO: this is an arbitrary choice and the result is influenced by this!
+  
+  estimator_dic = {
+    'GradientBoostingRegressor': GradientBoostingRegressor(),
+    'lightgbm': lgbm.LGBMRegressor(),
+    'elacticnet': ElasticNet(),
+  }
+  estimator = estimator_dic[estimator] # TODO: this is an arbitrary choice and the result is influenced by this!
+  step = 10
+  verbose = 1 
+  min_feat = 20
   if method == "rfe":
-    selector = RFE(estimator, n_features_to_select=60, step=10, verbose=0)
+    selector = RFE(estimator, n_features_to_select=min_feat, step=step, verbose=verbose)
   elif method == "rfecv":
-    selector = RFECV(estimator, step=1, cv=5, verbose=0, min_features_to_select=20)
+    selector = RFECV(estimator, step=step, cv=5, verbose=verbose, min_features_to_select=min_feat)
   # TODO: consider other methods? e.g. tree-based feature selection + SelectFromModel?
 
-  selector = selector.fit(X, y)
-  print('Original number of features : %s' % X.shape[1])
-  print("Final number of features : %d" % selector.n_features_)
+  selector = selector.fit(X, y.values.ravel()) # Transformation in y as requested by function
+  print(f'Original number of features : {X.shape[1]}')
+  print(f"Final number of features : {selector.n_features_}")
   X_red = selector.transform(X)
-  X_red = pd.DataFrame(X_red)
+  X_red = pd.DataFrame(X_red, columns=X.columns[selector.support_])
 
   return X_red
   
@@ -312,17 +319,16 @@ def run(run_cfg, env_cfg):
 
   # remove outliers (rows/datapoints)
   if run_cfg['preproc/outlier/enabled']:
-    outlier_type = run_cfg['preproc/outlier/type']
     cont_lim =  run_cfg['preproc/outlier/cont_lim']
     if run_cfg['preproc/outlier/impl'] == 'ines':
-      X,y = find_isolation_forest_outlier(X,y,outlier_type, cont_lim)
+      X,y = find_isolation_forest_outlier(X,y, cont_lim)
     else:
       X = remove_isolation_forest_outlier(X, cont_lim)
 
   rfe_method = run_cfg['preproc/rmf/rfe/method']
   rmf_pipelines = {
     'ffu': lambda X,y: ffu_dim_reduction(run_cfg,X,y),
-    'rfe': lambda X,y: rfe_dim_reduction(X,y,rfe_method),
+    'rfe': lambda X,y: rfe_dim_reduction(X,y,rfe_method,run_cfg['preproc/rmf/rfe/estimator']),
     'auto' : lambda X,y: autofeat_dim_reduction(X,y)
   }
   
@@ -330,9 +336,10 @@ def run(run_cfg, env_cfg):
   rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
   X = rmf_pipelines[rmf_pipeline_name](X,y)
 
+  # Normalization
   flag_normalize = run_cfg['preproc/normalize/enabled']
   if flag_normalize: 
-    X = normalize(X)
+    X = normalize(X, run_cfg['preproc/normalize/method'])
 
   # apply pca (with min max normalization)
   if run_cfg['preproc/rmf/pca/enabled']:
