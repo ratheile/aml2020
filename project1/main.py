@@ -375,7 +375,10 @@ def run(run_cfg, env_cfg):
 
   # Reduce dimensionality of test dataset based on preprocessing on training data 
   X_u = X_u[X_train.columns]
+  if flag_normalize: 
+    X_u = normalize(X_u, run_cfg['preproc/normalize/method'])
   X_u[:] = fill_nan(X_u, run_cfg['preproc/imputer/strategy'])
+
 
   for t_name in tasks:
     model_dict = estimators[t_name]
