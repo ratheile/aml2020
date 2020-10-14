@@ -119,7 +119,7 @@ def extract_y_correlated(df_x,df_y):
  df_x_corr = df_x[l1]
  print(f"no. of columns kept after correlation check with y: {len(l1)}")
  print(f"columns kept after correlation check with y:\n {df_x_corr.columns.tolist()}")
- return(df_x,df_y)
+ return(df_x, df_y)
 
 def drop_x_correlated(df,lb):
 #look at correlation between features
@@ -159,28 +159,30 @@ def drop_x_correlated(df,lb):
  compare_to_bench(df.columns.tolist())
  return(df)
 
-def apply_pca(df_x, df_y, n_comp):
-    X_arr, Y_arr = normalize(df)
+def apply_pca(df_x, n_comp):
+    df_x_norm = normalize(df_x)
 
     pca = PCA(n_components=2)
-    pca.fit(X_arr)
-    X_pca=pca.transform(X_arr)
+    pca.fit(df_x_norm)
+    X_pca=pca.transform(df_x_norm)
+    print(X_pca)
     print(f"PC 1 with scaling:\n {pca.components_[0]}")
-    return(X_pca, Y_arr)
+    #df_x_pca = pd.DataFrame(data=X_pca,columns=df_x.columns.tolist())
+    return(X_pca)
 
 def normalize(df_x):
-    Y_arr, X_arr, df_colnames = df_to_array(df_x)
+    #Y_arr, X_arr, df_colnames = df_to_array(df_x)
 
     min_max_scaler = preprocessing.MinMaxScaler()
-    X_arr_scaled= min_max_scaler.fit_transform(X_arr)
-    df_x = pd.DataFrame(data=X_arr_scaled,columns=df_colnames)
-    return(X_arr_scaled, Y_arr)
+    X_arr_scaled= min_max_scaler.fit_transform(df_x)
+    df_x_scaled = pd.DataFrame(data=X_arr_scaled,columns=df_x.columns.tolist())
+    return(df_x_scaled)
 
-def df_to_array(df_x):
+def df_to_array(df_x, df_y):
     Y_arr = df_y.to_numpy()
     X_arr = df_x.to_numpy()
     df_x_colnames = df_x.columns.tolist()
-    return(Y_arr,X_arr,df_colnames)
+    return(Y_arr,X_arr,df_x_colnames)
 
 def compare_to_bench(cand_list):
   bench = ["x85", "x302", "x761", "x687", "x507", "x685", "x785", "x540", "x155", "x482", "x356", "x184", "x35", "x546", "x745", "x579", "x344", "x783", "x198", "x476"]
@@ -239,7 +241,7 @@ def run(run_cfg, env_cfg):
     
     #extract features by y correlation
     if run_cfg['preprocessing/y_corr']:
-     df_yx = extract_y_correlated(df_x,df_y)
+     df_x, df_y = extract_y_correlated(df_x,df_y)
 
     #remove features by x correlation
     if run_cfg['preprocessing/x_corr']:
@@ -247,7 +249,7 @@ def run(run_cfg, env_cfg):
 
     #apply pca (with min max normalization)
     if run_cfg['preprocessing/apply_pca']:
-     X, y = apply_pca(df_yx, run_cfg['preprocessing/pca_n_comp'])
+      df_x = apply_pca(df_x, run_cfg['preprocessing/pca_n_comp'])
 
     if run_cfg['preprocessing/apply_pca'] != 1:
-        X,y = normalize(df_yx)
+      df_x = normalize(df_x)

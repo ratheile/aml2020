@@ -13,7 +13,7 @@ preproc:
     impl: ines
     
   rmf: # remove features
-    pipeline: rfe # auto, rfe, ffu
+    pipeline: ffu # auto, rfe, ffu
     ffu: # Francesco
       cov: # coefficient of variance
         enabled: true
@@ -32,7 +32,7 @@ preproc:
       n_comp: 2
 
   normalize:
-    enabled: true
+    enabled: false
     
 models:
   elasticnet:
