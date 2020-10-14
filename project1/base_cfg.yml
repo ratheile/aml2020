@@ -13,7 +13,7 @@ preproc:
     impl: ines
     
   rmf: # remove features
-    pipeline: auto # auto, rfe, ffu
+    pipeline: rfe # auto, rfe, ffu
     ffu: # Francesco
       cov: # coefficient of variance
         enabled: true
