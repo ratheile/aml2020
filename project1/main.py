@@ -291,10 +291,10 @@ def ffu_dim_reduction(run_cfg, X,y):
     X = drop_feat_uncorrelated_y(X, y)
 
   # drop features by Extra Tree Regressor
-  if run_cfg['prepoc/rmf/ffu/ETR/enabled']:
-    n_top = run_cfg['prepoc/rmf/ffu/ETR/n_top']
-    rnd_state = run_cfg['prepoc/rmf/ffu/ETR/rnd_state']
-    max_feat = run_cfg['prepoc/rmf/ffu/ETR/max_feat']
+  if run_cfg['prepoc/rmf/ffu/etr/enabled']:
+    n_top = run_cfg['prepoc/rmf/ffu/etr/n_top']
+    rnd_state = run_cfg['prepoc/rmf/ffu/etr/rnd_state']
+    max_feat = run_cfg['prepoc/rmf/ffu/etr/max_feat']
     X = drop_feat_ETR(X,y,n_top,rnd_state,max_feat)  
 
   # drop features by x correlation

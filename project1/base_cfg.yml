@@ -27,7 +27,7 @@ preproc:
         enabled: true
         lb: 0.8
 
-      ETR: #Extra Tree Regressor
+      etr: #Extra Tree Regressor
         enabled: true
         n_top: 60
         rnd_state: 0
