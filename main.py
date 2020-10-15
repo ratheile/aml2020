@@ -15,8 +15,6 @@ from project1_ffu import main as ffu
 from project1 import main as project1
 from project1.estimator import Project1Estimator
 
-from sklearn.model_selection import GridSearchCV
-
 class User(Enum):
   ines = 'ines'
   ffu = 'ffu'
@@ -101,14 +99,9 @@ if __name__ == "__main__":
     for id_ex, run_cfg_path in enumerate(run_cfg_paths):
       name = os.path.basename(run_cfg_path)
       run_cfg = ConfigLoader().from_file(run_cfg_path)
-      search = GridSearchCV(
-        estimator=Project1Estimator(run_cfg, env_cfg),
-        param_grid={
-          'C': [1, 10], 
-          'kernel': ('linear', 'rbf')
-        }
-      )
-      search.fit()
+      slice_cfg = ConfigLoader().from_file('project1/slice.yml')
+      logging.info(f'running experiment {id_ex + 1} with name {name}')
+      project1.gridsearch(run_cfg, env_cfg, slice_cfg) 
 
   else:
     # no user

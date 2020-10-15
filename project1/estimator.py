@@ -14,6 +14,10 @@ from .rmf_rfe import rfe_dim_reduction
 from .outlier import remove_isolation_forest_outlier, \
   find_isolation_forest_outlier
 
+from autofeat import FeatureSelector
+
+from sklearn.metrics import r2_score
+
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.base import BaseEstimator
 
@@ -44,10 +48,11 @@ import lightgbm as lgbm
 class Project1Estimator(BaseEstimator):
 
   ##################### Estimator API ########################
-  def __init__(self, run_cfg, env_cfg):
+  def __init__(self, run_cfg, env_cfg, slice_cfg=None, **args):
     self.env_cfg = env_cfg
     self.run_cfg = run_cfg
-    logging.info('Estimator initialized')
+    self.slice_cfg = slice_cfg
+    logging.info(f'Estimator initialized {args}')
 
     self.scaler_dic = {
       'minmax': lambda: MinMaxScaler(),
@@ -56,8 +61,17 @@ class Project1Estimator(BaseEstimator):
     
     self.estimators = self.cfg_to_estimators(run_cfg)
 
+    if slice_cfg is not None:
+      self.parameters = list(slice_cfg['run_cfg'].keys())
+    else:
+      self.parameters = []
+
+
   def fit(self, X, y):
     # preprocessing
+    X = X.copy(deep=True)
+    y = y.copy(deep=True)
+
     X, y = self.preprocess(self.run_cfg, X, y)
     # X, y = check_X_y(X, y) # TODO: returns wierd stuff
 
@@ -73,7 +87,10 @@ class Project1Estimator(BaseEstimator):
     self._y = y 
 
   def predict(self, X_u):
+
     check_is_fitted(self)
+
+    X_u = X_u.copy(deep=True)
     X_u = self.preprocess_unlabeled(self.run_cfg, X_u)
 
     # Reduce dimensionality of test dataset
@@ -81,6 +98,47 @@ class Project1Estimator(BaseEstimator):
     X_u = X_u[self._X.columns]
     y_u = self._fitted_model_.predict(X_u)
     return y_u
+
+
+  def score(self, X, y=None):
+    return(r2_score(self.predict(X), y))
+
+
+  def get_params(self, deep=True):
+    out = {}
+    out['run_cfg'] = self.run_cfg
+    out['env_cfg'] = self.env_cfg
+
+    if self.slice_cfg is not None:
+      out['slice_cfg'] = self.slice_cfg
+
+    for key in self.parameters:
+      out[key] = self.run_cfg[key]
+    return out
+
+  def set_params(self, **params):
+    if not params:
+      # Simple optimization to gain speed (inspect is slow)
+      return self
+    
+    if 'run_cfg' in params:
+      logging.warn('run_cfg set in set_params')
+      self.run_cfg = params['run_cfg']
+
+    if 'env_cfg' in params:
+      logging.warn('env_cfg set in set_params')
+      self.env_cfg = params['env_cfg']
+
+    if 'slice_cfg' in params:
+      logging.warn('slice_cfg set in set_params')
+      self.slice_cfg = params['slice_cfg']
+
+      logging.warn(f'updating params: {params}')
+    for key, value in params.items():
+      if key != 'run_cfg' and key != 'env_cfg' and key != 'slice_cfg':
+        self.run_cfg[key] = value
+    
+    return self
 
   ##################### Cross Validation ########################
   def cv_task(self, args):
