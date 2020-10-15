@@ -7,6 +7,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .estimator import Project1Estimator
+from sklearn.model_selection import GridSearchCV
+
+def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
+  datapath = env_cfg['datasets/project1/path']
+  X = pd.read_csv(f'{datapath}/X_train.csv')
+  y = pd.read_csv(f'{datapath}/y_train.csv')
+  X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
+  
+  # Remove index column
+  y = y.iloc[:,1:]
+  X = X.iloc[:,1:]
+  logging.info('Training dataset imported')
+
+  p1e = Project1Estimator(run_cfg, env_cfg, slice_cfg)
+  param_grid = slice_cfg['run_cfg']
+
+  search = GridSearchCV(
+      estimator=p1e,
+      param_grid=param_grid
+    )
+
+  search.fit(X, y)
 
 def run(run_cfg, env_cfg):
 
