@@ -23,11 +23,21 @@ def run(run_cfg, env_cfg):
 
   p1e = Project1Estimator(run_cfg, env_cfg)
   p1e.fit(X,y)
-  scores = p1e.cross_validate(X,y)
-  prediction = p1e.predict(X_u)
+  scores = p1e.cross_validate()
+  y_u = p1e.predict(X_u)
+  
+  if len(y_u.shape) > 1:
+    yuf = y_u.flatten()
+    y_u = yuf
+  y_u_df =  pd.DataFrame({
+    'id': np.arange(0,len(y_u)).astype(float),
+    'y': y_u
+  })
 
+  if not os.path.exists('predictions'):
+    os.makedirs('predictions')
 
-
-
-
-
+  estimator_name = run_cfg['fit_model']
+  y_u_df.to_csv(
+    f'predictions/{estimator_name}_y.csv', 
+    index=False)

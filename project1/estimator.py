@@ -39,6 +39,8 @@ from sklearn.linear_model import \
     ElasticNet
 import logging
 
+import lightgbm as lgbm
+
 class Project1Estimator(BaseEstimator):
 
   ##################### Estimator API ########################
@@ -55,42 +57,58 @@ class Project1Estimator(BaseEstimator):
     self.estimators = self.cfg_to_estimators(run_cfg)
 
   def fit(self, X, y):
+    # preprocessing
     X, y = self.preprocess(self.run_cfg, X, y)
-    self.X = X
-    self.y = y
+    # X, y = check_X_y(X, y) # TODO: returns wierd stuff
+
+    # regression model fit
+    estimator_name = self.run_cfg['fit_model']
+    estimator_cfg = self.estimators[estimator_name]
+    model = estimator_cfg['model']() # factory
+    fitted_model = estimator_cfg['fit'](model, X, y)
+
+    # store
+    self._fitted_model_ = fitted_model
+    self._X = X
+    self._y = y 
 
   def predict(self, X_u):
     check_is_fitted(self)
-    X_u = preprocess_unlabeled(X_u)
+    X_u = self.preprocess_unlabeled(self.run_cfg, X_u)
 
-    # Reduce dimensionality of test dataset based on feature selection on training data 
-    X_u = X_u[X_train.columns]
-
-    for t_name in tasks:
-      model_dict = estimators[t_name]
-      model = model_dict['model']() # factory
-      fit_f = model_dict['fit'](model,X_train,y_train)
-      logging.info(model.score(X_test, y_test))
-      y_u = model.predict(X_u)
-      if len(y_u.shape) > 1:
-        yuf = y_u.flatten()
-        y_u = yuf
-      y_u_df =  pd.DataFrame({
-        'id': np.arange(0,len(y_u)).astype(float),
-        'y': y_u
-      })
-
-      if not os.path.exists('predictions'):
-        os.makedirs('predictions')
-      y_u_df.to_csv(f'predictions/{t_name}_y.csv', index=False)
+    # Reduce dimensionality of test dataset
+    # based on feature selection on training data 
+    X_u = X_u[self._X.columns]
+    y_u = self._fitted_model_.predict(X_u)
+    return y_u
 
   ##################### Cross Validation ########################
-  def cross_validate(X, y):
+  def cv_task(self, args):
+    estimators = args['estimators']
+    task_args = args['task_args']
+    model_dict = estimators[task_args['task']]
+    model = model_dict['model']() # factory
+    crossval_fit = model_dict['crossval_fit']
+    # logging.info(model.score(X_test, y_test))
+
+    # run the task:
+    X = task_args['X']
+    y = task_args['y']
+    return (crossval_fit(model, X, y), model)
+
+
+  def cross_validate(self):
+    check_is_fitted(self)
+
     run_cfg = self.run_cfg
-    tasks = run_cfg['tasks']
+    tasks = run_cfg['cv_tasks']
+    logging.info(f'Cross validating regression models {tasks}')
 
     X_train, X_test, y_train, y_test = train_test_split(
-      X,y ,test_size=run_cfg['overfit/test_size'])
+      self._X, 
+      self._y,
+      test_size=run_cfg['overfit/test_size']
+    )
 
     task_args = [{
       'X': X_train.copy(deep=True),
@@ -101,7 +119,7 @@ class Project1Estimator(BaseEstimator):
 
     train_scores = []
     for i, arg in enumerate(args):
-      s, m = self.pool_f(arg)
+      s, m = self.cv_task(arg)
       train_scores.append(s)
 
     train_scores_mean = pd.DataFrame( np.array(train_scores).T).mean()
@@ -119,7 +137,7 @@ class Project1Estimator(BaseEstimator):
     return X
 
 
-  # def normalize(X,X_test,method):
+  # def normalize(self, X, X_test, method):
   #   scaler_dic = {
   #     'minmax': MinMaxScaler(),
   #     'standard': StandardScaler(),
@@ -167,42 +185,29 @@ class Project1Estimator(BaseEstimator):
       'elasticnet': {
         'model': lambda: ElasticNet(alpha=1.01),
         'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
+        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       },
       'lasso': {
         'model': lambda: Lasso(alpha=1.01),
         'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
+        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       },
       'ridge': {
         'model': lambda: Ridge(alpha=1.01),
         'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
+        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       },
       'lightgbm': {
         'model': lambda : lgbm.LGBMRegressor(),
         'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: auto_crossval(m,X,y),
+        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       }
     }
     return estimators
-
-
-  def pool_f(self, args):
-    estimators = args['estimators']
-    task_args = args['task_args']
-    model_dict = estimators[task_args['task']]
-    model = model_dict['model']() # factory
-    crossval_fit = model_dict['crossval_fit']
-
-    # run the task:
-    X = task_args['X']
-    y = task_args['y']
-    return (crossval_fit(model, X, y), model)
 
 
   def fill_nan(self, X, strategy):
@@ -213,6 +218,7 @@ class Project1Estimator(BaseEstimator):
   def preprocess_unlabeled(self, run_cfg, X_u):
     X_u[:] = self.fill_nan(X_u, run_cfg['preproc/imputer/strategy'])  # test
 
+    flag_normalize = run_cfg['preproc/normalize/enabled']
     if flag_normalize: 
     #   X, X_u = normalize(X, X_u, run_cfg['preproc/normalize/method'])
       X_u = self.normalize(X_u, run_cfg['preproc/normalize/method'])
