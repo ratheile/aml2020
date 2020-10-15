@@ -163,11 +163,12 @@ def pca_dim_reduction(X, n_comp):
 #   X_test_scaled = pd.DataFrame(scaler.transform(X_test), index=X_test.index, columns=X_test.columns)
 #   return X_scaled, X_test_scaled
 
+scaler_dic = {
+  'minmax': MinMaxScaler(),
+  'standard': StandardScaler(),
+}
+
 def normalize(X,method):
-  scaler_dic = {
-    'minmax': MinMaxScaler(),
-    'standard': StandardScaler(),
-  }
   scaler = scaler_dic[method]
   scaler = scaler.fit(X)
   X_scaled = pd.DataFrame(scaler.transform(X), index=X.index, columns=X.columns)
