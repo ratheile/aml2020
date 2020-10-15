@@ -8,7 +8,11 @@ import matplotlib.pyplot as plt
 
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.feature_selection import RFE, RFECV
-from sklearn.ensemble import IsolationForest, GradientBoostingRegressor
+
+from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.ensemble import IsolationForest, \
+  GradientBoostingRegressor \
+
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.impute import SimpleImputer
@@ -25,7 +29,7 @@ from sklearn.linear_model import \
     ElasticNet
 
 import lightgbm as lgbm
-from autofeat import FeatureSelector, AutoFeatRegressor
+# from autofeat import FeatureSelector, AutoFeatRegressor
 
 from scipy import stats
 
@@ -80,11 +84,22 @@ def drop_feat_uncorrelated_y(df_x, df_y):
   p_y_n67_033 = p_y[p_y["y-binned"]=="neg[0.67-0.33]"]
   #l1=["y"]
   #l1.append(p_y_n67_033.index.tolist())
-  l1=["y"]+p_y_033_067.index.tolist()+p_y_n67_033.index.tolist()
+  l1=p_y_033_067.index.tolist()+p_y_n67_033.index.tolist()
   logging.info(l1)
   df2 = df[l1]
   logging.info(f"columns kept after correlation check with y: {len(l1)}")
   return(df2)
+
+def drop_feat_ETR(df_x,df_y,n_top,rnd_state,max_feat):
+# check feature importance with Extra Trees Regressor
+# https://towardsdatascience.com/feature-selection-techniques-in-machine-learning-with-python-f24e7da3f36e 
+  model = ExtraTreesRegressor(random_state=rnd_state,max_features=max_feat)
+  model.fit(df_x,df_y)
+  feat_importances = pd.Series(model.feature_importances_, index=df_x.columns)
+  #print(feat_importances.nlargest(n_top))
+  df_x_ETC = df_x[feat_importances.nlargest(n_top).index]
+  #print(df_x_ETC.head(5))
+  return(df_x_ETC)
 
 
 def drop_feat_correlated_x(df, lb):#look at correlation between features
@@ -120,28 +135,25 @@ def drop_feat_correlated_x(df, lb):#look at correlation between features
   df.drop(lc_unique,axis=1,inplace=True)
   return(df)
 
-def remove_isolation_forest_outlier(df, cont_lim):
+def remove_isolation_forest_outlier(df_x, df_y,cont_lim):
   #use Isolation Forest to indentify outliers on the selected features
-  iso_Y_arr, iso_X_arr, df_colnames = df_to_array(df)
+  iso_Y_arr = df_y.to_numpy()
+  iso_X_arr = df_x.to_numpy()
+
+
   len_Y_outl = len(iso_Y_arr)
-  
+    
   iso = IsolationForest(contamination=cont_lim)
-  yhat = iso.fit_predict(iso_X_arr)
+  yhat = iso.fit_predict(df_x)
   mask = yhat != -1
   iso_X_arr, iso_Y_arr = iso_X_arr[mask, :], iso_Y_arr[mask]
 
   len_Y_inl = len_Y_outl-sum(mask)
-  logging.info(f"Outliers removal:")
-  logging.info(f"Removing {len_Y_inl} outliers out of {len_Y_outl} datapoints.")
-  
-  numrows = len(iso_X_arr)    
-  numcols = len(iso_X_arr[0])
-  iso_arr = np.random.rand(numrows,numcols+1)
-  iso_arr[:,0]=iso_Y_arr
-  iso_arr[:,1:(numcols+1)]=iso_X_arr
-  df_iso = pd.DataFrame(data=iso_arr, columns=df_colnames)
-  # TODO: has to return y
-  return(df_iso)
+  print(f"Outliers removal:")
+  print(f"Removing {len_Y_inl} outliers out of {len_Y_outl} datapoints.")
+  df_y_iso = pd.DataFrame(data=iso_Y_arr, columns=df_y.columns.tolist())
+  df_x_iso = pd.DataFrame(data=iso_X_arr, columns=df_x.columns.tolist())
+  return(df_x_iso, df_y_iso)
 
 
 def pca_dim_reduction(X, n_comp):
@@ -299,14 +311,20 @@ def ffu_dim_reduction(run_cfg, X,y):
 
   # drop features by y correlation
   if run_cfg['preproc/rmf/ffu/y_corr/enabled']:
-    Xy = drop_feat_uncorrelated_y(X, y)
+    X = drop_feat_uncorrelated_y(X, y)
+
+  # drop features by Extra Tree Regressor
+  if run_cfg['prepoc/rmf/ffu/etr/enabled']:
+    n_top = run_cfg['prepoc/rmf/ffu/etr/n_top']
+    rnd_state = run_cfg['prepoc/rmf/ffu/etr/rnd_state']
+    max_feat = run_cfg['prepoc/rmf/ffu/etr/max_feat']
+    X = drop_feat_ETR(X,y,n_top,rnd_state,max_feat)  
 
   # drop features by x correlation
   if run_cfg['preproc/rmf/ffu/x_corr/enabled']:
     lb = run_cfg['preproc/rmf/ffu/x_corr/lb']
-    Xy = drop_feat_correlated_x(Xy,lb)
+    X = drop_feat_correlated_x(X,lb)
 
-  X = Xy.drop(["y"],axis=1)
   return(X)
 
 def run(run_cfg, env_cfg):
@@ -339,7 +357,7 @@ def run(run_cfg, env_cfg):
     if run_cfg['preproc/outlier/impl'] == 'ines':
       X,y = find_isolation_forest_outlier(X,y, cont_lim)
     else:
-      X = remove_isolation_forest_outlier(X, cont_lim)
+      X = remove_isolation_forest_outlier(X,y, cont_lim)
 
   # # Normalization training and test data
   # flag_normalize = run_cfg['preproc/normalize/enabled']
