@@ -69,6 +69,9 @@ class Project1Estimator(BaseEstimator):
 
   def fit(self, X, y):
     # preprocessing
+    X = X.copy(deep=True)
+    y = y.copy(deep=True)
+
     X, y = self.preprocess(self.run_cfg, X, y)
     # X, y = check_X_y(X, y) # TODO: returns wierd stuff
 
@@ -84,7 +87,10 @@ class Project1Estimator(BaseEstimator):
     self._y = y 
 
   def predict(self, X_u):
+
     check_is_fitted(self)
+
+    X_u = X_u.copy(deep=True)
     X_u = self.preprocess_unlabeled(self.run_cfg, X_u)
 
     # Reduce dimensionality of test dataset
@@ -92,6 +98,7 @@ class Project1Estimator(BaseEstimator):
     X_u = X_u[self._X.columns]
     y_u = self._fitted_model_.predict(X_u)
     return y_u
+
 
   def score(self, X, y=None):
     return(r2_score(self.predict(X), y))
@@ -126,10 +133,12 @@ class Project1Estimator(BaseEstimator):
       logging.warn('slice_cfg set in set_params')
       self.slice_cfg = params['slice_cfg']
 
-    for key, value in params.items():
       logging.warn(f'updating params: {params}')
+    for key, value in params.items():
       if key != 'run_cfg' and key != 'env_cfg' and key != 'slice_cfg':
         self.run_cfg[key] = value
+    
+    return self
 
   ##################### Cross Validation ########################
   def cv_task(self, args):
