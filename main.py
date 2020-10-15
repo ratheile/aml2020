@@ -13,7 +13,9 @@ from project1_raffi import main as raffi
 from project1_ines import main as ines
 from project1_ffu import main as ffu
 from project1 import main as project1
+from project1.estimator import Project1Estimator
 
+from sklearn.model_selection import GridSearchCV
 
 class User(Enum):
   ines = 'ines'
@@ -95,8 +97,18 @@ if __name__ == "__main__":
       ines.run(run_cfg, env_cfg) # this is the run function from you project-level main.py
   
   elif user is User.grid:
-    # Gridsearch Impl
-    pass
+    # Gridsearch Impl 
+    for id_ex, run_cfg_path in enumerate(run_cfg_paths):
+      name = os.path.basename(run_cfg_path)
+      run_cfg = ConfigLoader().from_file(run_cfg_path)
+      search = GridSearchCV(
+        estimator=Project1Estimator(run_cfg, env_cfg),
+        param_grid={
+          'C': [1, 10], 
+          'kernel': ('linear', 'rbf')
+        }
+      )
+      search.fit()
 
   else:
     # no user
