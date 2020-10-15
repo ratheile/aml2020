@@ -6,15 +6,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .main import preprocess
-
 from .rmf_ffu import ffu_dim_reduction, \
   drop_feat_cov_constant
 
 from .rmf_rfe import rfe_dim_reduction
 
 from .outlier import remove_isolation_forest_outlier, \
-  find_iso
+  find_isolation_forest_outlier
 
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.base import BaseEstimator
@@ -49,14 +47,21 @@ class Project1Estimator(BaseEstimator):
     self.run_cfg = run_cfg
     logging.info('Estimator initialized')
 
-  def fit(self, X, y):
-    # run(self.run_cfg, self.env_cfg)
-    logging.info('fit')
+    self.scaler_dic = {
+      'minmax': lambda: MinMaxScaler(),
+      'standard': lambda: StandardScaler(),
+    }
+    
+    self.estimators = self.cfg_to_estimators(run_cfg)
 
-  def predict(self, X):
+  def fit(self, X, y):
+    X, y = self.preprocess(self.run_cfg, X, y)
+    self.X = X
+    self.y = y
+
+  def predict(self, X_u):
     check_is_fitted(self)
-    logging.info('predict')
-    X, X_u, y = preprocess(run_cfg, X, X_u, y)
+    X_u = preprocess_unlabeled(X_u)
 
     # Reduce dimensionality of test dataset based on feature selection on training data 
     X_u = X_u[X_train.columns]
@@ -81,8 +86,8 @@ class Project1Estimator(BaseEstimator):
 
   ##################### Cross Validation ########################
   def cross_validate(X, y):
+    run_cfg = self.run_cfg
     tasks = run_cfg['tasks']
-    estimators = cfg_to_estimators(run_cfg)
 
     X_train, X_test, y_train, y_test = train_test_split(
       X,y ,test_size=run_cfg['overfit/test_size'])
@@ -92,16 +97,17 @@ class Project1Estimator(BaseEstimator):
       'y': y_train.copy(deep=True),
       'task': t
     } for t in tasks]
-    args = [{'estimators':estimators,'task_args': a} for a in task_args]
+    args = [{'estimators': self.estimators,'task_args': a} for a in task_args]
 
     train_scores = []
     for i, arg in enumerate(args):
-      s, m = pool_f(arg)
+      s, m = self.pool_f(arg)
       train_scores.append(s)
 
     train_scores_mean = pd.DataFrame( np.array(train_scores).T).mean()
-    train_scores_mean.index = run_cfg['tasks']
+    train_scores_mean.index = tasks
     logging.info(train_scores_mean)
+    return train_scores_mean
 
 
   ##################### Custom functions ########################
@@ -111,6 +117,7 @@ class Project1Estimator(BaseEstimator):
     X_pca = pca.transform(X)
     logging.info(f"\nPC 1 with scaling:\n { pca.components_[0]}")
     return X
+
 
   # def normalize(X,X_test,method):
   #   scaler_dic = {
@@ -123,13 +130,9 @@ class Project1Estimator(BaseEstimator):
   #   X_test_scaled = pd.DataFrame(scaler.transform(X_test), index=X_test.index, columns=X_test.columns)
   #   return X_scaled, X_test_scaled
 
-  scaler_dic = {
-    'minmax': MinMaxScaler(),
-    'standard': StandardScaler(),
-  }
 
   def normalize(self, X,method):
-    scaler = scaler_dic[method]
+    scaler = self.scaler_dic[method]()
     scaler = scaler.fit(X)
     X_scaled = pd.DataFrame(scaler.transform(X), index=X.index, columns=X.columns)
     return X_scaled
@@ -140,9 +143,11 @@ class Project1Estimator(BaseEstimator):
     X = fsel.fit_transform(X,y)
     return X
 
+
   def simple_fit(self, model, X, y):
     model = model.fit(X, y)
     return model 
+
 
   def auto_crossval(self, model, X, y):
     rkf = RepeatedKFold(n_splits=10, n_repeats=2)
@@ -152,6 +157,7 @@ class Project1Estimator(BaseEstimator):
       scoring='r2'
     )
     return scores
+
 
   def cfg_to_estimators(self, run_cfg):
     elasticnet_cfg = run_cfg['models/elasticnet']
@@ -185,6 +191,7 @@ class Project1Estimator(BaseEstimator):
     }
     return estimators
 
+
   def pool_f(self, args):
     estimators = args['estimators']
     task_args = args['task_args']
@@ -202,18 +209,30 @@ class Project1Estimator(BaseEstimator):
     imputer = SimpleImputer(missing_values=np.nan, strategy=strategy)
     return(imputer.fit_transform(X))
 
-  def preprocess(self, run_cfg, X, X_u, y):
+
+  def preprocess_unlabeled(self, run_cfg, X_u):
+    X_u[:] = self.fill_nan(X_u, run_cfg['preproc/imputer/strategy'])  # test
+
+    if flag_normalize: 
+    #   X, X_u = normalize(X, X_u, run_cfg['preproc/normalize/method'])
+      X_u = self.normalize(X_u, run_cfg['preproc/normalize/method'])
+    
+    return X_u
+
+
+  def preprocess(self, run_cfg, X, y):
 
     # Remove NaN from training and test data
-    X[:] = fill_nan(X, run_cfg['preproc/imputer/strategy'])  # train
-    X_u[:] = fill_nan(X_u, run_cfg['preproc/imputer/strategy'])  # test
+    X[:] = self.fill_nan(X, run_cfg['preproc/imputer/strategy'])  # train
 
     # Run first loop on drop_feat_cov_constant to remove
     # features with 0 mean and constant signal
     # cvmin should be in the range 1e-4 for this task
     if run_cfg['preproc/zero_and_const/enabled']:
       X = drop_feat_cov_constant(X, run_cfg['preproc/zero_and_const/cvmin'])
-    X_u = X_u[X.columns]  # Drop these columns in the test set as well
+
+    # TODO: most likely unnecessary
+    # X_u = X_u[X.columns]  # Drop these columns in the test set as well
 
     # Remove outliers (rows/datapoints)
     if run_cfg['preproc/outlier/enabled']:
@@ -225,13 +244,9 @@ class Project1Estimator(BaseEstimator):
 
     # # Normalization training and test data
     flag_normalize = run_cfg['preproc/normalize/enabled']
-
-    # if flag_normalize: 
-    #   X, X_u = normalize(X, X_u, run_cfg['preproc/normalize/method'])
-
-    # Normalize TODO: Check this out
-    X = normalize(X, run_cfg['preproc/normalize/method'])
-    X_u = normalize(X_u, run_cfg['preproc/normalize/method'])
+    if flag_normalize: 
+      # Normalize TODO: Check this out
+      X = self.normalize(X, run_cfg['preproc/normalize/method'])
 
     # Reduce data set dimensionality
     rfe_method = run_cfg['preproc/rmf/rfe/method']
@@ -239,7 +254,7 @@ class Project1Estimator(BaseEstimator):
     rmf_pipelines = {
       'ffu': lambda X,y: ffu_dim_reduction(run_cfg,X,y),
       'rfe': lambda X,y: rfe_dim_reduction(X,y,rfe_method, rfe_estimator),
-      'auto' : lambda X,y: autofeat_dim_reduction(X,y)
+      'auto' : lambda X,y: self.autofeat_dim_reduction(X,y)
     }
     rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
     X = rmf_pipelines[rmf_pipeline_name](X,y)
@@ -249,8 +264,8 @@ class Project1Estimator(BaseEstimator):
       if not flag_normalize: 
         logging.error('Unnormalized data as PCA input!')
       n_comp = run_cfg['preproc/rmf/pca/n_comp']
-      X = pca_dim_reduction(X, n_comp)
+      X = self.pca_dim_reduction(X, n_comp)
 
-    return X, X_u, y
+    return X, y
 
 

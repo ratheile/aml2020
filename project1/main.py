@@ -23,7 +23,8 @@ def run(run_cfg, env_cfg):
 
   p1e = Project1Estimator(run_cfg, env_cfg)
   p1e.fit(X,y)
-  p1e.predict(X_u)
+  scores = p1e.cross_validate(X,y)
+  prediction = p1e.predict(X_u)
 
 
 
