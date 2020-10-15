@@ -12,12 +12,11 @@ preproc:
 
   outlier: # random forest
     enabled: true
-    cont_lim: 0.1
-    type: isol_forest
+    cont_lim: 0.2
     impl: ines
     
   rmf: # remove features
-    pipeline: ffu # auto, rfe, ffu
+    pipeline: rfe # auto, rfe, ffu
     ffu: # Francesco
       cov: # coefficient of variance
         enabled: true
@@ -31,12 +30,15 @@ preproc:
         enabled: true
     rfe:
       method: rfecv
+      estimator: lightgbm # lightgbm, GradientBoostingRegressor, elacticnet, linearreg
+
     pca:
       enabled: false 
       n_comp: 2
 
   normalize:
-    enabled: false
+    enabled: true
+    method: standard
     
 models:
   elasticnet:
