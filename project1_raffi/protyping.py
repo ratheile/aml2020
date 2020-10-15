@@ -29,6 +29,8 @@ from sklearn.linear_model import \
   Ridge, \
   ElasticNet
 
+from sklearn.base import BaseEstimator
+
 from sklearn.preprocessing import Normalizer 
 
 from autofeat import FeatureSelector, AutoFeatRegressor
@@ -184,4 +186,18 @@ for t_name in tasks:
 
 
 # %%
+from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
+from project1 import main as m
 # %%
+class GridSearchEstimator(BaseEstimator):
+
+  def __init__(self, slice, base_cfg, env_cfg):
+    self.base_cfg = base_cfg
+    self.env_cfg = env_cfg
+
+  def fit(self, X, y):
+    m.run(run_cfg, env_cfg)
+
+  def predict(self, X, y):
+    check_is_fitted()
+  

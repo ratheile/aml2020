@@ -19,6 +19,7 @@ class User(Enum):
   ines = 'ines'
   ffu = 'ffu'
   raffi = 'raffi'
+  grid = 'grid'
 
   def __str__(self):
       return self.value
@@ -92,6 +93,10 @@ if __name__ == "__main__":
       run_cfg = ConfigLoader().from_file(run_cfg_path)
       logging.info(f'running experiment {id_ex + 1} with name {name}')
       ines.run(run_cfg, env_cfg) # this is the run function from you project-level main.py
+  
+  elif user is User.grid:
+    # Gridsearch Impl
+    pass
 
   else:
     # no user
