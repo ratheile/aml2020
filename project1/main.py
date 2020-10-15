@@ -25,7 +25,7 @@ from sklearn.linear_model import \
     ElasticNet
 
 import lightgbm as lgbm
-from autofeat import FeatureSelector, AutoFeatRegressor
+#from autofeat import FeatureSelector, AutoFeatRegressor
 
 from scipy import stats
 
