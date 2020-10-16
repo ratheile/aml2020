@@ -41,7 +41,10 @@ from sklearn.linear_model import \
     Lasso, \
     Ridge, \
     ElasticNet
+
+import hashlib
 import logging
+import json
 
 import lightgbm as lgbm
 
@@ -74,12 +77,44 @@ class Project1Estimator(BaseEstimator):
     )
 
   def fit(self, X, y):
-    # preprocessing
+# preprocessing
     X = self.df_sanitization(X)
     y = self.df_sanitization(y)
 
-    X, y = self.preprocess(self.run_cfg, X, y)
-    # X, y = check_X_y(X, y) # TODO: returns wierd stuff
+    hash_dir = self.env_cfg['datasets/project1/hash_dir']
+    # bypass data input
+    skip_preprocessing = False
+
+    df_hash_f = lambda df: hashlib.sha1(pd.util.hash_pandas_object(df).values).hexdigest()
+    fn_func = lambda hash_df, hash_cfg: f'{hash_dir}/{hash_df}_{hash_cfg}.pkl'
+    
+    load_flag = self.run_cfg['persistence/load_from_file']
+    save_flag = self.run_cfg['persistence/save_to_file']
+
+    if load_flag or save_flag:
+      cfg_hash = hashlib.sha256(json.dumps(self.run_cfg['preproc']).encode()).hexdigest()
+      X_hash = df_hash_f(X)
+      y_hash = df_hash_f(y)
+      
+    if load_flag:
+      X_file = fn_func(X_hash,cfg_hash)
+      y_file = fn_func(y_hash,cfg_hash)
+
+      if os.path.isfile(X_file) and os.path.isfile(y_file):
+        logging.warning(f'found pickle for X: {X_file}')
+        logging.warning(f'found pickle for y: {y_file}')
+        X = pd.read_pickle(X_file)
+        y = pd.read_pickle(y_file)
+        skip_preprocessing = True
+
+    if not skip_preprocessing:
+      X, y = self.preprocess(self.run_cfg, X, y)
+      # X, y = check_X_y(X, y) # TODO: returns wierd stuff
+
+    if save_flag and not skip_preprocessing:
+      X.to_pickle(fn_func(X_hash,cfg_hash))
+      y.to_pickle(fn_func(y_hash,cfg_hash))
+
 
     # regression model fit
     estimator_name = self.run_cfg['fit_model']
@@ -214,6 +249,7 @@ class Project1Estimator(BaseEstimator):
 
 
   def normalize(self, X,method, use_pretrained=False):
+    # TODO: save this to pickle
     if use_pretrained and self._scaler_ is not None:
       logging.warn('using pretrained normalizer')
       scaler = self._scaler_
@@ -323,6 +359,8 @@ class Project1Estimator(BaseEstimator):
       cont_lim =  run_cfg['preproc/outlier/cont_lim']
       if run_cfg['preproc/outlier/impl'] == 'ines':
         X,y = find_isolation_forest_outlier(X,y, cont_lim)
+      elif run_cfg['preproc/outlier/impl'] == 'lof':
+        X,y = local_outlier_factor(X,y)
       else:
         X,y = remove_isolation_forest_outlier(X,y, cont_lim)
 
@@ -358,5 +396,3 @@ class Project1Estimator(BaseEstimator):
       X = self.pca_dim_reduction(X, n_comp)
 
     return X, y
-
-
