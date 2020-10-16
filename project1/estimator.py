@@ -265,7 +265,12 @@ class Project1Estimator(BaseEstimator):
         'validate': lambda m,X,y: m.score(m,X,y)
       },
       'lightgbm': {
-        'model': lambda : lgbm.LGBMRegressor(),
+        'model': lambda : lgbm.LGBMRegressor(
+          boosting_type=run_cfg['models/lightgbm/boosting_type'],
+          num_leaves=run_cfg['models/lightgbm/num_leaves'],
+          learning_rate=run_cfg['models/lightgbm/learning_rate'],
+          num_iterations=run_cfg['models/lightgbm/num_iterations']
+        ),
         'fit': self.simple_fit,
         'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
