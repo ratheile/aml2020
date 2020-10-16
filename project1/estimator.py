@@ -213,10 +213,14 @@ class Project1Estimator(BaseEstimator):
   #   return X_scaled, X_test_scaled
 
 
-  def normalize(self, X,method):
-    scaler = self.scaler_dic[method]()
+  def normalize(self, X,method, use_pretrained=False):
+    if use_pretrained and self._scaler_ is not None:
+      scaler = self._scaler_
+    else:
+      scaler = self.scaler_dic[method]()
     scaler = scaler.fit(X)
     X_scaled = pd.DataFrame(scaler.transform(X), index=X.index, columns=X.columns)
+    self._scaler_ = scaler
     return X_scaled
 
 
@@ -290,7 +294,11 @@ class Project1Estimator(BaseEstimator):
     flag_normalize = run_cfg['preproc/normalize/enabled']
     if flag_normalize: 
     #   X, X_u = normalize(X, X_u, run_cfg['preproc/normalize/method'])
-      X_u = self.normalize(X_u, run_cfg['preproc/normalize/method'])
+      X_u = self.normalize(
+        X_u, 
+        run_cfg['preproc/normalize/method'], 
+        use_pretrained=run_cfg['preproc/normalize/use_pretrained_for_X_u']
+      )
     
     return X_u
 
