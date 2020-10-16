@@ -269,7 +269,7 @@ class Project1Estimator(BaseEstimator):
           boosting_type=run_cfg['models/lightgbm/boosting_type'],
           num_leaves=run_cfg['models/lightgbm/num_leaves'],
           learning_rate=run_cfg['models/lightgbm/learning_rate'],
-          num_iterations=run_cfg['models/lightgbm/num_iterations']
+          n_estimators=run_cfg['models/lightgbm/num_iterations']
         ),
         'fit': self.simple_fit,
         'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
