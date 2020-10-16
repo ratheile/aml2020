@@ -10,7 +10,7 @@ preproc:
   outlier: # random forest
     enabled: true
     cont_lim: 0.2
-    impl: ines
+    impl: ffu
     
   rmf: # remove features
     pipeline: ffu # auto, rfe, ffu
