@@ -101,6 +101,8 @@ class Project1Estimator(BaseEstimator):
       y_file = fn_func(y_hash,cfg_hash)
 
       if os.path.isfile(X_file) and os.path.isfile(y_file):
+        logging.warning(f'found pickle for X: {X_file}')
+        logging.warning(f'found pickle for y: {y_file}')
         X = pd.read_pickle(X_file)
         y = pd.read_pickle(y_file)
         skip_preprocessing = True
