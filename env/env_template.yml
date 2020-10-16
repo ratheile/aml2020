@@ -2,3 +2,4 @@ logging:  INFO
 datasets:
   project1:
     path: '/home/shafall/datasets/aml/project1'
+    hash_dir: '/home/shafall/datasets/aml/project1/hash_dir'
