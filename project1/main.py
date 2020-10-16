@@ -23,13 +23,27 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
   p1e = Project1Estimator(run_cfg, env_cfg, slice_cfg)
   param_grid = slice_cfg['run_cfg']
 
-  search = GridSearchCV(
+  clf = GridSearchCV(
       estimator=p1e,
       param_grid=param_grid,
       n_jobs=1
     )
 
-  search.fit(X, y)
+  clf.fit(X, y)
+
+  results_df = pd.concat([
+    pd.DataFrame(clf.cv_results_["params"]),
+    pd.DataFrame(clf.cv_results_["mean_test_score"], columns=["Accuracy"])
+  ],axis=1)
+
+  if not os.path.exists('predictions'):
+    os.makedirs('predictions')
+
+
+  results_df.to_csv(
+      f'predictions/{slice_cfg["experiment_name"]}_y.csv', 
+      index=False)
+
   logging.info('GridSearchCV complete')
 
 def run(run_cfg, env_cfg):
