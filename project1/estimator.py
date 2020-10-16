@@ -66,11 +66,17 @@ class Project1Estimator(BaseEstimator):
     else:
       self.parameters = []
 
+  def df_sanitization(self, data_frame):
+    copy = data_frame.copy(deep=True)
+    npa = copy.to_numpy()
+    return pd.DataFrame(
+      data=npa, columns=copy.columns.tolist()
+    )
 
   def fit(self, X, y):
     # preprocessing
-    X = X.copy(deep=True)
-    y = y.copy(deep=True)
+    X = self.df_sanitization(X)
+    y = self.df_sanitization(y)
 
     X, y = self.preprocess(self.run_cfg, X, y)
     # X, y = check_X_y(X, y) # TODO: returns wierd stuff
@@ -90,7 +96,7 @@ class Project1Estimator(BaseEstimator):
 
     check_is_fitted(self)
 
-    X_u = X_u.copy(deep=True)
+    X_u = self.df_sanitization(X_u)
     X_u = self.preprocess_unlabeled(self.run_cfg, X_u)
 
     # Reduce dimensionality of test dataset
