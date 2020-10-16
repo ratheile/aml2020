@@ -3,6 +3,7 @@ import numpy as np
 import logging
 
 from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
 
 def remove_isolation_forest_outlier(df_x, df_y,cont_lim):
   #use Isolation Forest to indentify outliers on the selected features
@@ -35,3 +36,16 @@ def find_isolation_forest_outlier(X,y,cont_lim):
   X_inliers = X.drop(index=outliers)
   y_inliers = y.drop(index=outliers)
   return X_inliers, y_inliers
+
+def local_outlier_factor(X,y):
+  clf = LocalOutlierFactor()
+  pred = clf.fit_predict(X)
+  outliers = np.array(np.where(pred==-1))
+  logging.info(f"Total number of outliers removed: {outliers.size}")
+  outliers = outliers.tolist()
+  outliers = [ item for elem in outliers for item in elem]
+  X_inliers = X.drop(index=outliers)
+  y_inliers = y.drop(index=outliers)
+  return X_inliers, y_inliers
+
+
