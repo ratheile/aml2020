@@ -304,7 +304,7 @@ class Project1Estimator(BaseEstimator):
       if run_cfg['preproc/outlier/impl'] == 'ines':
         X,y = find_isolation_forest_outlier(X,y, cont_lim)
       else:
-        X = remove_isolation_forest_outlier(X,y, cont_lim)
+        X,y = remove_isolation_forest_outlier(X,y, cont_lim)
 
     # # Normalization training and test data
     flag_normalize = run_cfg['preproc/normalize/enabled']

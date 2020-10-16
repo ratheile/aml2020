@@ -25,10 +25,12 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
 
   search = GridSearchCV(
       estimator=p1e,
-      param_grid=param_grid
+      param_grid=param_grid,
+      n_jobs=1
     )
 
   search.fit(X, y)
+  logging.info('GridSearchCV complete')
 
 def run(run_cfg, env_cfg):
 
