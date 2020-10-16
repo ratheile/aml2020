@@ -1,12 +1,10 @@
 
 # Pipeline steps
+persistence:
+  load_from_file: true
+  save_to_file: true
 
 preproc:
-
-  persistence:
-    load_from_file: true
-    save_to_file: true
-
   imputer:
     strategy: median # mean, median
 

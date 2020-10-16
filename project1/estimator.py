@@ -88,8 +88,8 @@ class Project1Estimator(BaseEstimator):
     df_hash_f = lambda df: hashlib.sha1(pd.util.hash_pandas_object(df).values).hexdigest()
     fn_func = lambda hash_df, hash_cfg: f'{hash_dir}/{hash_df}_{hash_cfg}.pkl'
     
-    load_flag = self.run_cfg['preproc/persistence/load_from_file']
-    save_flag = self.run_cfg['preproc/persistence/save_to_file']
+    load_flag = self.run_cfg['persistence/load_from_file']
+    save_flag = self.run_cfg['persistence/save_to_file']
 
     if load_flag or save_flag:
       cfg_hash = hashlib.sha256(json.dumps(self.run_cfg['preproc']).encode()).hexdigest()
