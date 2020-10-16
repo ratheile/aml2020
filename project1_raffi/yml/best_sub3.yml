@@ -38,6 +38,9 @@ preproc:
     rfe:
       method: rfe # rfecv
       estimator: lightgbm # lightgbm, GradientBoostingRegressor, elacticnet, linearreg
+      min_feat: 50 # default 20
+      step_size: 30 # default 10
+
     pca:
       enabled: false 
       n_comp: 2
@@ -57,9 +60,9 @@ models:
     alpha: 1.01
   lightgbm:
     num_leaves: 127 # default 31
-    learning_rate: 0.01 # default 0.1
+    learning_rate: 0.1 # default 0.1
     num_iterations: 1000 # default 100
-    boosting_type: dart # default gbdt
+    boosting_type: dart # default gbdt [dart, goss, rf]
 
 
 cv_tasks:

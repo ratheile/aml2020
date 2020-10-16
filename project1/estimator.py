@@ -326,9 +326,16 @@ class Project1Estimator(BaseEstimator):
     # Reduce data set dimensionality
     rfe_method = run_cfg['preproc/rmf/rfe/method']
     rfe_estimator = run_cfg['preproc/rmf/rfe/estimator']
+    rfe_step_size = run_cfg['preproc/rmf/rfe/step_size']
+    rfe_min_feat = run_cfg['preproc/rmf/rfe/min_feat']
+
     rmf_pipelines = {
       'ffu': lambda X,y: ffu_dim_reduction(run_cfg,X,y),
-      'rfe': lambda X,y: rfe_dim_reduction(X,y,rfe_method, rfe_estimator),
+      'rfe': lambda X,y: rfe_dim_reduction(
+        X,y,rfe_method, rfe_estimator,
+        min_feat = rfe_min_feat,
+        step = rfe_step_size
+      ),
       'auto' : lambda X,y: self.autofeat_dim_reduction(X,y)
     }
     rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']

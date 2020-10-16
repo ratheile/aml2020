@@ -16,7 +16,7 @@ from sklearn.linear_model import \
 
 import lightgbm as lgbm
 
-def rfe_dim_reduction(X,y,method,estimator):
+def rfe_dim_reduction(X,y,method,estimator, min_feat=20, step=10, verbose=1):
   # Good read: https://scikit-learn.org/stable/modules/feature_selection.html
   # Also: https://www.datacamp.com/community/tutorials/feature-selection-python
   # Different types of feature selection methods:
@@ -26,13 +26,10 @@ def rfe_dim_reduction(X,y,method,estimator):
   
   estimator_dic = {
     'GradientBoostingRegressor': GradientBoostingRegressor(),
-    'lightgbm': lgbm.LGBMRegressor(),
+    'lightgbm': lgbm.LGBMRegressor(boosting_type='dart'),
     'elacticnet': ElasticNet(),
   }
   estimator = estimator_dic[estimator] # TODO: this is an arbitrary choice and the result is influenced by this!
-  step = 10
-  verbose = 1 
-  min_feat = 20
   if method == "rfe":
     selector = RFE(estimator, n_features_to_select=min_feat, step=step, verbose=verbose)
   elif method == "rfecv":
