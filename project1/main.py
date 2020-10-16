@@ -41,7 +41,7 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
 
 
   results_df.to_csv(
-      f'predictions/{slice_cfg["experiment_name"]}_y.csv', 
+      f'predictions/{slice_cfg["experiment_name"]}_grid_results.csv', 
       index=False)
 
   logging.info('GridSearchCV complete')
