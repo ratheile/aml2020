@@ -215,6 +215,7 @@ class Project1Estimator(BaseEstimator):
 
   def normalize(self, X,method, use_pretrained=False):
     if use_pretrained and self._scaler_ is not None:
+      logging.warn('using pretrained normalizer')
       scaler = self._scaler_
     else:
       scaler = self.scaler_dic[method]()
