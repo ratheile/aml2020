@@ -1,0 +1,58 @@
+
+# Pipeline steps
+
+preproc:
+
+  imputer:
+    strategy: median # mean, median
+
+  zero_and_const:
+    enabled: true
+    cvmin: 0.0001
+
+  outlier: # random forest
+    enabled: true
+    cont_lim: 0.2
+    impl: ines
+    
+  rmf: # remove features
+    pipeline: rfe # auto, rfe, ffu
+    ffu: # Francesco
+      cov: # coefficient of variance
+        enabled: true
+        cvmin: 0.1
+      
+      x_corr:
+        enabled: true
+        lb: 0.8
+
+      y_corr:
+        enabled: true
+    rfe:
+      method: rfecv
+      estimator: lightgbm # lightgbm, GradientBoostingRegressor, elacticnet, linearreg
+
+    pca:
+      enabled: false 
+      n_comp: 2
+
+  normalize:
+    enabled: true
+    method: standard
+    
+models:
+  elasticnet:
+    alpha: 1.01
+  lasso:
+    alpha: 1.01
+  ridge:
+    alpha: 1.01
+
+tasks:
+  - lasso
+  - ridge
+  - lightgbm
+  - elasticnet
+
+overfit:
+  test_size: 0.05
