@@ -132,4 +132,9 @@ dmypy.json
 .DS_Store
 .vscode
 
+<<<<<<< Updated upstream
 predictions
+=======
+#CSV
+.csv
+>>>>>>> Stashed changes

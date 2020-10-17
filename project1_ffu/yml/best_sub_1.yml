@@ -9,12 +9,12 @@ preproc:
     strategy: median # mean, median
 
   zero_and_const:
-    enabled: false
+    enabled: true
     cvmin: 0.0001
 
   outlier: # random forest
     enabled: true
-    cont_lim: 0.1
+    cont_lim: 0.2
     impl: ines
     
   rmf: # remove features
@@ -22,18 +22,18 @@ preproc:
     ffu: # Francesco
       cov: # coefficient of variance
         enabled: true
-        cvmin: 0.1
+        cvmin: 0.05
       
       x_corr:
         enabled: true
-        lb: 0.8
+        lb: 0.95
 
       y_corr:
-        enabled: true
+        enabled: false
 
       etr: #Extra Tree Regressor
-        enabled: false 
-        n_top: 60
+        enabled: true 
+        n_top: 150
         rnd_state: 0
         max_feat: "auto"
 
