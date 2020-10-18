@@ -53,7 +53,7 @@ preproc:
     use_pretrained_for_X_u: false
     
 # fit_model: xgboost
-fit_model: xgboost
+fit_model: lightgbm
 
 models:
   elasticnet:
@@ -71,9 +71,9 @@ models:
 
   xgboost:
     learning_rate: 0.03 # default 0.3
-    min_child_weight: 5 # default 1
-    max_depth: 12 # default 6
-    n_estimators: 2000 # default 100
+    min_child_weight: 3 # default 1
+    max_depth: 6 # default 6
+    n_estimators: 1000 # default 100
 
 
 

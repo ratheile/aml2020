@@ -220,15 +220,7 @@ class Project1Estimator(BaseEstimator):
       'X': X_train.copy(deep=True),
       'y': y_train.copy(deep=True),
       'task': t
-    } for t in tasksOur pipeline consists of several steps:
-
-- NaN filling by using an (sklearn) imputer. We choose to fill values by setting those to the median to protect the values from large outliers (if we would take the mean).
-- Removal of constant features. We use the coefficient of variation to remove features that are constant + noise.
-- Removal of outliers: We use the isolation forest outlier detection to remove those. In the tutorial it was mentioned that we deal with 10 to 20% outliers so we tune the removal rate accordingly.
-- We normalize the data to be centered (around 0) mean and unit variance.
-⁻ Since we have a low amount of datapoints and many dimensions (~800) we choose a strategy to remove features before we apply our regression model. We use the meta strategy called ranking with recursive feature elimination (RFE). We provide our regressor to this model and it iteratively eliminates underperforming features. We select the same regression algorithm as we use in the end for the predition.
-
-- For regression we use ]
+    } for t in tasks]
     args = [{'estimators': self.estimators,'task_args': a} for a in task_args]
 
     train_scores = []
