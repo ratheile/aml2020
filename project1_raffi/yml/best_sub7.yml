@@ -52,6 +52,7 @@ preproc:
     method: standard
     use_pretrained_for_X_u: false
     
+# fit_model: xgboost
 fit_model: xgboost
 
 models:
@@ -69,16 +70,16 @@ models:
     boosting_type: dart # default gbdt [dart, goss, rf]
 
   xgboost:
-    learning_rate: 0.05 # default 0.3
+    learning_rate: 0.03 # default 0.3
     min_child_weight: 5 # default 1
     max_depth: 12 # default 6
-    n_estimators: 1000 # default 100
+    n_estimators: 2000 # default 100
 
 
 
 cv_tasks:
   - xgboost
-  - lightgbm
+  # - lightgbm
   # - lasso
   # - ridge
   # - elasticnet
