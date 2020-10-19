@@ -45,8 +45,10 @@ from sklearn.linear_model import \
 import hashlib
 import logging
 import json
+import time
 
 import lightgbm as lgbm
+from xgboost import XGBRegressor
 
 class Project1Estimator(BaseEstimator):
 
@@ -77,7 +79,9 @@ class Project1Estimator(BaseEstimator):
     )
 
   def fit(self, X, y):
-# preprocessing
+    begin_time = time.time()
+    
+  # preprocessing
     X = self.df_sanitization(X)
     y = self.df_sanitization(y)
 
@@ -121,6 +125,9 @@ class Project1Estimator(BaseEstimator):
     estimator_cfg = self.estimators[estimator_name]
     model = estimator_cfg['model']() # factory
     fitted_model = estimator_cfg['fit'](model, X, y)
+
+    end_time = time.time()
+    logging.info(f'Fitting completed in: {end_time - begin_time:.4f} seconds.')
 
     # store
     self._fitted_model_ = fitted_model
@@ -286,6 +293,8 @@ class Project1Estimator(BaseEstimator):
     elasticnet_cfg = run_cfg['models/elasticnet']
     lasso_cfg = run_cfg['models/lasso']
     ridge_cfg = run_cfg['models/ridge']
+    xgboost_cfg = run_cfg['models/xgboost']
+
     estimators = {
       'elasticnet': {
         'model': lambda: ElasticNet(alpha=1.01),
@@ -312,6 +321,12 @@ class Project1Estimator(BaseEstimator):
           learning_rate=run_cfg['models/lightgbm/learning_rate'],
           n_estimators=run_cfg['models/lightgbm/num_iterations']
         ),
+        'fit': self.simple_fit,
+        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
+        'validate': lambda m,X,y: m.score(m,X,y)
+      },
+      'xgboost': {
+        'model': lambda : XGBRegressor(**xgboost_cfg),
         'fit': self.simple_fit,
         'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
@@ -374,10 +389,13 @@ class Project1Estimator(BaseEstimator):
     rfe_step_size = run_cfg['preproc/rmf/rfe/step_size']
     rfe_min_feat = run_cfg['preproc/rmf/rfe/min_feat']
 
+    rfe_estimator_cfg = run_cfg[f'models/{rfe_estimator}']
+
     rmf_pipelines = {
       'ffu': lambda X,y: ffu_dim_reduction(run_cfg,X,y),
       'rfe': lambda X,y: rfe_dim_reduction(
         X,y,rfe_method, rfe_estimator,
+        estimator_args=rfe_estimator_cfg,
         min_feat = rfe_min_feat,
         step = rfe_step_size
       ),

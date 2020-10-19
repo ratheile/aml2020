@@ -39,9 +39,9 @@ preproc:
 
     rfe:
       method: rfe # rfecv
-      estimator: lightgbm # lightgbm, GradientBoostingRegressor, elacticnet, linearreg
+      estimator: xgboost # lightgbm, GradientBoostingRegressor, elacticnet, linearreg, xgboost
       min_feat: 50 # default 20
-      step_size: 50 # default 10
+      step_size: 5 # default 10
 
     pca:
       enabled: false 
@@ -52,7 +52,7 @@ preproc:
     method: standard
     use_pretrained_for_X_u: false
     
-fit_model: lightgbm
+fit_model: xgboost
 
 models:
   elasticnet:
@@ -61,14 +61,23 @@ models:
     alpha: 1.01
   ridge:
     alpha: 1.01
+
   lightgbm:
     num_leaves: 127 # default 31
     learning_rate: 0.1 # default 0.1
     num_iterations: 1000 # default 100
     boosting_type: dart # default gbdt [dart, goss, rf]
 
+  xgboost:
+    learning_rate: 0.05 # default 0.3
+    min_child_weight: 5 # default 1
+    max_depth: 12 # default 6
+    n_estimators: 1000 # default 100
+
+
 
 cv_tasks:
+  - xgboost
   - lightgbm
   # - lasso
   # - ridge

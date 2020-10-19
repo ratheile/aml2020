@@ -47,6 +47,8 @@ if __name__ == "__main__":
   parser.add_argument('--env', type=file_path, default='env/env.yml',
     help='The environment yaml file.')
 
+  parser.add_argument('--slice', type=file_path, help='The slice for user grid')
+
   input_grp.add_argument('--cfg', type=file_path,
     help='The main config yaml file.')
 
@@ -59,6 +61,7 @@ if __name__ == "__main__":
   env_cfg_path = args.env
   user: User = args.user
   run_cfg_dir = args.dir
+  slice_path = args.slice
 
   # Load configs
   env_cfg = ConfigLoader().from_file(env_cfg_path)
@@ -99,7 +102,7 @@ if __name__ == "__main__":
     for id_ex, run_cfg_path in enumerate(run_cfg_paths):
       name = os.path.basename(run_cfg_path)
       run_cfg = ConfigLoader().from_file(run_cfg_path)
-      slice_cfg = ConfigLoader().from_file('project1/slice.yml')
+      slice_cfg = ConfigLoader().from_file(slice_path)
       logging.info(f'running experiment {id_ex + 1} with name {name}')
       project1.gridsearch(run_cfg, env_cfg, slice_cfg) 
 
