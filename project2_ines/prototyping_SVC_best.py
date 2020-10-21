@@ -112,4 +112,25 @@ y_pred = clf.predict(X_test)
 # %%
 BMAC = balanced_accuracy_score(y_test, y_pred)
 print(BMAC)
+# %% Try on real test data
+X_test = pd.read_csv(f'{repopath}/project2_ines/X_test.csv')
+X_test = X_test.iloc[:,1:]
+
+# print(X_test)
+# X_test.describe()
+X_test = pd.DataFrame(X_test, columns=X_red.columns)
+print(X_test)
+X_test.describe()
+
+# %%
+y_pred = clf.predict(X_test)
+
+# %%
+submissions =  pd.DataFrame({
+  'id': np.arange(0,len(y_pred)).astype(float),
+  'y': y_pred
+})
+submissions.to_csv('project2_ines/prototyping_svc/submission.csv', index=False)
+
+print(submissions)
 # %%
