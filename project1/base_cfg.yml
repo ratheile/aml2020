@@ -1,4 +1,3 @@
-
 # Pipeline steps
 persistence:
   load_from_file: true
