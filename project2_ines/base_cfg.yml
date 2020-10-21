@@ -1,0 +1,77 @@
+# Pipeline steps
+persistence:
+  load_from_file: true
+  save_to_file: true
+
+preproc:
+  imputer:
+    strategy: median # mean, median
+
+  zero_and_const:
+    enabled: false
+    cvmin: 0.0001
+
+  outlier: # random forest
+    enabled: true
+    cont_lim: 0.05
+    impl: ines
+    
+  rmf: # remove features
+    pipeline: rfe # auto, rfe, ffu
+    ffu: # Francesco
+      cov: # coefficient of variance
+        enabled: true
+        cvmin: 0.1
+      
+      x_corr:
+        enabled: true
+        lb: 0.8
+
+      y_corr:
+        enabled: true
+
+      etr: #Extra Tree Regressor
+        enabled: false 
+        n_top: 60
+        rnd_state: 0
+        max_feat: "auto"
+
+    rfe:
+      method: rfe # rfecv
+      estimator: lightgbm # lightgbm, GradientBoostingRegressor, elacticnet, linearreg
+      min_feat: 50 # default 20
+      step_size: 50 # default 10
+
+    pca:
+      enabled: false 
+      n_comp: 2
+
+  normalize:
+    enabled: true
+    method: standard
+    use_pretrained_for_X_u: false
+    
+fit_model: lightgbm
+
+models:
+  elasticnet:
+    alpha: 1.01
+  lasso:
+    alpha: 1.01
+  ridge:
+    alpha: 1.01
+  lightgbm:
+    num_leaves: 127 # default 31
+    learning_rate: 0.1 # default 0.1
+    num_iterations: 1000 # default 100
+    boosting_type: dart # default gbdt [dart, goss, rf]
+
+
+cv_tasks:
+  - lightgbm
+  # - lasso
+  # - ridge
+  # - elasticnet
+
+overfit:
+  test_size: 0.3
