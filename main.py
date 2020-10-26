@@ -10,7 +10,10 @@ import glob
 from enum import Enum
 
 from project1_raffi import main as raffi
+from project2_raffi import main as raffi2
+
 from project1_ines import main as ines
+from project2_ines import main as ines
 from project1_ffu import main as ffu
 from project1 import main as project1
 from project1.estimator import Project1Estimator
@@ -81,7 +84,7 @@ if __name__ == "__main__":
       name = os.path.basename(run_cfg_path)
       run_cfg = ConfigLoader().from_file(run_cfg_path)
       logging.info(f'running experiment {id_ex + 1} with name {name}')
-      raffi.run(run_cfg, env_cfg)
+      raffi2.run(run_cfg, env_cfg)
 
   elif user is User.ffu:
     for id_ex, run_cfg_path in enumerate(run_cfg_paths):

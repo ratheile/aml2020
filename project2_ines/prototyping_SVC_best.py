@@ -36,7 +36,7 @@ X = pd.read_csv(f'{repopath}/project2_ines/X_train.csv')
 X = X.iloc[:,1:]
 y = pd.read_csv(f'{repopath}/project2_ines/y_train.csv')
 y = y.iloc[:,1:]
-X_test = pd.read_csv(f'{repopath}/project2_ines/X_test.csv')
+X_u = pd.read_csv(f'{repopath}/project2_ines/X_test.csv')
 logging.info('I have imported your training dataset! :D')
 print(f'Shape of training set is {X.shape}')
 print(X)
@@ -113,24 +113,18 @@ y_pred = clf.predict(X_test)
 BMAC = balanced_accuracy_score(y_test, y_pred)
 print(BMAC)
 # %% Try on real test data
-X_test = pd.read_csv(f'{repopath}/project2_ines/X_test.csv')
-X_test = X_test.iloc[:,1:]
-
-# print(X_test)
-# X_test.describe()
-X_test = pd.DataFrame(X_test, columns=X_red.columns)
-print(X_test)
-X_test.describe()
+X_u = X_test.iloc[:,1:]
+X_u = pd.DataFrame(X_u, columns=X_red.columns)
 
 # %%
-y_pred = clf.predict(X_test)
+y_pred = clf.predict(X_u)
 
 # %%
 submissions =  pd.DataFrame({
   'id': np.arange(0,len(y_pred)).astype(float),
   'y': y_pred
 })
-submissions.to_csv('project2_ines/prototyping_svc/submission.csv', index=False)
+submissions.to_csv('project2_ines/prototyping_svc/rbf-kernel-svc.csv', index=False)
 
 print(submissions)
 # %%
