@@ -73,7 +73,7 @@ if __name__ == "__main__":
     logging.info("directory cfg mode")
     run_cfg_paths = glob.glob(f'{run_cfg_dir}/*.yml')
 
-  logging.info(f'Loading the data from: {env_cfg["datasets/project1/path"]}')
+  logging.info(f'Loading the data from: {env_cfg["datasets/project2/path"]}')
 
   if user is User.raffi:
     # my "main" function
