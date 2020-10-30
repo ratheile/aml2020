@@ -1,0 +1,7 @@
+#SVC parameters: https://scikit-learn.org/stable/auto_examples/svm/plot_rbf_parameters.html#sphx-glr-auto-examples-svm-plot-rbf-parameters-py
+experiment_name: ex3
+yml_output_folder: experiments/test1
+run_cfg:
+  models/SVC/C: [0.001, 0.01, 0.1, 1.0, 10, 100, 1000] # default 1.0
+  models/SVC/gamma: [0.001, 0.0012, 0.002, 0.005, 0.01, 1] # default 'scale'. scale = 1 / (n_features * X.var()) ~ 0.0012
+  models/SVC/wf_cl1: [0.8, 1, 1.2, 1.4, 1.6, 1.8, 2.0]
