@@ -190,6 +190,17 @@ X_train, X_test, y_train, y_test = train_test_split(
   X, y, test_size=0.3
 )
 
+#%%
+def plot_upsampling(X):
+  pca = KernelPCA(kernel='linear',  n_components=3)
+  X_pca = pca.fit_transform(X)
+  pc_names = ['pc1', 'pc2', 'pc3']
+  Xy_dr = pd.merge(X_dr, y, right_index=True, left_index=True)
+  fig = px.scatter_3d(Xy_dr,
+    x='pc1', y='pc2', z='pc3',
+    color='y'
+  )
+  return fig
 
 
 #%%
