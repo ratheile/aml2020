@@ -81,11 +81,12 @@ Xy_dr
 # %%
 from imblearn.over_sampling import \
   SMOTE, \
-  BorderlineSMOTE, \
   SVMSMOTE, \
-  ADASYN, \
+  SMOTENC, \
+  BorderlineSMOTE, \
   KMeansSMOTE, \
-  SMOTENC
+  ADASYN, \
+  RandomOverSampler
 
 
 from imblearn.combine import \
@@ -171,11 +172,11 @@ oversamplers = {
   'B2SMOTE' : BorderlineSMOTE(random_state=random_state, k_neighbors=12, kind='borderline-2'),
   'SVMSMOTE': SVMSMOTE(random_state=random_state, k_neighbors=12),
   'ADASYN':  ADASYN(random_state=random_state, n_neighbors=12),
-  'KMeansSMOTE': 
-  'SMOTENC': 
-  'RandomOverSampler':
-  'SMOTEENN':
-  'SMOTETomek': 
+  'KMeansSMOTE': KMeansSMOTE(random_state=random_state),
+  'SMOTENC': SMOTENC(random_state=random_state),
+  'RandomOverSampler': RandomOverSampler(random_state=random_state),
+  'SMOTEENN':SMOTEENN(random_state=random_state),
+  'SMOTETomek': SMOTETomek(random_state=random_state)
 }
   # 'LORAS':  LorasSampler()
 
