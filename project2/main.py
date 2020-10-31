@@ -6,11 +6,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .estimator import Project1Estimator
+from .estimator import Project2Estimator
 from sklearn.model_selection import GridSearchCV
+from sklearn.utils import shuffle
 
 def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
-  datapath = env_cfg['datasets/project1/path']
+  datapath = env_cfg['datasets/project2/path']
   X = pd.read_csv(f'{datapath}/X_train.csv')
   y = pd.read_csv(f'{datapath}/y_train.csv')
   X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
@@ -20,11 +21,11 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
   X = X.iloc[:,1:]
   logging.info('Training dataset imported')
 
-  p1e = Project1Estimator(run_cfg, env_cfg, slice_cfg)
+  p2e = Project2Estimator(run_cfg, env_cfg, slice_cfg)
   param_grid = slice_cfg['run_cfg']
 
   clf = GridSearchCV(
-      estimator=p1e,
+      estimator=p2e,
       param_grid=param_grid,
       n_jobs=1
     )
@@ -33,7 +34,8 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
 
   results_df = pd.concat([
     pd.DataFrame(clf.cv_results_["params"]),
-    pd.DataFrame(clf.cv_results_["mean_test_score"], columns=["Accuracy"])
+    pd.DataFrame(clf.cv_results_["mean_test_score"], columns=["Accuracy"]),
+    pd.DataFrame(clf.cv_results_['std_test_score'], columns=['SD on test folds']) # info from: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html
   ],axis=1)
 
   if not os.path.exists('predictions'):
@@ -49,7 +51,7 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
 def run(run_cfg, env_cfg):
 
   # Load training dataset from csv
-  datapath = env_cfg['datasets/project1/path']
+  datapath = env_cfg['datasets/project2/path']
   X = pd.read_csv(f'{datapath}/X_train.csv')
   y = pd.read_csv(f'{datapath}/y_train.csv')
   X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
@@ -57,12 +59,14 @@ def run(run_cfg, env_cfg):
   # Remove index column
   y = y.iloc[:,1:]
   X = X.iloc[:,1:]
+  X, y = shuffle(X, y) # https://scikit-learn.org/stable/modules/generated/sklearn.utils.shuffle.html
+  X_u = X_u.iloc[:,1:]
   logging.info('Training dataset imported')
 
-  p1e = Project1Estimator(run_cfg, env_cfg)
-  p1e.fit(X,y)
-  scores = p1e.cross_validate()
-  y_u = p1e.predict(X_u)
+  p2e = Project2Estimator(run_cfg, env_cfg)
+  p2e.fit(X,y, X_u)
+  scores = p2e.cross_validate()
+  y_u = p2e.predict(p2e._X_test)
   
   if len(y_u.shape) > 1:
     yuf = y_u.flatten()
