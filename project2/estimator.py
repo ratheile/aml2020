@@ -201,7 +201,7 @@ class Project2Estimator(BaseEstimator):
     # run the task:
     X = task_args['X']
     y = task_args['y']
-    return (crossval_fit(model, X, y), model)
+    return (crossval_fit(model, X, y.values.ravel()), model)
 
 
   def cross_validate(self):
@@ -209,7 +209,7 @@ class Project2Estimator(BaseEstimator):
 
     run_cfg = self.run_cfg
     tasks = run_cfg['cv_tasks']
-    logging.info(f'Cross validating regression models {tasks}')
+    logging.info(f'Cross validating classification models {tasks}')
 
     X_train, X_test, y_train, y_test = train_test_split(
       self._X, 
