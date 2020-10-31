@@ -8,6 +8,7 @@
 import pandas as pd
 import numpy as np
 import logging
+import lightgbm as lgbm
 
 import os
 repopath = '/Users/inespereira/Documents/Github/aml2020'
@@ -23,13 +24,14 @@ run_cfg = ConfigLoader().from_file(run_cfg_path)
 from sklearn.model_selection import train_test_split
 
 # Support cost-sensitive classification
-from sklearn.linear_model import Perceptron
-from sklearn.svm import LinearSVC
-from sklearn.svm import SVC
+from sklearn.linear_model import Perceptron, LogisticRegression
+from sklearn.svm import LinearSVC, SVC
 
 # Other classifiers
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.metrics import balanced_accuracy_score
+from sklearn.ensemble import StackingClassifier
+
 
 #%% Load training dataset from csv
 X = pd.read_csv(f'{repopath}/project2_ines/X_train.csv')
@@ -43,6 +45,7 @@ print(X)
 
 #%% Check for NaNs
 X.isnull().values.any() # No NaNs!
+X.describe()
 
 #%% Remove outliers?
 X_inliers, y_inliers = find_isolation_forest_outlier(X,y,cont_lim=0.05)
@@ -69,11 +72,12 @@ X_train, X_test, y_train, y_test = train_test_split(X_red, y, test_size=0.1)
 #%% Define the different classifiers you want to look at
 
 classifiers={
+  # 'lightgbm': lambda: lgbm.LGBMClassifier(run_cfg['models/lightgbm'].items()),
   'gpclf': lambda: GaussianProcessClassifier(multi_class='one_vs_one'), # OvO and OvR
   'perceptron': lambda: Perceptron(
     penalty='elasticnet',
     shuffle=True,
-    verbose=1,
+    verbose=0,
     # The “balanced” mode uses the values of y to automatically adjust 
     # weights inversely proportional to class frequencies in the input data 
     # as n_samples / (n_classes * np.bincount(y))
@@ -84,7 +88,7 @@ classifiers={
     C=1.0, # Regularization parameter
     multi_class='ovr',
     class_weight='balanced',
-    verbose=1,
+    verbose=0,
     max_iter=1000),
   'SVC': lambda: SVC(
     C=1.0, 
@@ -96,15 +100,35 @@ classifiers={
     probability=False, 
     tol=0.001, 
     class_weight='balanced', 
-    verbose=True, 
+    verbose=False, 
     max_iter=-1, # no limit
     decision_function_shape='ovo', #ovo or ovr
     break_ties=False, 
     random_state=None)
 }
 
+#%%
+run_cfg['models/lightgbm']
+run_cfg['models/lightgbm'].items()
+
 #%% Choose one classifier and train
-clf = classifiers['SVC']()
+# clf = classifiers['SVC']()
+# clf = clf.fit(X_train,y_train)
+#%% Going for stacking classifier
+estimators = [
+  # ('lightgbm', classifiers['lightgbm']()),
+  ('gpclf', classifiers['gpclf']()),
+  ('perceptron', classifiers['perceptron']()),
+  ('linearSVM', classifiers['linearSVM']()),
+  ('SVC', classifiers['SVC']())
+  ]
+clf = StackingClassifier(
+  estimators=estimators, 
+  final_estimator=LogisticRegression(),
+  stack_method='predict',
+  verbose=1
+  )
+
 clf = clf.fit(X_train,y_train)
 
 # %%
@@ -127,4 +151,3 @@ submissions =  pd.DataFrame({
 submissions.to_csv('project2_ines/prototyping_svc/rbf-kernel-svc.csv', index=False)
 
 print(submissions)
-# %%
