@@ -107,7 +107,7 @@ if __name__ == "__main__":
       run_cfg = ConfigLoader().from_file(run_cfg_path)
       slice_cfg = ConfigLoader().from_file(slice_path)
       logging.info(f'running experiment {id_ex + 1} with name {name}')
-      project1.gridsearch(run_cfg, env_cfg, slice_cfg) 
+      project2.gridsearch(run_cfg, env_cfg, slice_cfg) 
 
   else:
     # no user
