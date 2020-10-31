@@ -6,13 +6,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .rmf_ffu import ffu_dim_reduction, \
+from project2.rmf_ffu import ffu_dim_reduction, \
   drop_feat_cov_constant
 
-from .rmf_rfe import rfe_dim_reduction
+from project2.rmf_rfe import rfe_dim_reduction
 
-from .outlier import remove_isolation_forest_outlier, \
-  find_isolation_forest_outlier
+from project2.outlier import find_isolation_forest_outlier
 
 from autofeat import FeatureSelector
 
@@ -21,11 +20,15 @@ from sklearn.metrics import r2_score
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.base import BaseEstimator
 
-from sklearn.linear_model import LinearRegression, Lasso, Ridge
+from sklearn.linear_model import Perceptron
+from sklearn.svm import LinearSVC, SVC
 from sklearn.feature_selection import RFE, RFECV
 
 from sklearn.ensemble import IsolationForest, \
-  GradientBoostingRegressor
+  GradientBoostingRegressor, \
+  StackingClassifier
+
+from sklearn.gaussian_process import GaussianProcessClassifier
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -34,7 +37,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import \
     RepeatedKFold, \
     cross_val_score, \
-    train_test_split
+    train_test_split, \
+    StratifiedKFold
 
 from sklearn.linear_model import \
     LinearRegression, \
@@ -50,7 +54,7 @@ import time
 import lightgbm as lgbm
 from xgboost import XGBRegressor
 
-class Project1Estimator(BaseEstimator):
+class Project2Estimator(BaseEstimator):
 
   ##################### Estimator API ########################
   def __init__(self, run_cfg, env_cfg, slice_cfg=None, **args):
@@ -71,22 +75,16 @@ class Project1Estimator(BaseEstimator):
     else:
       self.parameters = []
 
-  def df_sanitization(self, data_frame):
-    copy = data_frame.copy(deep=True)
-    npa = copy.to_numpy()
-    return pd.DataFrame(
-      data=npa, columns=copy.columns.tolist()
-    )
 
-  def fit(self, X, y):
+  def fit(self, X, y, X_test):
     begin_time = time.time()
     
-  # preprocessing
+    # Preprocessing
     X = self.df_sanitization(X)
     y = self.df_sanitization(y)
 
-    hash_dir = self.env_cfg['datasets/project1/hash_dir']
-    # bypass data input
+    hash_dir = self.env_cfg['datasets/project2/hash_dir']
+    # Bypass data input
     skip_preprocessing = False
 
     df_hash_f = lambda df: hashlib.sha1(pd.util.hash_pandas_object(df).values).hexdigest()
@@ -112,7 +110,7 @@ class Project1Estimator(BaseEstimator):
         skip_preprocessing = True
 
     if not skip_preprocessing:
-      X, y = self.preprocess(self.run_cfg, X, y)
+      X, y, X_test = self.preprocess(self.run_cfg, X, y, X_test)
       # X, y = check_X_y(X, y) # TODO: returns wierd stuff
 
     if save_flag and not skip_preprocessing:
@@ -120,7 +118,7 @@ class Project1Estimator(BaseEstimator):
       y.to_pickle(fn_func(y_hash,cfg_hash))
 
 
-    # regression model fit
+    # Regression model fit
     estimator_name = self.run_cfg['fit_model']
     estimator_cfg = self.estimators[estimator_name]
     model = estimator_cfg['model']() # factory
@@ -132,7 +130,9 @@ class Project1Estimator(BaseEstimator):
     # store
     self._fitted_model_ = fitted_model
     self._X = X
-    self._y = y 
+    self._y = y
+    self._X_test = X_test
+
 
   def predict(self, X_u):
 
@@ -163,6 +163,7 @@ class Project1Estimator(BaseEstimator):
     for key in self.parameters:
       out[key] = self.run_cfg[key]
     return out
+
 
   def set_params(self, **params):
     if not params:
@@ -233,15 +234,20 @@ class Project1Estimator(BaseEstimator):
     logging.info(train_scores_mean)
     return train_scores_mean
 
-
   ##################### Custom functions ########################
+  def df_sanitization(self, data_frame):
+    copy = data_frame.copy(deep=True)
+    npa = copy.to_numpy()
+    return pd.DataFrame(
+      data=npa, columns=copy.columns.tolist()
+    )
+
   def pca_dim_reduction(self, X, n_comp):
     pca = PCA(n_components=2)
     pca.fit(X)
     X_pca = pca.transform(X)
     logging.info(f"\nPC 1 with scaling:\n { pca.components_[0]}")
     return X
-
 
   # def normalize(self, X, X_test, method):
   #   scaler_dic = {
@@ -255,7 +261,7 @@ class Project1Estimator(BaseEstimator):
   #   return X_scaled, X_test_scaled
 
 
-  def normalize(self, X,method, use_pretrained=False):
+  def normalize(self, X, method, use_pretrained=False):
     # TODO: save this to pickle
     if use_pretrained and self._scaler_ is not None:
       logging.warn('using pretrained normalizer')
@@ -280,43 +286,24 @@ class Project1Estimator(BaseEstimator):
 
 
   def auto_crossval(self, model, X, y):
-    rkf = RepeatedKFold(n_splits=10, n_repeats=2)
+    # rkf = RepeatedKFold(n_splits=10, n_repeats=2)
+    rkf = StratifiedKFold(n_splits=10)   # better kfold for imbalanced dataset
 
     scores = cross_val_score(
       model, X, y, cv=rkf, verbose=1,
-      scoring='r2'
+      scoring='balanced_accuracy'   # For scoring strings, see: https://scikit-learn.org/stable/modules/model_evaluation.html 
     )
     return scores
 
 
   def cfg_to_estimators(self, run_cfg):
-    elasticnet_cfg = run_cfg['models/elasticnet']
-    lasso_cfg = run_cfg['models/lasso']
-    ridge_cfg = run_cfg['models/ridge']
-    xgboost_cfg = run_cfg['models/xgboost']
+    # stackedclf_cfg = run_cfg['stackedclf/estimators']
 
     estimators = {
-      'elasticnet': {
-        'model': lambda: ElasticNet(alpha=1.01),
-        'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
-        'validate': lambda m,X,y: m.score(m,X,y)
-      },
-      'lasso': {
-        'model': lambda: Lasso(alpha=1.01),
-        'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
-        'validate': lambda m,X,y: m.score(m,X,y)
-      },
-      'ridge': {
-        'model': lambda: Ridge(alpha=1.01),
-        'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
-        'validate': lambda m,X,y: m.score(m,X,y)
-      },
       'lightgbm': {
-        'model': lambda : lgbm.LGBMRegressor(
+        'model': lambda : lgbm.LGBMClassifier(
           boosting_type=run_cfg['models/lightgbm/boosting_type'],
+          class_weight=run_cfg['models/lightgbm/class_weight'],
           num_leaves=run_cfg['models/lightgbm/num_leaves'],
           learning_rate=run_cfg['models/lightgbm/learning_rate'],
           n_estimators=run_cfg['models/lightgbm/num_iterations']
@@ -325,12 +312,41 @@ class Project1Estimator(BaseEstimator):
         'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       },
-      'xgboost': {
-        'model': lambda : XGBRegressor(**xgboost_cfg),
+      'svc': {
+        'model': lambda : SVC(
+          C=run_cfg['models/svc/C'],
+          kernel=run_cfg['models/svc/kernel'],
+          class_weight=run_cfg['models/svc/class_weight'],
+          gamma=run_cfg['models/svc/gamma'],
+          decision_function_shape=run_cfg['models/svc/decision_function_shape']
+        ),
+        'fit': self.simple_fit,
+        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
+        'validate': lambda m,X,y: m.score(m,X,y)
+      },
+      'gpclf': {
+        'model': lambda : GaussianProcessClassifier(
+          multi_class=run_cfg['models/gpclf/multi_class']
+        ),
+        'fit': self.simple_fit,
+        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
+        'validate': lambda m,X,y: m.score(m,X,y)
+      },
+      'perceptron': {
+        'model': lambda : Perceptron(
+          penalty=run_cfg['models/perceptron/penalty'],
+          shuffle=run_cfg['models/perceptron/shuffle'],
+          class_weight=run_cfg['models/perceptron/class_weight']
+        ),
         'fit': self.simple_fit,
         'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       }
+      # 'stackedclf'
+      #   'model': lambda : StackingClassifier(estimators=stackedclf_cfg, verbose=1),
+      #   'fit': self.simple_fit,
+      #   'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
+      #   'validate': lambda m,X,y: m.score(m,X,y)
     }
     return estimators
 
@@ -355,40 +371,37 @@ class Project1Estimator(BaseEstimator):
     return X_u
 
 
-  def preprocess(self, run_cfg, X, y):
+  def preprocess(self, run_cfg, X, y, X_test):
 
     # Remove NaN from training and test data
     X[:] = self.fill_nan(X, run_cfg['preproc/imputer/strategy'])  # train
+    X_test[:] = self.fill_nan(X_test, run_cfg['preproc/imputer/strategy'])  # test
 
-    # Run first loop on drop_feat_cov_constant to remove
-    # features with 0 mean and constant signal
-    # cvmin should be in the range 1e-4 for this task
-    if run_cfg['preproc/zero_and_const/enabled']:
-      X = drop_feat_cov_constant(X, run_cfg['preproc/zero_and_const/cvmin'])
 
-    # TODO: most likely unnecessary
-    # X_u = X_u[X.columns]  # Drop these columns in the test set as well
+    # Normalization training data and save to separate variable X_norm
+    flag_normalize = run_cfg['preproc/normalize/enabled']
+    if flag_normalize:
+      X_norm = self.normalize(X, run_cfg['preproc/normalize/method'])
 
-    # Remove outliers (rows/datapoints)
+    # Outlier removal from X_norm
     if run_cfg['preproc/outlier/enabled']:
       cont_lim =  run_cfg['preproc/outlier/cont_lim']
-      if run_cfg['preproc/outlier/impl'] == 'ines':
-        X,y = find_isolation_forest_outlier(X,y, cont_lim)
-      else:
-        X,y = remove_isolation_forest_outlier(X,y, cont_lim)
+      outliers = find_isolation_forest_outlier(X_norm,cont_lim)
+      # Remove outliers from original training set
+      X = X.drop(index=outliers)
+      y = y.drop(index=outliers)
 
-    # # Normalization training and test data
+    # Re-normalization of training and test sets without outliers
     flag_normalize = run_cfg['preproc/normalize/enabled']
-    if flag_normalize: 
-      # Normalize TODO: Check this out
+    if flag_normalize:
       X = self.normalize(X, run_cfg['preproc/normalize/method'])
+      X_test =  pd.DataFrame(self._scaler_.transform(X_test), index=X_test.index, columns=X_test.columns)
 
-    # Reduce data set dimensionality
+    # Feature reduction
     rfe_method = run_cfg['preproc/rmf/rfe/method']
     rfe_estimator = run_cfg['preproc/rmf/rfe/estimator']
     rfe_step_size = run_cfg['preproc/rmf/rfe/step_size']
     rfe_min_feat = run_cfg['preproc/rmf/rfe/min_feat']
-
     rfe_estimator_cfg = run_cfg[f'models/{rfe_estimator}']
 
     rmf_pipelines = {
@@ -404,13 +417,13 @@ class Project1Estimator(BaseEstimator):
     rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
     X = rmf_pipelines[rmf_pipeline_name](X,y)
 
-    # Apply pca (with min max normalization)
-    if run_cfg['preproc/rmf/pca/enabled']:
-      if not flag_normalize: 
-        logging.error('Unnormalized data as PCA input!')
-      n_comp = run_cfg['preproc/rmf/pca/n_comp']
-      X = self.pca_dim_reduction(X, n_comp)
+    # # Apply pca (with min max normalization)
+    # if run_cfg['preproc/rmf/pca/enabled']:
+      # if not flag_normalize: 
+      #   logging.error('Unnormalized data as PCA input!')
+      # n_comp = run_cfg['preproc/rmf/pca/n_comp']
+      # X = self.pca_dim_reduction(X, n_comp)
 
-    return X, y
+    return X, y, X_test
 
 
