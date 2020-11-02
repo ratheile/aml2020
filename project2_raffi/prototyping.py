@@ -5,6 +5,7 @@
 # Path hack.import sys, os
 sys.path.insert(0, os.path.abspath('..'))
 
+
 #%%
 from project2_raffi.visualization import pca
 from project2_raffi.balancing import balance_dataset
@@ -37,12 +38,12 @@ from sklearn.decomposition import PCA, KernelPCA
 from sklearn.manifold import TSNE
 
 pca = KernelPCA(kernel='linear',  n_components=3)
-tsne = TSNE(n_components=3)
+# tsne = TSNE(n_components=3)
 X_pca = pca.fit_transform(X)
-X_tsne = tsne.fit_transform(X)
+# X_tsne = tsne.fit_transform(X)
 
 pc_names = ['pc1', 'pc2', 'pc3']
-X_dr = pd.DataFrame(X_tsne, columns=pc_names)
+X_dr = pd.DataFrame(X_pca, columns=pc_names)
 
 X_dr
 
@@ -173,7 +174,7 @@ oversamplers = {
   'SVMSMOTE': SVMSMOTE(random_state=random_state, k_neighbors=12),
   'ADASYN':  ADASYN(random_state=random_state, n_neighbors=12),
   'KMeansSMOTE': KMeansSMOTE(random_state=random_state),
-  'SMOTENC': SMOTENC(random_state=random_state),
+  # 'SMOTENC': SMOTENC(random_state=random_state), # nominal + cont. data
   'RandomOverSampler': RandomOverSampler(random_state=random_state),
   'SMOTEENN':SMOTEENN(random_state=random_state),
   'SMOTETomek': SMOTETomek(random_state=random_state)
@@ -201,6 +202,14 @@ def plot_upsampling(X):
     color='y'
   )
   return fig
+
+
+#%%
+sampler0 = oversamplers['ADASYN']
+X_o, y_o = sampler0.fit_resample(
+  X_train.copy(deep=True),
+  y_train.copy(deep=True)
+)
 
 
 #%%

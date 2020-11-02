@@ -13,7 +13,7 @@ from project1_raffi import main as raffi
 from project2_raffi import main as raffi2
 
 from project1_ines import main as ines
-from project2_ines import main as ines
+# from project2_ines import main as ines
 from project1_ffu import main as ffu
 from project1 import main as project1
 from project1.estimator import Project1Estimator
