@@ -16,7 +16,8 @@ from project1_ines import main as ines
 # from project2_ines import main as ines
 from project1_ffu import main as ffu
 from project1 import main as project1
-from project1.estimator import Project1Estimator
+from project2 import main as project2
+from project2.estimator import Project2Estimator
 
 class User(Enum):
   ines = 'ines'
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     logging.info("directory cfg mode")
     run_cfg_paths = glob.glob(f'{run_cfg_dir}/*.yml')
 
-  logging.info(f'Loading the data from: {env_cfg["datasets/project1/path"]}')
+  logging.info(f'Loading the data from: {env_cfg["datasets/project2/path"]}')
 
   if user is User.raffi:
     # my "main" function
@@ -107,7 +108,7 @@ if __name__ == "__main__":
       run_cfg = ConfigLoader().from_file(run_cfg_path)
       slice_cfg = ConfigLoader().from_file(slice_path)
       logging.info(f'running experiment {id_ex + 1} with name {name}')
-      project1.gridsearch(run_cfg, env_cfg, slice_cfg) 
+      project2.gridsearch(run_cfg, env_cfg, slice_cfg) 
 
   else:
     # no user
@@ -115,4 +116,4 @@ if __name__ == "__main__":
       name = os.path.basename(run_cfg_path)
       run_cfg = ConfigLoader().from_file(run_cfg_path)
       logging.info(f'running experiment {id_ex + 1} with name {name}')
-      project1.run(run_cfg, env_cfg) # this is the run function from you project-level main.py
+      project2.run(run_cfg, env_cfg) # this is the run function from you project-level main.py
