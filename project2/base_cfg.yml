@@ -14,7 +14,6 @@ preproc:
   outlier: # random forest
     enabled: true
     cont_lim: 0.05
-    impl: ines
     
   rmf: # remove features
     pipeline: rfe # auto, rfe, ffu
@@ -37,7 +36,7 @@ preproc:
         max_feat: "auto"
 
     rfe:
-      method: rfe # rfecv
+      method: rfecv # rfecv
       estimator: lightgbm # lightgbm, GradientBoostingRegressor, elacticnet, linearreg
       min_feat: 50 # default 20
       step_size: 50 # default 10
@@ -53,25 +52,54 @@ preproc:
     
 fit_model: lightgbm
 
-models:
-  elasticnet:
-    alpha: 1.01
-  lasso:
-    alpha: 1.01
-  ridge:
-    alpha: 1.01
+models: &clf
   lightgbm:
     num_leaves: 127 # default 31
     learning_rate: 0.1 # default 0.1
     num_iterations: 1000 # default 100
     boosting_type: dart # default gbdt [dart, goss, rf]
+    class_weight: balanced
+  gpclf: 
+    multi_class: one_vs_one # OvO and OvR
+  perceptron:
+    penalty: elasticnet
+    shuffle: True
+    verbose: 1
+    # The “balanced” mode uses the values of y to automatically adjust 
+    # weights inversely proportional to class frequencies in the input data 
+    # as n_samples / (n_classes * np.bincount(y))
+    class_weight: balanced
+  svc:
+    C: 1.0
+    kernel: rbf
+    degree: 3 # ignored if kernel not poly
+    gamma: scale
+    coef0: 0.0 # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
+    shrinking: True, # What it this?
+    probability: False, 
+    tol: 0.001, 
+    class_weight: balanced
+    verbose: True
+    max_iter: -1  # no limit
+    decision_function_shape: ovo #ovo or ovr
+    break_ties: False
+    random_state: None
+
+stackedclf:
+  enabled: false
+  estimators: *clf
+
 
 
 cv_tasks:
   - lightgbm
+  - svc
+  - gpclf
+  - perceptron
   # - lasso
   # - ridge
   # - elasticnet
+  # - stackedclf
 
 overfit:
-  test_size: 0.3
+  test_size: 0.1
