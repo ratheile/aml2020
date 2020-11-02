@@ -4,6 +4,10 @@ persistence:
   save_to_file: true
 
 preproc:
+
+  oversampling:
+    method: ADASYN
+
   imputer:
     strategy: median # mean, median
 
@@ -15,31 +19,14 @@ preproc:
     enabled: true
     cont_lim: 0.05
     impl: ines
-    
-  rmf: # remove features
+  
+  rmf:
     pipeline: rfe # auto, rfe, ffu
-    ffu: # Francesco
-      cov: # coefficient of variance
-        enabled: true
-        cvmin: 0.1
-      
-      x_corr:
-        enabled: true
-        lb: 0.8
-
-      y_corr:
-        enabled: true
-
-      etr: #Extra Tree Regressor
-        enabled: false 
-        n_top: 60
-        rnd_state: 0
-        max_feat: "auto"
 
     rfe:
       method: rfe # rfecv
-      estimator: lightgbm # lightgbm, GradientBoostingRegressor, elacticnet, linearreg
-      min_feat: 50 # default 20
+      estimator: svc_rfe # SVC_RFE
+      min_feat: 900 # default 20
       step_size: 50 # default 10
 
     pca:
@@ -49,26 +36,44 @@ preproc:
   normalize:
     enabled: true
     method: standard
-    use_pretrained_for_X_u: false
+    use_pretrained_for_X_u: True
     
-fit_model: lightgbm
+fit_model: svc
 
+# TODO: add class_weight
 models:
-  elasticnet:
-    alpha: 1.01
-  lasso:
-    alpha: 1.01
-  ridge:
-    alpha: 1.01
+  svc_rfe:
+    C: 1.0 
+    kernel: 'linear' # rbf kernel does not work for RFE
+  svc:
+    C: 1.0 
+    kernel: 'rbf' 
+    degree: 3 # ignored if kernel not poly
+    gamma: 'scale' 
+    coef0: 0.0 # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
+    shrinking: True # What it this?
+    probability: False 
+    tol: 0.001 
+    verbose: True 
+    max_iter: -1 # no limit
+    decision_function_shape: 'ovo' #ovo or ovr
+    break_ties: False 
+
   lightgbm:
     num_leaves: 127 # default 31
     learning_rate: 0.1 # default 0.1
     num_iterations: 1000 # default 100
     boosting_type: dart # default gbdt [dart, goss, rf]
-
+    # TODO: add these params
+    # boosting_type=run_cfg['models/lightgbm/boosting_type'],
+    # class_weight=run_cfg['models/lightgbm/class_weight'],
+    # num_leaves=run_cfg['models/lightgbm/num_leaves'],
+    # learning_rate=run_cfg['models/lightgbm/learning_rate'],
+    # n_estimators=run_cfg['models/lightgbm/num_iterations'
 
 cv_tasks:
-  - lightgbm
+  # - lightgbm
+  - svc
   # - lasso
   # - ridge
   # - elasticnet

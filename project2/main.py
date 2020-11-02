@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 
 from .estimator import Project2Estimator
 from sklearn.model_selection import GridSearchCV
-from sklearn.utils import shuffle
 
 def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
   datapath = env_cfg['datasets/project2/path']
@@ -59,14 +58,13 @@ def run(run_cfg, env_cfg):
   # Remove index column
   y = y.iloc[:,1:]
   X = X.iloc[:,1:]
-  X, y = shuffle(X, y) # https://scikit-learn.org/stable/modules/generated/sklearn.utils.shuffle.html
   X_u = X_u.iloc[:,1:]
   logging.info('Training dataset imported')
 
   p2e = Project2Estimator(run_cfg, env_cfg)
-  p2e.fit(X,y, X_u)
+  p2e.fit(X,y)
   scores = p2e.cross_validate()
-  y_u = p2e.predict(p2e._X_test)
+  y_u = p2e.predict(X_u)
   
   if len(y_u.shape) > 1:
     yuf = y_u.flatten()

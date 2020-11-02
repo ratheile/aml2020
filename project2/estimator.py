@@ -6,12 +6,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from project2.rmf_ffu import ffu_dim_reduction, \
-  drop_feat_cov_constant
-
-from project2.rmf_rfe import rfe_dim_reduction
-
-from project2.outlier import find_isolation_forest_outlier
+from .outlier import find_isolation_forest_outlier
+from .rmf_rfe import rfe_dim_reduction
+from .oversampling import oversample
 
 from autofeat import FeatureSelector
 
@@ -34,6 +31,8 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.impute import SimpleImputer
 
+from sklearn.utils import shuffle
+
 from sklearn.model_selection import \
     RepeatedKFold, \
     cross_val_score, \
@@ -50,6 +49,7 @@ import hashlib
 import logging
 import json
 import time
+from joblib import dump, load
 
 import lightgbm as lgbm
 from xgboost import XGBRegressor
@@ -76,7 +76,7 @@ class Project2Estimator(BaseEstimator):
       self.parameters = []
 
 
-  def fit(self, X, y, X_test):
+  def fit(self, X, y):
     begin_time = time.time()
     
     # Preprocessing
@@ -88,7 +88,7 @@ class Project2Estimator(BaseEstimator):
     skip_preprocessing = False
 
     df_hash_f = lambda df: hashlib.sha1(pd.util.hash_pandas_object(df).values).hexdigest()
-    fn_func = lambda hash_df, hash_cfg: f'{hash_dir}/{hash_df}_{hash_cfg}.pkl'
+    fn_func = lambda hash_df, hash_cfg, postfix: f'{hash_dir}/{hash_df}_{hash_cfg}_{postfix}'
     
     load_flag = self.run_cfg['persistence/load_from_file']
     save_flag = self.run_cfg['persistence/save_to_file']
@@ -98,24 +98,33 @@ class Project2Estimator(BaseEstimator):
       X_hash = df_hash_f(X)
       y_hash = df_hash_f(y)
       
+    self._scaler_ = None
     if load_flag:
-      X_file = fn_func(X_hash,cfg_hash)
-      y_file = fn_func(y_hash,cfg_hash)
+      X_file = fn_func(X_hash,cfg_hash, 'X.pkl')
+      y_file = fn_func(y_hash,cfg_hash, 'y.pkl')
+      scaler_file = fn_func(X_hash,cfg_hash, 'scaler.joblib')
 
-      if os.path.isfile(X_file) and os.path.isfile(y_file):
+      if os.path.isfile(X_file) and os.path.isfile(y_file) and os.path.isfile(scaler_file):
         logging.warning(f'found pickle for X: {X_file}')
         logging.warning(f'found pickle for y: {y_file}')
+        logging.warning(f'found pickle for scaler model: {scaler_file}')
         X = pd.read_pickle(X_file)
         y = pd.read_pickle(y_file)
+        self._scaler_ = load(scaler_file)
         skip_preprocessing = True
 
+    # store
+    self._preprocessing_skipped_ = skip_preprocessing
     if not skip_preprocessing:
-      X, y, X_test = self.preprocess(self.run_cfg, X, y, X_test)
+      X, y = self.preprocess(self.run_cfg, X, y)
       # X, y = check_X_y(X, y) # TODO: returns wierd stuff
 
     if save_flag and not skip_preprocessing:
-      X.to_pickle(fn_func(X_hash,cfg_hash))
-      y.to_pickle(fn_func(y_hash,cfg_hash))
+      X.to_pickle(fn_func(X_hash,cfg_hash, 'X.pkl'))
+      y.to_pickle(fn_func(y_hash,cfg_hash, 'y.pkl'))
+      dump(self._scaler_, fn_func(X_hash,cfg_hash, 'scaler.joblib'))
+
+      
 
 
     # Regression model fit
@@ -131,13 +140,14 @@ class Project2Estimator(BaseEstimator):
     self._fitted_model_ = fitted_model
     self._X = X
     self._y = y
-    self._X_test = X_test
 
 
   def predict(self, X_u):
 
     check_is_fitted(self)
 
+    # TODO: check if necessary
+    # X_test =  pd.DataFrame(self._scaler_.transform(X_test), index=X_test.index, columns=X_test.columns)
     X_u = self.df_sanitization(X_u)
     X_u = self.preprocess_unlabeled(self.run_cfg, X_u)
 
@@ -262,13 +272,17 @@ class Project2Estimator(BaseEstimator):
 
 
   def normalize(self, X, method, use_pretrained=False):
-    # TODO: save this to pickle
+    if self._preprocessing_skipped_ and self._scaler_ is None:
+      logging.error('Preprocessing skipped: data is probalby normalized with a wrong (empty) scaler!')
+
     if use_pretrained and self._scaler_ is not None:
       logging.warn('using pretrained normalizer')
       scaler = self._scaler_
     else:
       scaler = self.scaler_dic[method]()
-    scaler = scaler.fit(X)
+      scaler = scaler.fit(X)
+
+
     X_scaled = pd.DataFrame(scaler.transform(X), index=X.index, columns=X.columns)
     self._scaler_ = scaler
     return X_scaled
@@ -301,25 +315,13 @@ class Project2Estimator(BaseEstimator):
 
     estimators = {
       'lightgbm': {
-        'model': lambda : lgbm.LGBMClassifier(
-          boosting_type=run_cfg['models/lightgbm/boosting_type'],
-          class_weight=run_cfg['models/lightgbm/class_weight'],
-          num_leaves=run_cfg['models/lightgbm/num_leaves'],
-          learning_rate=run_cfg['models/lightgbm/learning_rate'],
-          n_estimators=run_cfg['models/lightgbm/num_iterations']
-        ),
+        'model': lambda : lgbm.LGBMClassifier(**run_cfg['models/lightgbm']),
         'fit': self.simple_fit,
         'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       },
       'svc': {
-        'model': lambda : SVC(
-          C=run_cfg['models/svc/C'],
-          kernel=run_cfg['models/svc/kernel'],
-          class_weight=run_cfg['models/svc/class_weight'],
-          gamma=run_cfg['models/svc/gamma'],
-          decision_function_shape=run_cfg['models/svc/decision_function_shape']
-        ),
+        'model': lambda : SVC(**run_cfg['models/svc']),
         'fit': self.simple_fit,
         'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
@@ -371,12 +373,14 @@ class Project2Estimator(BaseEstimator):
     return X_u
 
 
-  def preprocess(self, run_cfg, X, y, X_test):
+  def preprocess(self, run_cfg, X, y):
+
+    X, y = shuffle(X, y) # https://scikit-learn.org/stable/modules/generated/sklearn.utils.shuffle.html
 
     # Remove NaN from training and test data
-    X[:] = self.fill_nan(X, run_cfg['preproc/imputer/strategy'])  # train
-    X_test[:] = self.fill_nan(X_test, run_cfg['preproc/imputer/strategy'])  # test
-
+    fill_nan_configured = lambda X: self.fill_nan(X, run_cfg['preproc/imputer/strategy'])  # train
+  
+    X[:] = fill_nan_configured(X)  # train
 
     # Normalization training data and save to separate variable X_norm
     flag_normalize = run_cfg['preproc/normalize/enabled']
@@ -395,7 +399,8 @@ class Project2Estimator(BaseEstimator):
     flag_normalize = run_cfg['preproc/normalize/enabled']
     if flag_normalize:
       X = self.normalize(X, run_cfg['preproc/normalize/method'])
-      X_test =  pd.DataFrame(self._scaler_.transform(X_test), index=X_test.index, columns=X_test.columns)
+
+    X,y = oversample(X,y, run_cfg['preproc/oversampling/method'])
 
     # Feature reduction
     rfe_method = run_cfg['preproc/rmf/rfe/method']
@@ -405,7 +410,6 @@ class Project2Estimator(BaseEstimator):
     rfe_estimator_cfg = run_cfg[f'models/{rfe_estimator}']
 
     rmf_pipelines = {
-      'ffu': lambda X,y: ffu_dim_reduction(run_cfg,X,y),
       'rfe': lambda X,y: rfe_dim_reduction(
         X,y,rfe_method, rfe_estimator,
         estimator_args=rfe_estimator_cfg,
@@ -424,6 +428,6 @@ class Project2Estimator(BaseEstimator):
       # n_comp = run_cfg['preproc/rmf/pca/n_comp']
       # X = self.pca_dim_reduction(X, n_comp)
 
-    return X, y, X_test
+    return X, y 
 
 
