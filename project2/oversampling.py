@@ -36,6 +36,7 @@ from sklearn.model_selection import \
   train_test_split
 
 oversamplers = {
+  # TODO: parametize oversamplers
   'SMOTE': lambda : SMOTE(random_state=None, k_neighbors=12), 
   'B1SMOTE' : lambda : BorderlineSMOTE(random_state=None, k_neighbors=12, kind='borderline-1'),
   'B2SMOTE' : lambda : BorderlineSMOTE(random_state=None, k_neighbors=12, kind='borderline-2'),

@@ -28,6 +28,11 @@ preproc:
       estimator: svc_rfe # SVC_RFE
       min_feat: 900 # default 20
       step_size: 50 # default 10
+    
+      models: 
+        svc_rfe:
+          C: 1.0 
+          kernel: 'linear' # rbf kernel does not work for RFE
 
     pca:
       enabled: false 
@@ -40,11 +45,7 @@ preproc:
     
 fit_model: svc
 
-# TODO: add class_weight
 models:
-  svc_rfe:
-    C: 1.0 
-    kernel: 'linear' # rbf kernel does not work for RFE
   svc:
     C: 1.0 
     kernel: 'rbf' 
@@ -53,8 +54,12 @@ models:
     coef0: 0.0 # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
     shrinking: True # What it this?
     probability: False 
+    class_weight:
+      0: 1
+      1: 1
+      2: 1
     tol: 0.001 
-    verbose: True 
+    verbose: False
     max_iter: -1 # no limit
     decision_function_shape: 'ovo' #ovo or ovr
     break_ties: False 
@@ -64,19 +69,14 @@ models:
     learning_rate: 0.1 # default 0.1
     num_iterations: 1000 # default 100
     boosting_type: dart # default gbdt [dart, goss, rf]
-    # TODO: add these params
-    # boosting_type=run_cfg['models/lightgbm/boosting_type'],
-    # class_weight=run_cfg['models/lightgbm/class_weight'],
-    # num_leaves=run_cfg['models/lightgbm/num_leaves'],
-    # learning_rate=run_cfg['models/lightgbm/learning_rate'],
-    # n_estimators=run_cfg['models/lightgbm/num_iterations'
+    class_weight:
+      0: 1
+      1: 1
+      2: 1
 
 cv_tasks:
-  # - lightgbm
+  - lightgbm
   - svc
-  # - lasso
-  # - ridge
-  # - elasticnet
 
 overfit:
   test_size: 0.3

@@ -12,7 +12,7 @@ from .oversampling import oversample
 
 from autofeat import FeatureSelector
 
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, balanced_accuracy_score
 
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.base import BaseEstimator
@@ -116,6 +116,7 @@ class Project2Estimator(BaseEstimator):
     # store
     self._preprocessing_skipped_ = skip_preprocessing
     if not skip_preprocessing:
+      # preprocess also fits a _scaler_
       X, y = self.preprocess(self.run_cfg, X, y)
       # X, y = check_X_y(X, y) # TODO: returns wierd stuff
 
@@ -159,7 +160,7 @@ class Project2Estimator(BaseEstimator):
 
 
   def score(self, X, y=None):
-    return(r2_score(self.predict(X), y))
+    return(balanced_accuracy_score(self.predict(X), y))
 
 
   def get_params(self, deep=True):
@@ -213,7 +214,10 @@ class Project2Estimator(BaseEstimator):
     y = task_args['y']
     return (crossval_fit(model, X, y.values.ravel()), model)
 
-
+  # has nothing to do with gridsearch
+  # never called in gridsearch mode!
+  # TODO: remove this method but add a train_test_split to the
+  # gridsearch (--user grid method)
   def cross_validate(self):
     check_is_fitted(self)
 
@@ -407,7 +411,7 @@ class Project2Estimator(BaseEstimator):
     rfe_estimator = run_cfg['preproc/rmf/rfe/estimator']
     rfe_step_size = run_cfg['preproc/rmf/rfe/step_size']
     rfe_min_feat = run_cfg['preproc/rmf/rfe/min_feat']
-    rfe_estimator_cfg = run_cfg[f'models/{rfe_estimator}']
+    rfe_estimator_cfg = run_cfg[f'preproc/rmf/rfe/models/{rfe_estimator}']
 
     rmf_pipelines = {
       'rfe': lambda X,y: rfe_dim_reduction(

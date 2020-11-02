@@ -1,8 +1,4 @@
 experiment_name: ex2
 yml_output_folder: experiments/test1
 run_cfg:
-  preproc/outlier/cont_lim: [0.1, 0.2, 0.4]
-  preproc/outlier/impl: ['ines', 'lof']
-  preproc/rmf/pipeline: !!python/tuple ['rfe']
-  preproc/rmf/rfe/min_feat: [50, 100, 200, 250]
-  models/ridge/alpha: [1.01, 1.1]
+  models/svc/C: [1.01, 1.1]

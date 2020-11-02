@@ -28,12 +28,8 @@ def rfe_dim_reduction(X,y,method,estimator, estimator_args, min_feat=20, step=10
   # 3. Embedded methods: feature selection occurs with model training (e.g. LASSO)
   
   estimator_dic = {
-    'GradientBoostingRegressor': GradientBoostingRegressor(),
-    'lightgbm_regress': lambda: lgbm.LGBMRegressor(boosting_type='dart'),
-    'lightgbm_class': lambda: lgbm.LGBMRegressor(boosting_type='dart'),
-    'elasticnet': lambda: ElasticNet(),
+    'lightgbm_class': lambda: lgbm.LGBMClassifier(boosting_type='dart'),
     'svc_rfe': lambda: SVC(**estimator_args),
-    'xgboost_regress': lambda: XGBRegressor(**estimator_args),
     'xgboost_class': lambda: XGBClassifier(**estimator_args)
   }
   estimator = estimator_dic[estimator]() # TODO: this is an arbitrary choice and the result is influenced by this!
