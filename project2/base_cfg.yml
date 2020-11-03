@@ -77,8 +77,10 @@ models:
       1: 1
       2: 1
 
+scoring: 'balanced_accuracy'
+
 cv_tasks:
-  - lightgbm
+  # - lightgbm
   - svc
 
 overfit:
