@@ -1,10 +1,6 @@
 import logging
-
 import numpy as np
 import pandas as pd
-
-from sklearn.ensemble import IsolationForest, \
-  GradientBoostingRegressor 
 
 from sklearn.feature_selection import RFE, RFECV
 
@@ -14,7 +10,7 @@ from sklearn.linear_model import \
     Ridge, \
     ElasticNet
 
-import lightgbm as lgbm
+from lightgbm import LGBMClassifier
 from xgboost import XGBRegressor, XGBClassifier
 
 from sklearn.svm import SVC
@@ -28,7 +24,7 @@ def rfe_dim_reduction(X,y,method,estimator, estimator_args, min_feat=20, step=10
   # 3. Embedded methods: feature selection occurs with model training (e.g. LASSO)
   
   estimator_dic = {
-    'lightgbm_class': lambda: lgbm.LGBMClassifier(boosting_type='dart'),
+    'lightgbm_class': lambda: LGBMClassifier(boosting_type='dart'),
     'svc_rfe': lambda: SVC(**estimator_args),
     'xgboost_class': lambda: XGBClassifier(**estimator_args)
   }

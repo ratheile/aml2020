@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from .outlier import find_isolation_forest_outlier
 from .rmf_rfe import rfe_dim_reduction
+from .rmf_pca import pca_dim_reduction, pca_dim_reduction_transform
 from .oversampling import oversample
 
 from autofeat import FeatureSelector
@@ -86,6 +87,7 @@ class Project2Estimator(BaseEstimator):
     hash_dir = self.env_cfg['datasets/project2/hash_dir']
     # Bypass data input
     skip_preprocessing = False
+    load_pca = self.run_cfg['preproc/rmf/pipeline'] == 'pca'
 
     df_hash_f = lambda df: hashlib.sha1(pd.util.hash_pandas_object(df).values).hexdigest()
     fn_func = lambda hash_df, hash_cfg, postfix: f'{hash_dir}/{hash_df}_{hash_cfg}_{postfix}'
@@ -94,23 +96,37 @@ class Project2Estimator(BaseEstimator):
     save_flag = self.run_cfg['persistence/save_to_file']
 
     if load_flag or save_flag:
+      # hashes
       cfg_hash = hashlib.sha256(json.dumps(self.run_cfg['preproc']).encode()).hexdigest()
       X_hash = df_hash_f(X)
       y_hash = df_hash_f(y)
-      
-    self._scaler_ = None
-    if load_flag:
+      # filenames
       X_file = fn_func(X_hash,cfg_hash, 'X.pkl')
       y_file = fn_func(y_hash,cfg_hash, 'y.pkl')
       scaler_file = fn_func(X_hash,cfg_hash, 'scaler.joblib')
+      pca_file = fn_func(X_hash,cfg_hash, 'pca.joblib')
+      
+    self._scaler_ = None
+    if load_flag:
+      files_present = os.path.isfile(X_file) and \
+        os.path.isfile(y_file) and \
+        os.path.isfile(scaler_file)
+      
+      if load_pca:
+        files_present = files_present and os.path.isfile(pca_file)
 
-      if os.path.isfile(X_file) and os.path.isfile(y_file) and os.path.isfile(scaler_file):
+      if files_present:
         logging.warning(f'found pickle for X: {X_file}')
         logging.warning(f'found pickle for y: {y_file}')
         logging.warning(f'found pickle for scaler model: {scaler_file}')
         X = pd.read_pickle(X_file)
         y = pd.read_pickle(y_file)
         self._scaler_ = load(scaler_file)
+
+        if load_pca:
+          logging.warning(f'found pickle for scaler model: {pca_file}')
+          self._pca_dim_red_ = load(pca_file)
+
         skip_preprocessing = True
 
     # store
@@ -121,9 +137,11 @@ class Project2Estimator(BaseEstimator):
       # X, y = check_X_y(X, y) # TODO: returns wierd stuff
 
     if save_flag and not skip_preprocessing:
-      X.to_pickle(fn_func(X_hash,cfg_hash, 'X.pkl'))
-      y.to_pickle(fn_func(y_hash,cfg_hash, 'y.pkl'))
-      dump(self._scaler_, fn_func(X_hash,cfg_hash, 'scaler.joblib'))
+      X.to_pickle(X_file)
+      y.to_pickle(y_file)
+      dump(self._scaler_, scaler_file)
+      if load_pca:
+        dump(self._pca_dim_red_, pca_file)
 
       
 
@@ -154,7 +172,16 @@ class Project2Estimator(BaseEstimator):
 
     # Reduce dimensionality of test dataset
     # based on feature selection on training data 
-    X_u = X_u[self._X.columns]
+    rmf_pipeline  = self.run_cfg['preproc/rmf/pipeline']
+    
+    if rmf_pipeline == 'pca':
+      logging.info('transforming X_u via pca')
+      X_u = pca_dim_reduction_transform(self._pca_dim_red_, X_u)
+    elif rmf_pipeline == 'rfe':
+      X_u = X_u[self._X.columns]
+    else:
+      error(f'prediction rmf not implemented for {rmf_pipeline}')
+    
     y_u = self._fitted_model_.predict(X_u)
     return y_u
 
@@ -404,34 +431,44 @@ class Project2Estimator(BaseEstimator):
     if flag_normalize:
       X = self.normalize(X, run_cfg['preproc/normalize/method'])
 
-    X,y = oversample(X,y, run_cfg['preproc/oversampling/method'])
+    if run_cfg['preproc/oversampling/enabled']:
+      X,y = oversample(X,y, run_cfg['preproc/oversampling/method'])
 
     # Feature reduction
     rfe_method = run_cfg['preproc/rmf/rfe/method']
-    rfe_estimator = run_cfg['preproc/rmf/rfe/estimator']
     rfe_step_size = run_cfg['preproc/rmf/rfe/step_size']
+    rfe_estimator = run_cfg['preproc/rmf/rfe/estimator']
     rfe_min_feat = run_cfg['preproc/rmf/rfe/min_feat']
-    rfe_estimator_cfg = run_cfg[f'preproc/rmf/rfe/models/{rfe_estimator}']
+    rfe_estimator_args = run_cfg[f'preproc/rmf/rfe/models/{rfe_estimator}']
+    
+    pca_method = run_cfg['preproc/rmf/pca/method']
+    pca_estimator_args = run_cfg['preproc/rmf/pca/model']
 
     rmf_pipelines = {
       'rfe': lambda X,y: rfe_dim_reduction(
         X,y,rfe_method, rfe_estimator,
-        estimator_args=rfe_estimator_cfg,
+        estimator_args=rfe_estimator_args,
         min_feat = rfe_min_feat,
         step = rfe_step_size
       ),
+      'pca': lambda X,y: pca_dim_reduction(
+          X,y,
+          pca_method=pca_method,
+          pca_args=pca_estimator_args
+        ),
       'auto' : lambda X,y: self.autofeat_dim_reduction(X,y)
     }
     rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
-    X = rmf_pipelines[rmf_pipeline_name](X,y)
 
-    # # Apply pca (with min max normalization)
-    # if run_cfg['preproc/rmf/pca/enabled']:
-      # if not flag_normalize: 
-      #   logging.error('Unnormalized data as PCA input!')
-      # n_comp = run_cfg['preproc/rmf/pca/n_comp']
-      # X = self.pca_dim_reduction(X, n_comp)
-
+    if rmf_pipeline_name == 'rfe':
+      X = rmf_pipelines[rmf_pipeline_name](X,y)
+    elif rmf_pipeline_name == 'pca':
+      X, pca = rmf_pipelines[rmf_pipeline_name](X,y)
+      self._pca_dim_red_ = pca
+    else:
+      error(f'rmf not implemented for {rmf_pipeline}')
+      
+    # at this point we also (optionally) created:
+    # self._scaler_
+    # self._pca_dim_red_
     return X, y 
-
-
