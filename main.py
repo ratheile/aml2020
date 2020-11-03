@@ -56,7 +56,7 @@ if __name__ == "__main__":
   parser.add_argument('--env', type=file_path, default='env/env.yml',
     help='The environment yaml file.')
 
-  parser.add_argument('--slice', type=file_path, help='The slice for user grid')
+  parser.add_argument('--slice', type=file_path, help='The slice for user grid') # TODO: change this to "The slice for grid search"?
 
   input_grp.add_argument('--cfg', type=file_path,
     help='The main config yaml file.')
