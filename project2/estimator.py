@@ -81,8 +81,8 @@ class Project2Estimator(BaseEstimator):
     begin_time = time.time()
     
     # Preprocessing
-    X = self.df_sanitization(X)
-    y = self.df_sanitization(y)
+    X = self.df_sanitization(X) # Otherwise indices aren't correct anymore
+    y = self.df_sanitization(y) # Otherwise indices aren't correct anymore
 
     hash_dir = self.env_cfg['datasets/project2/hash_dir']
     # Bypass data input
@@ -118,13 +118,13 @@ class Project2Estimator(BaseEstimator):
       if files_present:
         logging.warning(f'found pickle for X: {X_file}')
         logging.warning(f'found pickle for y: {y_file}')
-        logging.warning(f'found pickle for scaler model: {scaler_file}')
+        logging.warning(f'found pickle for normalization model: {scaler_file}')
         X = pd.read_pickle(X_file)
         y = pd.read_pickle(y_file)
         self._scaler_ = load(scaler_file)
 
         if load_pca:
-          logging.warning(f'found pickle for scaler model: {pca_file}')
+          logging.warning(f'found pickle for PCA model: {pca_file}')
           self._pca_dim_red_ = load(pca_file)
 
         skip_preprocessing = True
@@ -134,7 +134,7 @@ class Project2Estimator(BaseEstimator):
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
       X, y = self.preprocess(self.run_cfg, X, y)
-      # X, y = check_X_y(X, y) # TODO: returns wierd stuff
+      X, y = check_X_y(X, y)
 
     if save_flag and not skip_preprocessing:
       X.to_pickle(X_file)
@@ -143,14 +143,12 @@ class Project2Estimator(BaseEstimator):
       if load_pca:
         dump(self._pca_dim_red_, pca_file)
 
-      
-
 
     # Regression model fit
     estimator_name = self.run_cfg['fit_model']
     estimator_cfg = self.estimators[estimator_name]
     model = estimator_cfg['model']() # factory
-    fitted_model = estimator_cfg['fit'](model, X, y)
+    fitted_model = estimator_cfg['fit'](model, X, y.values.ravel())
 
     end_time = time.time()
     logging.info(f'Fitting completed in: {end_time - begin_time:.4f} seconds.')
@@ -165,8 +163,6 @@ class Project2Estimator(BaseEstimator):
 
     check_is_fitted(self)
 
-    # TODO: check if necessary
-    # X_test =  pd.DataFrame(self._scaler_.transform(X_test), index=X_test.index, columns=X_test.columns)
     X_u = self.df_sanitization(X_u)
     X_u = self.preprocess_unlabeled(self.run_cfg, X_u)
 
@@ -187,7 +183,7 @@ class Project2Estimator(BaseEstimator):
 
 
   def score(self, X, y=None):
-    return(balanced_accuracy_score(self.predict(X), y))
+    return(balanced_accuracy_score(self.predict(X), y))  # TODO: probably should pass this to config file as well, for future projects, right?
 
 
   def get_params(self, deep=True):
@@ -245,6 +241,8 @@ class Project2Estimator(BaseEstimator):
   # never called in gridsearch mode!
   # TODO: remove this method but add a train_test_split to the
   # gridsearch (--user grid method)
+
+
   def cross_validate(self):
     check_is_fitted(self)
 
@@ -278,28 +276,10 @@ class Project2Estimator(BaseEstimator):
   ##################### Custom functions ########################
   def df_sanitization(self, data_frame):
     copy = data_frame.copy(deep=True)
-    npa = copy.to_numpy()
+    npa = copy.to_numpy() # Extract numpy array and regenerate indices
     return pd.DataFrame(
       data=npa, columns=copy.columns.tolist()
     )
-
-  def pca_dim_reduction(self, X, n_comp):
-    pca = PCA(n_components=2)
-    pca.fit(X)
-    X_pca = pca.transform(X)
-    logging.info(f"\nPC 1 with scaling:\n { pca.components_[0]}")
-    return X
-
-  # def normalize(self, X, X_test, method):
-  #   scaler_dic = {
-  #     'minmax': MinMaxScaler(),
-  #     'standard': StandardScaler(),
-  #   }
-  #   scaler = scaler_dic[method]
-  #   scaler = scaler.fit(X)
-  #   X_scaled = pd.DataFrame(scaler.transform(X), index=X.index, columns=X.columns)
-  #   X_test_scaled = pd.DataFrame(scaler.transform(X_test), index=X_test.index, columns=X_test.columns)
-  #   return X_scaled, X_test_scaled
 
 
   def normalize(self, X, method, use_pretrained=False):
@@ -325,7 +305,7 @@ class Project2Estimator(BaseEstimator):
     return X
 
 
-  def simple_fit(self, model, X, y):
+  def simple_fit(self, model, X, y):  # TODO to ask: do we need this?
     model = model.fit(X, y)
     return model 
 
@@ -336,6 +316,7 @@ class Project2Estimator(BaseEstimator):
 
     scores = cross_val_score(
       model, X, y, cv=rkf, verbose=1,
+      # TODO: import from run_cfg.yml 
       scoring='balanced_accuracy'   # For scoring strings, see: https://scikit-learn.org/stable/modules/model_evaluation.html 
     )
     return scores
@@ -427,7 +408,6 @@ class Project2Estimator(BaseEstimator):
       y = y.drop(index=outliers)
 
     # Re-normalization of training and test sets without outliers
-    flag_normalize = run_cfg['preproc/normalize/enabled']
     if flag_normalize:
       X = self.normalize(X, run_cfg['preproc/normalize/method'])
 
@@ -445,7 +425,7 @@ class Project2Estimator(BaseEstimator):
     pca_estimator_args = run_cfg['preproc/rmf/pca/model']
 
     rmf_pipelines = {
-      'rfe': lambda X,y: rfe_dim_reduction(
+      'rfe': lambda X,y: rfe_dim_reduction(  # TODO to ask: do you know if we can just pass in the dictionary of options instead of creating a ton of variables for this?
         X,y,rfe_method, rfe_estimator,
         estimator_args=rfe_estimator_args,
         min_feat = rfe_min_feat,
