@@ -9,7 +9,14 @@ import matplotlib.pyplot as plt
 from .estimator import Project2Estimator
 from sklearn.model_selection import GridSearchCV
 
-def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
+def gridsearch(run_cfg, env_cfg, slice_cfg): 
+  '''
+  The idea is to run gridsearch and see which model is the best by looking at the *_grid_results.csv
+  Once you can define which model is the winner, adapt base_cfg.yml so you have this set of parameters
+  and run 'python main.py --cfg project2/base_cfg.yml' in your terminal to get the predictions from that model.
+  ''' 
+  
+  # Load training dataset from csv
   datapath = env_cfg['datasets/project2/path']
   X = pd.read_csv(f'{datapath}/X_train.csv')
   y = pd.read_csv(f'{datapath}/y_train.csv')
@@ -26,7 +33,8 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
   clf = GridSearchCV(
       estimator=p2e,
       param_grid=param_grid,
-      n_jobs=1
+      scoring='balanced_accuracy',  # TODO: In any case much clearer here than lost under estimator, which is supposed to be general IMHO. ENter this in base_cfg and refactor scoring under estimator.py to this.
+      n_jobs=1  # Number of jobs to run in parallel
     )
 
   clf.fit(X, y)
@@ -40,14 +48,17 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):  # Load training dataset from csv
   if not os.path.exists('predictions'):
     os.makedirs('predictions')
 
-
   results_df.to_csv(
       f'predictions/{slice_cfg["experiment_name"]}_grid_results.csv', 
-      index=False)
+      index=False) # TODO for Euler: reporting needs to work on Euler as well
 
   logging.info('GridSearchCV complete')
 
 def run(run_cfg, env_cfg):
+  '''
+  Fits a single model and returns predictions. To be used for prototyping or after
+  performing GridSearch.
+  '''
 
   # Load training dataset from csv
   datapath = env_cfg['datasets/project2/path']
@@ -62,8 +73,8 @@ def run(run_cfg, env_cfg):
   logging.info('Training dataset imported')
 
   p2e = Project2Estimator(run_cfg, env_cfg)
-  p2e.fit(X,y)
-  scores = p2e.cross_validate()
+  p2e.fit(X,y)  # Needed to do preprocessing. Under sklearn guidelines this is what you should do.
+  scores = p2e.cross_validate()  # TODO: make this work on Euler and save data
   y_u = p2e.predict(X_u)
   
   if len(y_u.shape) > 1:
