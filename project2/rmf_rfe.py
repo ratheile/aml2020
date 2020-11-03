@@ -1,10 +1,6 @@
 import logging
-
 import numpy as np
 import pandas as pd
-
-from sklearn.ensemble import IsolationForest, \
-  GradientBoostingRegressor 
 
 from sklearn.feature_selection import RFE, RFECV
 
@@ -14,8 +10,10 @@ from sklearn.linear_model import \
     Ridge, \
     ElasticNet
 
-import lightgbm as lgbm
-from xgboost import XGBRegressor
+from lightgbm import LGBMClassifier
+from xgboost import XGBRegressor, XGBClassifier
+
+from sklearn.svm import SVC
 
 def rfe_dim_reduction(X,y,method,estimator, estimator_args, min_feat=20, step=10, verbose=1):
   # Good read: https://scikit-learn.org/stable/modules/feature_selection.html
@@ -26,12 +24,11 @@ def rfe_dim_reduction(X,y,method,estimator, estimator_args, min_feat=20, step=10
   # 3. Embedded methods: feature selection occurs with model training (e.g. LASSO)
   
   estimator_dic = {
-    'GradientBoostingRegressor': GradientBoostingRegressor(),
-    'lightgbm': lgbm.LGBMRegressor(boosting_type='dart'),
-    'elacticnet': ElasticNet(),
-    'xgboost': XGBRegressor(**estimator_args)
+    'lightgbm_class': lambda: LGBMClassifier(boosting_type='dart'),
+    'svc_rfe': lambda: SVC(**estimator_args),
+    'xgboost_class': lambda: XGBClassifier(**estimator_args)
   }
-  estimator = estimator_dic[estimator] # TODO: this is an arbitrary choice and the result is influenced by this!
+  estimator = estimator_dic[estimator]() # TODO: this is an arbitrary choice and the result is influenced by this!
   if method == "rfe":
     selector = RFE(estimator, n_features_to_select=min_feat, step=step, verbose=verbose)
   elif method == "rfecv":

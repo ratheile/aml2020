@@ -262,7 +262,8 @@ class Project1Estimator(BaseEstimator):
       scaler = self._scaler_
     else:
       scaler = self.scaler_dic[method]()
-    scaler = scaler.fit(X)
+      scaler = scaler.fit(X)
+
     X_scaled = pd.DataFrame(scaler.transform(X), index=X.index, columns=X.columns)
     self._scaler_ = scaler
     return X_scaled

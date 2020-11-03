@@ -4,6 +4,11 @@ persistence:
   save_to_file: true
 
 preproc:
+
+  oversampling:
+    enabled: true
+    method: ADASYN
+
   imputer:
     strategy: median # mean, median
 
@@ -14,92 +19,67 @@ preproc:
   outlier: # random forest
     enabled: true
     cont_lim: 0.05
-    
-  rmf: # remove features
-    pipeline: rfe # auto, rfe, ffu
-    ffu: # Francesco
-      cov: # coefficient of variance
-        enabled: true
-        cvmin: 0.1
-      
-      x_corr:
-        enabled: true
-        lb: 0.8
-
-      y_corr:
-        enabled: true
-
-      etr: #Extra Tree Regressor
-        enabled: false 
-        n_top: 60
-        rnd_state: 0
-        max_feat: "auto"
+    impl: ines
+  
+  rmf:
+    pipeline: pca  # auto, rfe, ffu
 
     rfe:
-      method: rfecv # rfecv
-      estimator: lightgbm # lightgbm, GradientBoostingRegressor, elacticnet, linearreg
-      min_feat: 50 # default 20
+      method: rfe # rfecv
+      estimator: svc_rfe # SVC_RFE
+      min_feat: 900 # default 20
       step_size: 50 # default 10
+    
+      models: 
+        svc_rfe:
+          C: 1.0 
+          kernel: 'linear' # rbf kernel does not work for RFE
 
     pca:
-      enabled: false 
-      n_comp: 2
+      method : kernel-pca # pca kernel-pca
+      model:
+        n_components : 10
+        kernel : 'poly'
 
   normalize:
     enabled: true
     method: standard
-    use_pretrained_for_X_u: false
+    use_pretrained_for_X_u: True
     
-fit_model: lightgbm
+fit_model: svc
 
-models: &clf
+models:
+  svc:
+    C: 1.0 
+    kernel: 'rbf' 
+    degree: 3 # ignored if kernel not poly
+    gamma: 'scale' 
+    coef0: 0.0 # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
+    shrinking: True # What it this?
+    probability: False 
+    class_weight:
+      0: 1
+      1: 1
+      2: 1
+    tol: 0.001 
+    verbose: False
+    max_iter: -1 # no limit
+    decision_function_shape: 'ovo' #ovo or ovr
+    break_ties: False 
+
   lightgbm:
     num_leaves: 127 # default 31
     learning_rate: 0.1 # default 0.1
     num_iterations: 1000 # default 100
     boosting_type: dart # default gbdt [dart, goss, rf]
-    class_weight: balanced
-  gpclf: 
-    multi_class: one_vs_one # OvO and OvR
-  perceptron:
-    penalty: elasticnet
-    shuffle: True
-    verbose: 1
-    # The “balanced” mode uses the values of y to automatically adjust 
-    # weights inversely proportional to class frequencies in the input data 
-    # as n_samples / (n_classes * np.bincount(y))
-    class_weight: balanced
-  svc:
-    C: 1.0
-    kernel: rbf
-    degree: 3 # ignored if kernel not poly
-    gamma: scale
-    coef0: 0.0 # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
-    shrinking: True, # What it this?
-    probability: False, 
-    tol: 0.001, 
-    class_weight: balanced
-    verbose: True
-    max_iter: -1  # no limit
-    decision_function_shape: ovo #ovo or ovr
-    break_ties: False
-    random_state: None
-
-stackedclf:
-  enabled: false
-  estimators: *clf
-
-
+    class_weight:
+      0: 1
+      1: 1
+      2: 1
 
 cv_tasks:
   - lightgbm
   - svc
-  - gpclf
-  - perceptron
-  # - lasso
-  # - ridge
-  # - elasticnet
-  # - stackedclf
 
 overfit:
   test_size: 0.1
