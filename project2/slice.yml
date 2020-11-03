@@ -1,4 +1,6 @@
 experiment_name: project2
 yml_output_folder: experiments/test1
 run_cfg:
+  preproc/oversampling/enabled: [true, false]
+  preproc/rmf/pca/model/n_components: [10, 30]
   models/svc/C: [1.01, 1.1]
