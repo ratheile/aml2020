@@ -133,8 +133,10 @@ class Project2Estimator(BaseEstimator):
     self._preprocessing_skipped_ = skip_preprocessing
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
-      X, y = self.preprocess(self.run_cfg, X, y)
-      X, y = check_X_y(X, y)
+      X_p, y_p = self.preprocess(self.run_cfg, X, y)
+      X_checked, y_checked = check_X_y(X_p, y_p)
+      X = pd.DataFrame(data=X_checked,columns=X_p.columns)
+      y = pd.DataFrame(data=y_checked,columns=y_p.columns)
 
     if save_flag and not skip_preprocessing:
       X.to_pickle(X_file)
@@ -283,7 +285,7 @@ class Project2Estimator(BaseEstimator):
     return pd.DataFrame(
       data=npa, columns=copy.columns.tolist()
     )
-
+  
 
   def normalize(self, X, method, use_pretrained=False):
     if self._preprocessing_skipped_ and self._scaler_ is None:
