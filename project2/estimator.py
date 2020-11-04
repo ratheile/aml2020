@@ -183,7 +183,10 @@ class Project2Estimator(BaseEstimator):
 
 
   def score(self, X, y=None):
-    return(balanced_accuracy_score(self.predict(X), y))  # TODO: probably should pass this to config file as well, for future projects, right?
+    score_fn = {
+      'balanced_accuracy': lambda: balanced_accuracy_score
+    }
+    return(score_fn[self.run_cfg['scoring']](self.predict(X), y))  # TODO: probably should pass this to config file as well, for future projects, right?
 
 
   def get_params(self, deep=True):
@@ -316,8 +319,7 @@ class Project2Estimator(BaseEstimator):
 
     scores = cross_val_score(
       model, X, y, cv=rkf, verbose=1,
-      # TODO: import from run_cfg.yml 
-      scoring='balanced_accuracy'   # For scoring strings, see: https://scikit-learn.org/stable/modules/model_evaluation.html 
+      scoring=self.run_cfg['scoring']
     )
     return scores
 

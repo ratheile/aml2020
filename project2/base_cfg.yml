@@ -77,7 +77,7 @@ models:
       1: 1
       2: 1
 
-scoring: 'balanced_accuracy'
+scoring: 'balanced_accuracy' # https://scikit-learn.org/stable/modules/model_evaluation.html
 
 cv_tasks:
   # - lightgbm
