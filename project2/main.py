@@ -33,7 +33,7 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):
   clf = GridSearchCV(
       estimator=p2e,
       param_grid=param_grid,
-      scoring=run_cfg['scoring'],  # TODO: In any case much clearer here than lost under estimator, which is supposed to be general IMHO. ENter this in base_cfg and refactor scoring under estimator.py to this.
+      scoring=run_cfg['scoring'],
       n_jobs=1  # Number of jobs to run in parallel
     )
 

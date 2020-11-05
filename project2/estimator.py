@@ -188,7 +188,7 @@ class Project2Estimator(BaseEstimator):
     score_fn = {
       'balanced_accuracy': lambda: balanced_accuracy_score
     }
-    return(score_fn[self.run_cfg['scoring']](self.predict(X), y))  # TODO: probably should pass this to config file as well, for future projects, right?
+    return(score_fn[self.run_cfg['scoring']](self.predict(X), y))
 
 
   def get_params(self, deep=True):
