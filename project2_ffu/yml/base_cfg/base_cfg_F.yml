@@ -1,0 +1,88 @@
+# Pipeline steps
+persistence:
+  load_from_file: true
+  save_to_file: true
+
+preproc:
+
+  oversampling:
+    enabled: true
+    method: ADASYN
+
+  imputer:
+    strategy: median # mean, median
+
+  zero_and_const:
+    enabled: false
+    cvmin: 0.0001
+
+  outlier: # random forest
+    enabled: true
+    cont_lim: 0.05
+    impl: ines
+  
+  rmf:
+    pipeline: pca  # auto, rfe, ffu
+    enabled: true # if set to 'false' 'rmf/pipeline' needs to be set to 'rfe' to avoid crashing.
+
+    rfe:
+      method: rfecv # rfecv
+      estimator: svc_rfe # SVC_RFE
+      min_feat: 200 # default 20
+      step_size: 50 # default 10
+    
+      models: 
+        svc_rfe:
+          C: 1.0 
+          kernel: 'linear' # rbf kernel does not work for RFE
+
+    pca:
+      method : kernel-pca # pca kernel-pca
+      model:
+        n_components : 250
+        kernel : 'poly'
+
+  normalize:
+    enabled: true
+    method: standard
+    use_pretrained_for_X_u: True
+    
+fit_model: svc
+
+models:
+  svc:
+    C: 1.0 
+    kernel: 'rbf' 
+    degree: 3 # ignored if kernel not poly
+    gamma: 'scale' 
+    coef0: 0.0 # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
+    shrinking: True # What it this?
+    probability: False 
+    class_weight:
+      0: 1.0
+      1: 1.0
+      2: 1.0
+    tol: 0.001 
+    verbose: False
+    max_iter: -1 # no limit
+    decision_function_shape: 'ovo' #ovo or ovr
+    break_ties: False 
+
+  lightgbm:
+    num_leaves: 127 # default 31
+    learning_rate: 0.1 # default 0.1
+    num_iterations: 1000 # default 100
+    boosting_type: dart # default gbdt [dart, goss, rf]
+    class_weight:
+      0: 1
+      1: 1
+      2: 1
+
+scoring: 'balanced_accuracy' # https://scikit-learn.org/stable/modules/model_evaluation.html
+
+cv_tasks:
+  # - lightgbm
+  - svc
+
+overfit:
+  test_size: 0.1
