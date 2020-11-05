@@ -129,6 +129,8 @@ class Project2Estimator(BaseEstimator):
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
       X_p, y_p = self.preprocess(self.run_cfg, X, y)
+
+      # TODO: why is this function after preprocess?
       X_checked, y_checked = check_X_y(X_p, y_p)
       X = pd.DataFrame(data=X_checked,columns=X_p.columns)
       y = pd.DataFrame(data=y_checked,columns=y_p.columns)
@@ -344,8 +346,17 @@ class Project2Estimator(BaseEstimator):
     if flag_normalize:
       X = self.normalize(X, run_cfg['preproc/normalize/method'])
 
-    if run_cfg['preproc/oversampling/enabled']:
-      X,y = balancing(X,y, run_cfg['preproc/balancing/method'])
+    if run_cfg['preproc/balancing/enabled']:
+      method = run_cfg['preproc/balancing/method']
+
+      if f'preproc/balancing/models/{method}' in run_cfg:
+        method_arg_dict = run_cfg[f'preproc/balancing/models/{method}']
+        logging.info(f'balancing ({method}) args: {method_arg_dict}')
+        X,y = balancing(X,y, method_arg_dict, method)
+      else:
+        logging.warning(f'Balancing with an unconfigured method {method}')
+        X,y = balancing(X,y, method)
+
 
     # Feature reduction
     if run_cfg['preproc/rmf/enabled']:
@@ -375,8 +386,10 @@ class Project2Estimator(BaseEstimator):
       rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
   
       if rmf_pipeline_name == 'rfe':
+        logging.info(f'RFE args: {rfe_estimator_args}')
         X = rmf_pipelines[rmf_pipeline_name](X,y)
       elif rmf_pipeline_name == 'pca':
+        logging.info(f'PCA args: {rfe_estimator_args}')
         X, pca = rmf_pipelines[rmf_pipeline_name](X,y)
         self._pca_dim_red_ = pca
       else:

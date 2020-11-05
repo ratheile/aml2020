@@ -80,7 +80,6 @@ def run(run_cfg, env_cfg):
 
   p2e = Project2Estimator(run_cfg, env_cfg)
   p2e.fit(X,y)  # Needed to do preprocessing. Under sklearn guidelines this is what you should do.
-  scores = p2e.cross_validate()  # TODO: make this work on Euler and save data
   y_u = p2e.predict(X_u)
   
   if len(y_u.shape) > 1:
