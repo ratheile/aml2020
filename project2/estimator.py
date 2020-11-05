@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from .outlier import find_isolation_forest_outlier
 from .rmf_rfe import rfe_dim_reduction
 from .rmf_pca import pca_dim_reduction, pca_dim_reduction_transform
-from .oversampling import oversample
+from .sampling import balancing
 
 from autofeat import FeatureSelector
 
@@ -345,7 +345,7 @@ class Project2Estimator(BaseEstimator):
       X = self.normalize(X, run_cfg['preproc/normalize/method'])
 
     if run_cfg['preproc/oversampling/enabled']:
-      X,y = oversample(X,y, run_cfg['preproc/oversampling/method'])
+      X,y = balancing(X,y, run_cfg['preproc/balancing/method'])
 
     # Feature reduction
     if run_cfg['preproc/rmf/enabled']:

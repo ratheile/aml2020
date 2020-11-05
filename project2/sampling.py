@@ -35,7 +35,7 @@ from sklearn.model_selection import \
   cross_val_score, \
   train_test_split
 
-oversamplers = {
+balancers = {
   # TODO: parametize oversamplers
   'SMOTE': lambda : SMOTE(random_state=None, k_neighbors=12), 
   'B1SMOTE' : lambda : BorderlineSMOTE(random_state=None, k_neighbors=12, kind='borderline-1'),
@@ -60,11 +60,11 @@ oversamplers = {
 #   return fig
 
 
-def oversample(X, y, method:str):
+def balancing(X, y, method:str):
   logging.info(f'Oversampling: Balancing out the dataset with {method}')
-  sampler = oversamplers[method]()
-  if sampler is not None:
-    X_o, y_o = sampler.fit_resample(
+  balancer = balancers[method]()
+  if balancer is not None:
+    X_o, y_o = balancer.fit_resample(
       X.copy(deep=True),
       y.copy(deep=True)
     )
