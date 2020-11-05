@@ -28,12 +28,11 @@ def rfe_dim_reduction(X,y,method,estimator, estimator_args, min_feat=20, step=10
     'svc_rfe': lambda: SVC(**estimator_args),
     'xgboost_class': lambda: XGBClassifier(**estimator_args)
   }
-  estimator = estimator_dic[estimator]() # TODO: this is an arbitrary choice and the result is influenced by this!
+  estimator = estimator_dic[estimator]()
   if method == "rfe":
     selector = RFE(estimator, n_features_to_select=min_feat, step=step, verbose=verbose)
   elif method == "rfecv":
     selector = RFECV(estimator, step=step, cv=5, verbose=verbose, min_features_to_select=min_feat)
-  # TODO: consider other methods? e.g. tree-based feature selection + SelectFromModel?
 
   selector = selector.fit(X, y.values.ravel()) # Transformation in y as requested by function
   print(f'Original number of features : {X.shape[1]}')

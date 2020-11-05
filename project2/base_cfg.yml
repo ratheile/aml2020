@@ -22,7 +22,8 @@ preproc:
     impl: ines
   
   rmf:
-    pipeline: pca  # auto, rfe, ffu
+    pipeline: rfe  # auto, rfe, pca
+    enabled: false # if set to 'false' 'rmf/pipeline' needs to be set to 'rfe' to avoid crashing.
 
     rfe:
       method: rfe # rfecv
@@ -77,7 +78,7 @@ models:
       1: 1
       2: 1
 
-scoring: 'balanced_accuracy'
+scoring: 'balanced_accuracy' # https://scikit-learn.org/stable/modules/model_evaluation.html
 
 
 cross_validation:
