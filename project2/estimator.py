@@ -75,12 +75,22 @@ class Project2Estimator(BaseEstimator):
   def fit(self, X, y):
     begin_time = time.time()
     
-    # Preprocessing
-    X = self.df_sanitization(X) # Otherwise indices aren't correct anymore
-    y = self.df_sanitization(y) # Otherwise indices aren't correct anymore
+    # Sanitization
+    
+    # Sometimes indices of dataframes and series 
+    # do not match
+    X = self.df_sanitization(X) 
+    y = self.df_sanitization(y)
 
+    # Check y.values.ravel() because we use this exact 
+    # method also to pass our y to other sklearn models
+    X_checked, y_checked = check_X_y(X, y.values.ravel())
+    X = pd.DataFrame(data=X_checked,columns=X.columns)
+    y = pd.DataFrame(data=y_checked,columns=y.columns)
+
+
+    # Bypass Data Input
     hash_dir = self.env_cfg['datasets/project2/hash_dir']
-    # Bypass data input
     skip_preprocessing = False
     load_pca = self.run_cfg['preproc/rmf/pipeline'] == 'pca'
 
@@ -124,17 +134,15 @@ class Project2Estimator(BaseEstimator):
 
         skip_preprocessing = True
 
-    # store
+
+    # Data Preprocessing
     self._preprocessing_skipped_ = skip_preprocessing
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
       X_p, y_p = self.preprocess(self.run_cfg, X, y)
 
-      # TODO: why is this function after preprocess?
-      X_checked, y_checked = check_X_y(X_p, y_p)
-      X = pd.DataFrame(data=X_checked,columns=X_p.columns)
-      y = pd.DataFrame(data=y_checked,columns=y_p.columns)
 
+    # Store
     if save_flag and not skip_preprocessing:
       X.to_pickle(X_file)
       y.to_pickle(y_file)
@@ -152,7 +160,11 @@ class Project2Estimator(BaseEstimator):
     end_time = time.time()
     logging.info(f'Fitting completed in: {end_time - begin_time:.4f} seconds.')
 
-    # store
+    # Assign local variables
+    # also includes (above):
+    # - self._preprocessing_skipped_ 
+    # - self._scaler_
+    # - self._pca_dim_red_
     self._fitted_model_ = fitted_model
     self._X = X
     self._y = y
