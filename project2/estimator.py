@@ -34,11 +34,6 @@ from sklearn.impute import SimpleImputer
 
 from sklearn.utils import shuffle
 
-from sklearn.model_selection import \
-    RepeatedKFold, \
-    cross_val_score, \
-    train_test_split, \
-    StratifiedKFold
 
 from sklearn.linear_model import \
     LinearRegression, \
@@ -190,7 +185,7 @@ class Project2Estimator(BaseEstimator):
     }
     return(score_fn[self.run_cfg['scoring']](self.predict(X), y))
 
-test_size
+
   def get_params(self, deep=True):
     out = {}
     out['run_cfg'] = self.run_cfg

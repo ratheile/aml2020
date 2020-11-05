@@ -7,7 +7,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .estimator import Project2Estimator
-from sklearn.model_selection import GridSearchCV
+
+from sklearn.model_selection import \
+    RepeatedKFold, \
+    GridSearchCV, \
+    cross_val_score, \
+    train_test_split, \
+    StratifiedKFold
 
 def gridsearch(run_cfg, env_cfg, slice_cfg): 
   '''
@@ -120,15 +126,38 @@ def cross_validate(run_cfg, env_cfg):
     X, y,
     test_size=run_cfg['cross_validation/test_set_size']
   )
-  rkf = StratifiedKFold(n_splits=10)   # better kfold for imbalanced dataset
+  rkf = StratifiedKFold(
+    n_splits=run_cfg['cross_validation/n_splits']
+  )   # better kfold for imbalanced dataset
 
   scores = cross_val_score(
-    model, X, y, cv=rkf, verbose=1,
-    # TODO: import from run_cfg.yml 
-    scoring='balanced_accuracy'   # For scoring strings, see: https://scikit-learn.org/stable/modules/model_evaluation.html 
+    p2e, X, y, 
+    cv=rkf,
+    scoring=run_cfg['scoring'],
+    n_jobs=env_cfg['n_jobs']
   )
 
-  train_scores_mean = pd.DataFrame( np.array(train_scores).T).mean()
-  train_scores_mean.index = tasks
-  logging.info(train_scores_mean)
-  return train_scores_mean
+  columns = [
+    *scores, # flatten
+    np.mean(scores),
+    np.std(scores)
+  ]
+
+  titles = [
+    *[f"cv{i}" for i in range(len(scores))],
+    'mean',
+    'std'
+  ]
+
+  logging.info(f'CV results: {columns}')
+  # default orientation is rows -> transpose
+  results = pd.DataFrame(columns, index=titles).T
+
+  if 'model_path' in run_cfg:
+    model_path = run_cfg['model_path']
+    dir_name, file_name = os.path.split(model_path)
+
+    if not os.path.exists(dir_name):
+      os.makedirs(dir_name)
+
+    results.to_csv( f'{model_path}.csv', index=False) 

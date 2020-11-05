@@ -23,7 +23,9 @@ preproc:
   
   rmf:
     pipeline: rfe  # auto, rfe, pca
-    enabled: false # if set to 'false' 'rmf/pipeline' needs to be set to 'rfe' to avoid crashing.
+    # if set to 'false' 'rmf/pipeline' 
+    # needs to be set to 'rfe' to avoid crashing.
+    enabled: false 
 
     rfe:
       method: rfe # rfecv
@@ -55,7 +57,10 @@ models:
     kernel: 'rbf' 
     degree: 3 # ignored if kernel not poly
     gamma: 'scale' 
-    coef0: 0.0 # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
+
+    # Independent term in kernel function.
+    # It is only significant in ‘poly’ and ‘sigmoid’.
+    coef0: 0.0 
     shrinking: True # What it this?
     probability: False 
     class_weight:
@@ -78,8 +83,10 @@ models:
       1: 1
       2: 1
 
-scoring: 'balanced_accuracy' # https://scikit-learn.org/stable/modules/model_evaluation.html
+# https://scikit-learn.org/stable/modules/model_evaluation.html
+scoring: 'balanced_accuracy' 
 
-
+model_path: experiments/cv/test77
 cross_validation:
   test_set_size: 0.1
+  n_splits: 10
