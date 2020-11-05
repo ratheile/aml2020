@@ -5,9 +5,28 @@ persistence:
 
 preproc:
 
-  oversampling:
+  # over / undersample
+  balancing:
     enabled: true
     method: ADASYN
+
+    models:
+      SMOTE:
+        k_neighbors: 12
+      BSMOTE:
+        k_neighbors: 12
+        kind: 'borderline-1' # or 2
+      SVMSMOTE:
+        k_neighbors: 12
+      ADASYN:
+        n_neighbors: 12
+      
+      # currently no args, uncomment to enable
+      # KMeansSMOTE:
+      # RandomOverSampler:
+      # SMOTEENN:
+      # SMOTETomek:
+        
 
   imputer:
     strategy: median # mean, median
@@ -22,8 +41,10 @@ preproc:
     impl: ines
   
   rmf:
-    pipeline: rfe  # auto, rfe, ffu
-    enabled: false # if set to 'false' 'rmf/pipeline' needs to be set to 'rfe' to avoid crashing.
+    pipeline: rfe  # auto, rfe, pca
+    # if set to 'false' 'rmf/pipeline' 
+    # needs to be set to 'rfe' to avoid crashing.
+    enabled: false 
 
     rfe:
       method: rfe # rfecv
@@ -54,8 +75,11 @@ models:
     C: 1.0 
     kernel: 'rbf' 
     degree: 3 # ignored if kernel not poly
-    gamma: 0.0003
-    coef0: 0.0 # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
+    gamma: 'scale' 
+
+    # Independent term in kernel function.
+    # It is only significant in ‘poly’ and ‘sigmoid’.
+    coef0: 0.0 
     shrinking: True # What it this?
     probability: False 
     class_weight:
@@ -78,11 +102,9 @@ models:
       1: 1
       2: 1
 
-scoring: 'balanced_accuracy' # https://scikit-learn.org/stable/modules/model_evaluation.html
+# https://scikit-learn.org/stable/modules/model_evaluation.html
+scoring: 'balanced_accuracy' 
 
-cv_tasks:
-  # - lightgbm
-  - svc
-
-overfit:
-  test_size: 0.1
+cross_validation:
+  test_set_size: 0.1
+  n_splits: 10

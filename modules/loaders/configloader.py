@@ -69,6 +69,26 @@ class ConfigLoader(object):
         return self.__getitem__(subkeys)
       else:
         return self.env[key]
+
+
+  def __contains__(self, key):
+    if isinstance(key, list) or isinstance(key, tuple):
+      val = self.env
+      for k in key:
+        type_check = type(k) is str and isinstance(val, Iterable)
+        k = int(k) if str.isdigit(k) else k
+        existence_check = len(val) > k if isinstance(val, list) else (k in val)
+        if type_check and existence_check:
+          val = val[k]
+        else:
+          return False
+      return True
+    else:
+      subkeys = key.split('/')
+      if len(subkeys) > 1:
+        return self.__contains__(subkeys)
+      else:
+        return key in self.env
   
 
   def __setitem__(self, key, item):

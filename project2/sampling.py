@@ -35,17 +35,16 @@ from sklearn.model_selection import \
   cross_val_score, \
   train_test_split
 
-oversamplers = {
+balancers = {
   # TODO: parametize oversamplers
-  'SMOTE': lambda : SMOTE(random_state=None, k_neighbors=12), 
-  'B1SMOTE' : lambda : BorderlineSMOTE(random_state=None, k_neighbors=12, kind='borderline-1'),
-  'B2SMOTE' : lambda : BorderlineSMOTE(random_state=None, k_neighbors=12, kind='borderline-2'),
-  'SVMSMOTE': lambda : SVMSMOTE(random_state=None, k_neighbors=12),
-  'ADASYN': lambda :  ADASYN(random_state=None, n_neighbors=12),
-  'KMeansSMOTE': lambda : KMeansSMOTE(random_state=None),
-  'RandomOverSampler': lambda : RandomOverSampler(random_state=None),
-  'SMOTEENN': lambda : SMOTEENN(random_state=None),
-  'SMOTETomek': lambda : SMOTETomek(random_state=None)
+  'SMOTE': lambda args: SMOTE(**args), 
+  'BSMOTE' : lambda args: BorderlineSMOTE(**args),
+  'SVMSMOTE': lambda args: SVMSMOTE(**args),
+  'ADASYN': lambda args:  ADASYN(**args),
+  'KMeansSMOTE': lambda args: KMeansSMOTE(**args),
+  'RandomOverSampler': lambda args: RandomOverSampler(**args),
+  'SMOTEENN': lambda args: SMOTEENN(**args),
+  'SMOTETomek': lambda args: SMOTETomek(**args)
 }
 
 # def plot_upsampling(X,y):
@@ -60,11 +59,11 @@ oversamplers = {
 #   return fig
 
 
-def oversample(X, y, method:str):
+def balancing(X, y, args, method:str):
   logging.info(f'Oversampling: Balancing out the dataset with {method}')
-  sampler = oversamplers[method]()
-  if sampler is not None:
-    X_o, y_o = sampler.fit_resample(
+  balancer = balancers[method](args)
+  if balancer is not None:
+    X_o, y_o = balancer.fit_resample(
       X.copy(deep=True),
       y.copy(deep=True)
     )

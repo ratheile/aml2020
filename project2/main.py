@@ -7,7 +7,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .estimator import Project2Estimator
-from sklearn.model_selection import GridSearchCV
+
+from sklearn.model_selection import \
+    RepeatedKFold, \
+    GridSearchCV, \
+    cross_val_score, \
+    train_test_split, \
+    StratifiedKFold
 
 def gridsearch(run_cfg, env_cfg, slice_cfg): 
   '''
@@ -74,7 +80,6 @@ def run(run_cfg, env_cfg):
 
   p2e = Project2Estimator(run_cfg, env_cfg)
   p2e.fit(X,y)  # Needed to do preprocessing. Under sklearn guidelines this is what you should do.
-  scores = p2e.cross_validate()  # TODO: make this work on Euler and save data
   y_u = p2e.predict(X_u)
   
   if len(y_u.shape) > 1:
@@ -94,3 +99,64 @@ def run(run_cfg, env_cfg):
     index=False)
 
   logging.info(f'{estimator_name} | Predictions for submission on AML platform saved.')
+
+
+def cross_validate(run_cfg, env_cfg):
+  '''
+  Cross validates a single model.
+  '''
+
+  # Load training dataset from csv
+  datapath = env_cfg['datasets/project2/path']
+  X = pd.read_csv(f'{datapath}/X_train.csv')
+  y = pd.read_csv(f'{datapath}/y_train.csv')
+  X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
+  
+  # Remove index column
+  y = y.iloc[:,1:]
+  X = X.iloc[:,1:]
+  X_u = X_u.iloc[:,1:]
+  logging.info('Training dataset imported')
+
+  p2e = Project2Estimator(run_cfg, env_cfg)
+  logging.info(f'Cross validation started')
+
+  X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=run_cfg['cross_validation/test_set_size']
+  )
+  rkf = StratifiedKFold(
+    n_splits=run_cfg['cross_validation/n_splits']
+  )   # better kfold for imbalanced dataset
+
+  scores = cross_val_score(
+    p2e, X, y, 
+    cv=rkf,
+    scoring=run_cfg['scoring'],
+    n_jobs=env_cfg['n_jobs']
+  )
+
+  columns = [
+    *scores, # flatten
+    np.mean(scores),
+    np.std(scores)
+  ]
+
+  titles = [
+    *[f"cv{i}" for i in range(len(scores))],
+    'mean',
+    'std'
+  ]
+
+  logging.info(f'CV results: {columns}')
+  # default orientation is rows -> transpose
+  results = pd.DataFrame(columns, index=titles).T
+
+  if 'model_path' in run_cfg:
+    model_path = run_cfg['model_path']
+    dir_name, file_name = os.path.split(model_path)
+
+    if not os.path.exists(dir_name):
+      os.makedirs(dir_name)
+
+    results.to_csv( f'{model_path}.csv', index=False) 
