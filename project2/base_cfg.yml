@@ -22,7 +22,8 @@ preproc:
     impl: ines
   
   rmf:
-    pipeline: pca  # auto, rfe, ffu
+    pipeline: rfe  # auto, rfe, ffu
+    enabled: false # if set to 'false' 'rmf/pipeline' needs to be set to 'rfe' to avoid crashing.
 
     rfe:
       method: rfe # rfecv
