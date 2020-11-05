@@ -419,38 +419,39 @@ class Project2Estimator(BaseEstimator):
       X,y = oversample(X,y, run_cfg['preproc/oversampling/method'])
 
     # Feature reduction
-    rfe_method = run_cfg['preproc/rmf/rfe/method']
-    rfe_step_size = run_cfg['preproc/rmf/rfe/step_size']
-    rfe_estimator = run_cfg['preproc/rmf/rfe/estimator']
-    rfe_min_feat = run_cfg['preproc/rmf/rfe/min_feat']
-    rfe_estimator_args = run_cfg[f'preproc/rmf/rfe/models/{rfe_estimator}']
-    
-    pca_method = run_cfg['preproc/rmf/pca/method']
-    pca_estimator_args = run_cfg['preproc/rmf/pca/model']
-
-    rmf_pipelines = {
-      'rfe': lambda X,y: rfe_dim_reduction(  # TODO to ask: do you know if we can just pass in the dictionary of options instead of creating a ton of variables for this?
-        X,y,rfe_method, rfe_estimator,
-        estimator_args=rfe_estimator_args,
-        min_feat = rfe_min_feat,
-        step = rfe_step_size
-      ),
-      'pca': lambda X,y: pca_dim_reduction(
-          X,y,
-          pca_method=pca_method,
-          pca_args=pca_estimator_args
+    if run_cfg['preproc/rmf/enabled']:
+      rfe_method = run_cfg['preproc/rmf/rfe/method']
+      rfe_step_size = run_cfg['preproc/rmf/rfe/step_size']
+      rfe_estimator = run_cfg['preproc/rmf/rfe/estimator']
+      rfe_min_feat = run_cfg['preproc/rmf/rfe/min_feat']
+      rfe_estimator_args = run_cfg[f'preproc/rmf/rfe/models/{rfe_estimator}']
+      
+      pca_method = run_cfg['preproc/rmf/pca/method']
+      pca_estimator_args = run_cfg['preproc/rmf/pca/model']
+  
+      rmf_pipelines = {
+        'rfe': lambda X,y: rfe_dim_reduction(  # TODO to ask: do you know if we can just pass in the dictionary of options instead of creating a ton of variables for this?
+          X,y,rfe_method, rfe_estimator,
+          estimator_args=rfe_estimator_args,
+          min_feat = rfe_min_feat,
+          step = rfe_step_size
         ),
-      'auto' : lambda X,y: self.autofeat_dim_reduction(X,y)
-    }
-    rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
-
-    if rmf_pipeline_name == 'rfe':
-      X = rmf_pipelines[rmf_pipeline_name](X,y)
-    elif rmf_pipeline_name == 'pca':
-      X, pca = rmf_pipelines[rmf_pipeline_name](X,y)
-      self._pca_dim_red_ = pca
-    else:
-      error(f'rmf not implemented for {rmf_pipeline}')
+        'pca': lambda X,y: pca_dim_reduction(
+            X,y,
+            pca_method=pca_method,
+            pca_args=pca_estimator_args
+          ),
+        'auto' : lambda X,y: self.autofeat_dim_reduction(X,y)
+      }
+      rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
+  
+      if rmf_pipeline_name == 'rfe':
+        X = rmf_pipelines[rmf_pipeline_name](X,y)
+      elif rmf_pipeline_name == 'pca':
+        X, pca = rmf_pipelines[rmf_pipeline_name](X,y)
+        self._pca_dim_red_ = pca
+      else:
+        error(f'rmf not implemented for {rmf_pipeline}')
       
     # at this point we also (optionally) created:
     # self._scaler_
