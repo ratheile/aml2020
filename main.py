@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
       experment_f = project2_catalog[user][etype]
 
-      if etype is Type.run or Type.cv: 
+      if etype is Type.run or etype is Type.cv: 
         experment_f(run_cfg, env_cfg)
       elif etype is Type.grid:
         slice_cfg = ConfigLoader().from_file(slice_path)
