@@ -1,6 +1,14 @@
-experiment_name: project2
-yml_output_folder: experiments/test1
+experiment_name: project2_cfg_A_3b
+yml_output_folder: experiments/cfg_A
 run_cfg:
-  preproc/oversampling/enabled: [true, false]
-  preproc/rmf/pca/model/n_components: [10, 30]
-  models/svc/C: [1.01, 1.1]
+  #preproc/oversampling/enabled: [true, false]
+  #preproc/rmf/pca/model/n_components: [10, 30]
+  #models/svc/C: [0.001, 0.01, 0.1, 1.0, 10, 100, 1000]
+  models/svc/gamma: [0.0001, 0.0002, 0.0003, 0.0004, 0.0005]
+  #models/svc/class_weight: [
+  #  {
+  #    0: 2.68656716,
+  #    1: 0.34513138,
+  #    2: 2.62295082
+  #  }
+  #]

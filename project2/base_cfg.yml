@@ -17,7 +17,7 @@ preproc:
     cvmin: 0.0001
 
   outlier: # random forest
-    enabled: true
+    enabled: false
     cont_lim: 0.05
     impl: ines
   
@@ -54,7 +54,7 @@ models:
     C: 1.0 
     kernel: 'rbf' 
     degree: 3 # ignored if kernel not poly
-    gamma: 'scale' 
+    gamma: 0.0003
     coef0: 0.0 # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
     shrinking: True # What it this?
     probability: False 
