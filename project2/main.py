@@ -92,3 +92,40 @@ def run(run_cfg, env_cfg):
   y_u_df.to_csv(
     f'predictions/{estimator_name}_y.csv', 
     index=False)
+
+def cross_validate(run_cfg, env_cfg):
+  '''
+  Cross validates a single model.
+  '''
+
+  # Load training dataset from csv
+  datapath = env_cfg['datasets/project2/path']
+  X = pd.read_csv(f'{datapath}/X_train.csv')
+  y = pd.read_csv(f'{datapath}/y_train.csv')
+  X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
+  
+  # Remove index column
+  y = y.iloc[:,1:]
+  X = X.iloc[:,1:]
+  X_u = X_u.iloc[:,1:]
+  logging.info('Training dataset imported')
+
+  p2e = Project2Estimator(run_cfg, env_cfg)
+  logging.info(f'Cross validation started')
+
+  X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=run_cfg['cross_validation/test_set_size']
+  )
+  rkf = StratifiedKFold(n_splits=10)   # better kfold for imbalanced dataset
+
+  scores = cross_val_score(
+    model, X, y, cv=rkf, verbose=1,
+    # TODO: import from run_cfg.yml 
+    scoring='balanced_accuracy'   # For scoring strings, see: https://scikit-learn.org/stable/modules/model_evaluation.html 
+  )
+
+  train_scores_mean = pd.DataFrame( np.array(train_scores).T).mean()
+  train_scores_mean.index = tasks
+  logging.info(train_scores_mean)
+  return train_scores_mean

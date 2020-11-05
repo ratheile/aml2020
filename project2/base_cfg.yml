@@ -79,9 +79,6 @@ models:
 
 scoring: 'balanced_accuracy'
 
-cv_tasks:
-  # - lightgbm
-  - svc
 
-overfit:
-  test_size: 0.1
+cross_validation:
+  test_set_size: 0.1

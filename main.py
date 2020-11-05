@@ -87,8 +87,7 @@ if __name__ == "__main__":
 
   logging.info(f'Loading the data from: {env_cfg["datasets/project2/path"]}')
 
-  if 
-
+  # Modes available for a given project
   # e = env_cfg r = run_cfg
   project2_catalog = {
     User.ffu : {
@@ -102,13 +101,34 @@ if __name__ == "__main__":
     },
     User.default: {
       Type.run: lambda r,e: project2.run(r,e), 
-      Type.grid: lambda r,e: project2.gridsearch(r,e,s) 
+      Type.cv: lambda r,e: project2.cross_validate(r,e),
+      Type.grid: lambda r,e,s: project2.gridsearch(r,e,s) 
     },
   }
 
+  #  Checks if input is valid
+  pass_flg = True 
+  pass_flg = pass_flg and env_cfg is not None
+  pass_flg = pass_flg and len(run_cfg_paths) > 0
+  pass_flg = pass_flg and etype in project2_catalog[user]
 
-  # my "main" function
-  for id_ex, run_cfg_path in enumerate(run_cfg_paths):
-    name = os.path.basename(run_cfg_path)
-    run_cfg = ConfigLoader().from_file(run_cfg_path)
-    logging.info(f'running experiment {id_ex + 1} with name {name}')
+  if etype is Type.grid and pass_flg:
+    pass_flg = pass_flg and slice_path is not None
+    
+  if not pass_flg:
+    logging.info("invalid input arguments for task")
+  else:
+    # main function
+    for id_ex, run_cfg_path in enumerate(run_cfg_paths):
+      name = os.path.basename(run_cfg_path)
+      run_cfg = ConfigLoader().from_file(run_cfg_path)
+
+      experment_f = project2_catalog[user][etype]
+
+      if etype is Type.run or Type.cv: 
+        experment_f(run_cfg, env_cfg)
+      elif etype is Type.grid:
+        slice_cfg = ConfigLoader().from_file(slice_path)
+        experment_f(run_cfg, env_cfg, slice_cfg)
+
+      logging.info(f'running experiment {id_ex + 1} with name {name}')
