@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from .outlier import find_isolation_forest_outlier
 from .rmf_rfe import rfe_dim_reduction
 from .rmf_pca import pca_dim_reduction, pca_dim_reduction_transform
-from .oversampling import oversample
+from .sampling import balancing
 
 from autofeat import FeatureSelector
 
@@ -34,11 +34,6 @@ from sklearn.impute import SimpleImputer
 
 from sklearn.utils import shuffle
 
-from sklearn.model_selection import \
-    RepeatedKFold, \
-    cross_val_score, \
-    train_test_split, \
-    StratifiedKFold
 
 from sklearn.linear_model import \
     LinearRegression, \
@@ -134,6 +129,8 @@ class Project2Estimator(BaseEstimator):
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
       X_p, y_p = self.preprocess(self.run_cfg, X, y)
+
+      # TODO: why is this function after preprocess?
       X_checked, y_checked = check_X_y(X_p, y_p)
       X = pd.DataFrame(data=X_checked,columns=X_p.columns)
       y = pd.DataFrame(data=y_checked,columns=y_p.columns)
@@ -178,7 +175,7 @@ class Project2Estimator(BaseEstimator):
     elif rmf_pipeline == 'rfe':
       X_u = X_u[self._X.columns]
     else:
-      error(f'prediction rmf not implemented for {rmf_pipeline}')
+      raise ValueError(f'prediction rmf not implemented for {rmf_pipeline}')
     
     y_u = self._fitted_model_.predict(X_u)
     return y_u
@@ -228,55 +225,6 @@ class Project2Estimator(BaseEstimator):
     
     return self
 
-  ##################### Cross Validation ########################
-  def cv_task(self, args):
-    estimators = args['estimators']
-    task_args = args['task_args']
-    model_dict = estimators[task_args['task']]
-    model = model_dict['model']() # factory
-    crossval_fit = model_dict['crossval_fit']
-    # logging.info(model.score(X_test, y_test))
-
-    # run the task:
-    X = task_args['X']
-    y = task_args['y']
-    return (crossval_fit(model, X, y.values.ravel()), model)
-
-  # has nothing to do with gridsearch
-  # never called in gridsearch mode!
-  # TODO: remove this method but add a train_test_split to the
-  # gridsearch (--user grid method)
-
-
-  def cross_validate(self):
-    check_is_fitted(self)
-
-    run_cfg = self.run_cfg
-    tasks = run_cfg['cv_tasks']
-    logging.info(f'Cross validating classification models {tasks}')
-
-    X_train, X_test, y_train, y_test = train_test_split(
-      self._X, 
-      self._y,
-      test_size=run_cfg['overfit/test_size']
-    )
-
-    task_args = [{
-      'X': X_train.copy(deep=True),
-      'y': y_train.copy(deep=True),
-      'task': t
-    } for t in tasks]
-    args = [{'estimators': self.estimators,'task_args': a} for a in task_args]
-
-    train_scores = []
-    for i, arg in enumerate(args):
-      s, m = self.cv_task(arg)
-      train_scores.append(s)
-
-    train_scores_mean = pd.DataFrame( np.array(train_scores).T).mean()
-    train_scores_mean.index = tasks
-    logging.info(train_scores_mean)
-    return train_scores_mean
 
   ##################### Custom functions ########################
   def df_sanitization(self, data_frame):
@@ -309,22 +257,9 @@ class Project2Estimator(BaseEstimator):
     X = fsel.fit_transform(X,y)
     return X
 
-
   def simple_fit(self, model, X, y):  # TODO to ask: do we need this?
     model = model.fit(X, y)
     return model 
-
-
-  def auto_crossval(self, model, X, y):
-    # rkf = RepeatedKFold(n_splits=10, n_repeats=2)
-    rkf = StratifiedKFold(n_splits=10)   # better kfold for imbalanced dataset
-
-    scores = cross_val_score(
-      model, X, y, cv=rkf, verbose=1,
-      scoring=self.run_cfg['scoring']
-    )
-    return scores
-
 
   def cfg_to_estimators(self, run_cfg):
     # stackedclf_cfg = run_cfg['stackedclf/estimators']
@@ -333,13 +268,11 @@ class Project2Estimator(BaseEstimator):
       'lightgbm': {
         'model': lambda : lgbm.LGBMClassifier(**run_cfg['models/lightgbm']),
         'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       },
       'svc': {
         'model': lambda : SVC(**run_cfg['models/svc']),
         'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       },
       'gpclf': {
@@ -347,7 +280,6 @@ class Project2Estimator(BaseEstimator):
           multi_class=run_cfg['models/gpclf/multi_class']
         ),
         'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       },
       'perceptron': {
@@ -357,7 +289,6 @@ class Project2Estimator(BaseEstimator):
           class_weight=run_cfg['models/perceptron/class_weight']
         ),
         'fit': self.simple_fit,
-        'crossval_fit': lambda m,X,y: self.auto_crossval(m,X,y),
         'validate': lambda m,X,y: m.score(m,X,y)
       }
       # 'stackedclf'
@@ -415,8 +346,17 @@ class Project2Estimator(BaseEstimator):
     if flag_normalize:
       X = self.normalize(X, run_cfg['preproc/normalize/method'])
 
-    if run_cfg['preproc/oversampling/enabled']:
-      X,y = oversample(X,y, run_cfg['preproc/oversampling/method'])
+    if run_cfg['preproc/balancing/enabled']:
+      method = run_cfg['preproc/balancing/method']
+
+      if f'preproc/balancing/models/{method}' in run_cfg:
+        method_arg_dict = run_cfg[f'preproc/balancing/models/{method}']
+        logging.info(f'balancing ({method}) args: {method_arg_dict}')
+        X,y = balancing(X,y, method_arg_dict, method)
+      else:
+        logging.warning(f'Balancing with an unconfigured method {method}')
+        X,y = balancing(X,y, method)
+
 
     # Feature reduction
     if run_cfg['preproc/rmf/enabled']:
@@ -446,12 +386,14 @@ class Project2Estimator(BaseEstimator):
       rmf_pipeline_name = run_cfg['preproc/rmf/pipeline']
   
       if rmf_pipeline_name == 'rfe':
+        logging.info(f'RFE args: {rfe_estimator_args}')
         X = rmf_pipelines[rmf_pipeline_name](X,y)
       elif rmf_pipeline_name == 'pca':
+        logging.info(f'PCA args: {rfe_estimator_args}')
         X, pca = rmf_pipelines[rmf_pipeline_name](X,y)
         self._pca_dim_red_ = pca
       else:
-        error(f'rmf not implemented for {rmf_pipeline}')
+        raise ValueError(f'rmf not implemented for {rmf_pipeline_name}')
       
     # at this point we also (optionally) created:
     # self._scaler_

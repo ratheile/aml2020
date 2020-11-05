@@ -116,7 +116,7 @@ def permute_patch_to_cfgs(cfg_path:str, patch_path: str) -> List[ConfigLoader]:
       str_value = str(tple[id_k]).replace('.', '_')
       fn_prefix += f'_{param_name}={str_value}'
 
-    ex_uuid = uuid.uuid4().hex[0:6]
+    ex_uuid = uuid.uuid4().hex[0:12]
     experiment_name = f'{experiment_base}_{ex_uuid}_{fn_prefix}'
     cfg['model_path'] = f'trained_models/{experiment_name}'
     out_path = f'{out_folder}/{experiment_name}.yml'

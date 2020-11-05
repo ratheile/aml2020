@@ -22,8 +22,13 @@ from project2.estimator import Project2Estimator
 class User(Enum):
   ines = 'ines'
   ffu = 'ffu'
-  raffi = 'raffi'  # TODO: add raffi2 if you want it to work
-  grid = 'grid'
+  raffi = 'raffi'
+  default = 'default'
+
+class Type(Enum):
+  run = 'run'
+  grid = 'grid'  # grid search
+  cv = 'cv'  # cross validation
 
   def __str__(self):
       return self.value
@@ -59,13 +64,16 @@ if __name__ == "__main__":
   input_grp.add_argument('--dir', type=dir_path,
     help='The main config directory.')
 
-  parser.add_argument('--user', type=User, choices=list(User))
+  parser.add_argument('--user', type=User, choices=list(User), default=User.default)
+  parser.add_argument('--type', type=Type, choices=list(Type), default=Type.run)
 
   args = parser.parse_args()
   env_cfg_path = args.env
-  user: User = args.user
   run_cfg_dir = args.dir
   slice_path = args.slice
+
+  user: User = args.user
+  etype: Type = args.type
 
   # Load configs
   env_cfg = ConfigLoader().from_file(env_cfg_path)
@@ -79,41 +87,48 @@ if __name__ == "__main__":
 
   logging.info(f'Loading the data from: {env_cfg["datasets/project2/path"]}')
 
-  if user is User.raffi:
-    # my "main" function
-    for id_ex, run_cfg_path in enumerate(run_cfg_paths):
-      name = os.path.basename(run_cfg_path)
-      run_cfg = ConfigLoader().from_file(run_cfg_path)
-      logging.info(f'running experiment {id_ex + 1} with name {name}')
-      raffi2.run(run_cfg, env_cfg)
+  # Modes available for a given project
+  # e = env_cfg r = run_cfg
+  project2_catalog = {
+    User.ffu : {
+      Type.run: lambda r,e: ffu.run(r,e)
+    },
+    User.ines : {
+      Type.run: lambda r,e: raffi2.run(r,e)
+    },
+    User.raffi: {
+      Type.run : lambda r,e: raffi2.run(r,e)
+    },
+    User.default: {
+      Type.run: lambda r,e: project2.run(r,e), 
+      Type.cv: lambda r,e: project2.cross_validate(r,e),
+      Type.grid: lambda r,e,s: project2.gridsearch(r,e,s) 
+    },
+  }
 
-  elif user is User.ffu:
-    for id_ex, run_cfg_path in enumerate(run_cfg_paths):
-      name = os.path.basename(run_cfg_path)
-      run_cfg = ConfigLoader().from_file(run_cfg_path)
-      logging.info(f'running experiment {id_ex + 1} with name {name}')
-      ffu.run(run_cfg, env_cfg)
+  #  Checks if input is valid
+  pass_flg = True 
+  pass_flg = pass_flg and env_cfg is not None
+  pass_flg = pass_flg and len(run_cfg_paths) > 0
+  pass_flg = pass_flg and etype in project2_catalog[user]
+
+  if etype is Type.grid and pass_flg:
+    pass_flg = pass_flg and slice_path is not None
     
-  elif user is User.ines:
-    for id_ex, run_cfg_path in enumerate(run_cfg_paths):
-      name = os.path.basename(run_cfg_path)
-      run_cfg = ConfigLoader().from_file(run_cfg_path)
-      logging.info(f'running experiment {id_ex + 1} with name {name}')
-      ines.run(run_cfg, env_cfg) # this is the run function from you project-level main.py
-  
-  elif user is User.grid:
-    # Gridsearch Impl 
-    for id_ex, run_cfg_path in enumerate(run_cfg_paths):
-      name = os.path.basename(run_cfg_path)
-      run_cfg = ConfigLoader().from_file(run_cfg_path)
-      slice_cfg = ConfigLoader().from_file(slice_path)
-      logging.info(f'running experiment {id_ex + 1} with name {name}')
-      project2.gridsearch(run_cfg, env_cfg, slice_cfg) 
-
+  if not pass_flg:
+    logging.info("invalid input arguments for task")
   else:
-    # no user
+    # main function
     for id_ex, run_cfg_path in enumerate(run_cfg_paths):
       name = os.path.basename(run_cfg_path)
       run_cfg = ConfigLoader().from_file(run_cfg_path)
+
+      experment_f = project2_catalog[user][etype]
+
+      if etype is Type.run or Type.cv: 
+        experment_f(run_cfg, env_cfg)
+      elif etype is Type.grid:
+        slice_cfg = ConfigLoader().from_file(slice_path)
+        experment_f(run_cfg, env_cfg, slice_cfg)
+
       logging.info(f'running experiment {id_ex + 1} with name {name}')
-      project2.run(run_cfg, env_cfg) # this is the run function from your project-level main.py
