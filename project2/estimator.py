@@ -202,6 +202,9 @@ class Project2Estimator(BaseEstimator):
 
 
   def set_params(self, **params):
+
+    logging.info(f'Setting parameters of estimator to {params}')
+
     if not params:
       # Simple optimization to gain speed (inspect is slow)
       return self
