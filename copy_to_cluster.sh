@@ -8,4 +8,5 @@ AML_CLUSTER=aml2020
 # Copying to Euler but excluding pickle and joblib files (othwerwise takes forever)
 # rsync -P -r env modules $PROJECT --exclude={'*.pkl','*joblib','.git'} $USERNAME@euler.ethz.ch:$AML_CLUSTER/.
 scp * $USERNAME@login.leonhard.ethz.ch:$AML_CLUSTER
-rsync -P -r env modules $PROJECT --exclude={'*.pkl','*joblib','.git'} $USERNAME@login.leonhard.ethz.ch:$AML_CLUSTER/.
+# rsync -P -r env modules $PROJECT --exclude={'*.pkl','*joblib','.git'} $USERNAME@login.leonhard.ethz.ch:$AML_CLUSTER/.
+rsync -P -r * --exclude={'*.pkl','*joblib','.git'} $USERNAME@login.leonhard.ethz.ch:$AML_CLUSTER/.
