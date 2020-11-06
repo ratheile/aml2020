@@ -57,7 +57,11 @@ class Project2Estimator(BaseEstimator):
     self.env_cfg = env_cfg
     self.run_cfg = run_cfg
     self.slice_cfg = slice_cfg
-    logging.info(f'Estimator initialized {args}')
+    logging.info(f'Estimator initialized  (addiditonal args added to run_cfg: {args} )')
+
+    for key, value in args.items():
+      if key != 'run_cfg' and key != 'env_cfg' and key != 'slice_cfg':
+        self.run_cfg[key] = value
 
     self.scaler_dic = {
       'minmax': lambda: MinMaxScaler(),
@@ -121,15 +125,16 @@ class Project2Estimator(BaseEstimator):
         files_present = files_present and os.path.isfile(pca_file)
 
       if files_present:
-        logging.warning(f'found pickle for X: {X_file}')
-        logging.warning(f'found pickle for y: {y_file}')
-        logging.warning(f'found pickle for normalization model: {scaler_file}')
+        logging.warning(f'Files found to preload config hash {cfg_hash} for dataset.')
+        # logging.warning(f'found pickle for X: {X_file}')
+        # logging.warning(f'found pickle for y: {y_file}')
+        # logging.warning(f'found pickle for normalization model: {scaler_file}')
         X = pd.read_pickle(X_file)
         y = pd.read_pickle(y_file)
         self._scaler_ = load(scaler_file)
 
         if load_pca:
-          logging.warning(f'found pickle for PCA model: {pca_file}')
+          # logging.warning(f'found pickle for PCA model: {pca_file}')
           self._pca_dim_red_ = load(pca_file)
 
         skip_preprocessing = True
@@ -230,7 +235,7 @@ class Project2Estimator(BaseEstimator):
       logging.warn('slice_cfg set in set_params')
       self.slice_cfg = params['slice_cfg']
 
-      logging.warn(f'updating params: {params}')
+    logging.warn(f'updating params: {params}')
     for key, value in params.items():
       if key != 'run_cfg' and key != 'env_cfg' and key != 'slice_cfg':
         self.run_cfg[key] = value
