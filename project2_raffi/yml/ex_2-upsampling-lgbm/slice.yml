@@ -1,0 +1,7 @@
+experiment_name: project2_cfg_A_3b
+yml_output_folder: experiments/cfg_A
+run_cfg:
+  # preproc/balancing/enabled: [true, false]
+  preproc/balancing/method: ['SMOTE', 'ADASYN', 'SMOTETomek']
+  preproc/rmf/pca/model/n_components: [3, 10, 25, 50, 100]
+  preproc/rmf/pca/model/kernel: [linear , poly , rbf , sigmoid , cosine ]

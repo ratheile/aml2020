@@ -10,7 +10,6 @@ import glob
 from enum import Enum
 
 from project1_raffi import main as raffi
-from project2_raffi import main as raffi2
 
 from project1_ines import main as ines
 # from project2_ines import main as ines
@@ -94,11 +93,9 @@ if __name__ == "__main__":
       Type.run: lambda r,e: ffu.run(r,e)
     },
     User.ines : {
-      Type.run: lambda r,e: raffi2.run(r,e)
+      Type.run: lambda r,e: ines.run(r,e)
     },
-    User.raffi: {
-      Type.run : lambda r,e: raffi2.run(r,e)
-    },
+    User.raffi: { },
     User.default: {
       Type.run: lambda r,e: project2.run(r,e), 
       Type.cv: lambda r,e: project2.cross_validate(r,e),
