@@ -2,9 +2,12 @@ experiment_name: project2
 yml_output_folder: experiments/test1
 run_cfg:
   # preproc/oversampling/enabled: [true, false]
-  preproc/rmf/pca/model/n_components: [10, 50, 100, 200, 500]
+  preproc/rmf/pipeline: ['pca','rfe']
+  preproc/rmf/enabled: [True, False]
+  preproc/balancing/enabled: [True, False]
+  preproc/outlier/cont_lim: [0, 0.01, 0.05, 0.1]
+  preproc/rmf/pca/model/n_components: [10, 50, 100, 200]
   models/svc/C: [1, 5]
   models/svc/gamma: ['scale', 'auto']
-  models/svc/kernel: ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed']
+  models/svc/kernel: ['linear', 'poly', 'rbf', 'sigmoid']
 
-  # Also test gamma, SVM kernels

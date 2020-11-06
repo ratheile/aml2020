@@ -1,9 +1,10 @@
 logging:  INFO
 n_jobs: -1
+verbose: 3
 datasets:
   project1:
     path: '/home/shafall/datasets/aml/project1'
     hash_dir: '/home/shafall/datasets/aml/project1/hash_dir'
   project2:
     path: '/home/shafall/datasets/aml/project2'
-    hash_dir: '/home/shafall/datasets/aml/project2/hash_dir
+    hash_dir: '/home/shafall/datasets/aml/project2/hash_dir'

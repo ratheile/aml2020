@@ -5,34 +5,15 @@ persistence:
 
 preproc:
 
-  # over / undersample
-  balancing:
-    enabled: true
+  oversampling:
+    enabled: false
     method: ADASYN
-
-    models:
-      SMOTE:
-        k_neighbors: 12
-      BSMOTE:
-        k_neighbors: 12
-        kind: 'borderline-1' # or 2
-      SVMSMOTE:
-        k_neighbors: 12
-      ADASYN:
-        n_neighbors: 12
-      
-      # currently no args, uncomment to enable
-      # KMeansSMOTE:
-      # RandomOverSampler:
-      # SMOTEENN:
-      # SMOTETomek:
-        
 
   imputer:
     strategy: median # mean, median
 
   zero_and_const:
-    enabled: true
+    enabled: false
     cvmin: 0.0001
 
   outlier: # random forest
@@ -41,13 +22,11 @@ preproc:
     impl: ines
   
   rmf:
-    pipeline: pca  # auto, rfe, pca
-    # if set to 'false' 'rmf/pipeline' 
-    # needs to be set to 'rfe' to avoid crashing.
-    enabled: true
+    pipeline: rfe  # auto, rfe, ffu
+    enabled: false # if set to 'false' 'rmf/pipeline' needs to be set to 'rfe' to avoid crashing.
 
     rfe:
-      method: rfecv # rfecv, rfe
+      method: rfe # rfecv
       estimator: svc_rfe # SVC_RFE
       min_feat: 900 # default 20
       step_size: 50 # default 10
@@ -76,16 +55,13 @@ models:
     kernel: 'rbf' 
     degree: 3 # ignored if kernel not poly
     gamma: 'scale' 
-
-    # Independent term in kernel function.
-    # It is only significant in ‘poly’ and ‘sigmoid’.
-    coef0: 0.0 
+    coef0: 0.0 # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
     shrinking: True # What it this?
     probability: False 
     class_weight:
-      0: 1
-      1: 1
-      2: 1
+      0: 2.68656716
+      1: 0.44513138
+      2: 2.62295082
     tol: 0.001 
     verbose: False
     max_iter: -1 # no limit
@@ -102,9 +78,11 @@ models:
       1: 1
       2: 1
 
-# https://scikit-learn.org/stable/modules/model_evaluation.html
-scoring: 'balanced_accuracy' 
+scoring: 'balanced_accuracy' # https://scikit-learn.org/stable/modules/model_evaluation.html
 
-cross_validation:
-  test_set_size: 0.1
-  n_splits: 10
+cv_tasks:
+  # - lightgbm
+  - svc
+
+overfit:
+  test_size: 0.1

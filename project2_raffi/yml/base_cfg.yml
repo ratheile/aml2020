@@ -41,13 +41,13 @@ preproc:
     impl: ines
   
   rmf:
-    pipeline: pca  # auto, rfe, pca
+    pipeline: pca # auto, rfe, pca
     # if set to 'false' 'rmf/pipeline' 
     # needs to be set to 'rfe' to avoid crashing.
     enabled: true
 
     rfe:
-      method: rfecv # rfecv, rfe
+      method: rfe # rfecv
       estimator: svc_rfe # SVC_RFE
       min_feat: 900 # default 20
       step_size: 50 # default 10
