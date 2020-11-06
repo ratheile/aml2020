@@ -139,7 +139,7 @@ class Project2Estimator(BaseEstimator):
     self._preprocessing_skipped_ = skip_preprocessing
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
-      X_p, y_p = self.preprocess(self.run_cfg, X, y)
+      X, y = self.preprocess(self.run_cfg, X, y)
 
 
     # Store
