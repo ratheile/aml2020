@@ -57,7 +57,11 @@ class Project2Estimator(BaseEstimator):
     self.env_cfg = env_cfg
     self.run_cfg = run_cfg
     self.slice_cfg = slice_cfg
-    logging.info(f'Estimator initialized {args}')
+    logging.info(f'Estimator initialized  (addiditonal args added to run_cfg: {args} )')
+
+    for key, value in args.items():
+      if key != 'run_cfg' and key != 'env_cfg' and key != 'slice_cfg':
+        self.run_cfg[key] = value
 
     self.scaler_dic = {
       'minmax': lambda: MinMaxScaler(),
