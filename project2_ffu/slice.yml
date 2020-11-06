@@ -1,7 +1,6 @@
 #SVC parameters: https://scikit-learn.org/stable/auto_examples/svm/plot_rbf_parameters.html#sphx-glr-auto-examples-svm-plot-rbf-parameters-py
-experiment_name: ex3
+experiment_name: ex_A_3_C_lb
 yml_output_folder: experiments/test1
 run_cfg:
-  models/SVC/C: [0.001, 0.01, 0.1, 1.0, 10, 100, 1000] # default 1.0
-  models/SVC/gamma: [0.001, 0.0012, 0.002, 0.005, 0.01, 1] # default 'scale'. scale = 1 / (n_features * X.var()) ~ 0.0012
-  models/SVC/wf_cl1: [0.8, 1, 1.2, 1.4, 1.6, 1.8, 2.0] #factor to adjust the weight of the majority class
+  models/svc/C: [0.7, 0.72, 0.74, 0.76, 0.78, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98] # default 1.0
+#  models/svc/gamma: [0.0003, 0.0006, 0.0009, 0.0012] # default 'scale'. scale = 1 / (n_features * X.var()) ~ 0.0012

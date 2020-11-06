@@ -1,0 +1,112 @@
+# Pipeline steps
+persistence:
+  load_from_file: true
+  save_to_file: true
+
+preproc:
+
+  # over / undersample
+  balancing:
+    enabled: false
+    method: ADASYN
+
+    models:
+      SMOTE:
+        k_neighbors: 12
+      BSMOTE:
+        k_neighbors: 12
+        kind: 'borderline-1' # or 2
+      SVMSMOTE:
+        k_neighbors: 12
+      ADASYN:
+        n_neighbors: 12
+      
+      # currently no args, uncomment to enable
+      # KMeansSMOTE:
+      # RandomOverSampler:
+      # SMOTEENN:
+      # SMOTETomek:
+        
+
+  imputer:
+    strategy: median # mean, median
+
+  zero_and_const:
+    enabled: false
+    cvmin: 0.0001
+
+  outlier: # random forest
+    enabled: false
+    cont_lim: 0.05
+    impl: ines
+  
+  rmf:
+    pipeline: rfe  # auto, rfe, pca
+    # if set to 'false' 'rmf/pipeline' 
+    # needs to be set to 'rfe' to avoid crashing.
+    enabled: false
+
+    rfe:
+      method: rfe # rfecv
+      estimator: svc_rfe # SVC_RFE
+      min_feat: 900 # default 20
+      step_size: 50 # default 10
+    
+      models: 
+        svc_rfe:
+          C: 1.0 
+          kernel: 'linear' # rbf kernel does not work for RFE
+
+    pca:
+      method : kernel-pca # pca kernel-pca
+      model:
+        n_components : 10
+        kernel : 'poly'
+
+  normalize:
+    enabled: true
+    method: standard
+    use_pretrained_for_X_u: True
+    
+fit_model: svc
+
+models:
+  svc:
+    C: 1.4 
+    kernel: 'rbf' 
+    degree: 3 # ignored if kernel not poly
+    gamma: 0.0003 
+
+    # Independent term in kernel function.
+    # It is only significant in ‘poly’ and ‘sigmoid’.
+    coef0: 0.0 
+    shrinking: True # What it this?
+    probability: False 
+    class_weight:
+      0: 2.68656716
+      1: 0.534157656
+      2: 2.62295082
+    tol: 0.001 
+    verbose: False
+    max_iter: -1 # no limit
+    decision_function_shape: 'ovo' #ovo or ovr
+    break_ties: False 
+
+  lightgbm:
+    num_leaves: 127 # default 31
+    learning_rate: 0.1 # default 0.1
+    num_iterations: 1000 # default 100
+    boosting_type: dart # default gbdt [dart, goss, rf]
+    class_weight:
+      0: 1
+      1: 1
+      2: 1
+
+# https://scikit-learn.org/stable/modules/model_evaluation.html
+scoring: 'balanced_accuracy' 
+
+cross_validation:
+  test_set_size: 0.1
+  n_splits: 10
+
+model_path: 'project2_ffu/yml/cv/cfg_A_1_4'
