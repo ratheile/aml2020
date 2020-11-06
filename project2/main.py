@@ -41,7 +41,8 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):
       param_grid=param_grid,
       scoring=run_cfg['scoring'],
       # Number of jobs to run in parallel
-      n_jobs=env_cfg['n_jobs']
+      n_jobs=env_cfg['n_jobs'],
+      verbose=env_cfg['verbose']
     )
 
   clf.fit(X, y)
@@ -134,7 +135,8 @@ def cross_validate(run_cfg, env_cfg):
     p2e, X, y, 
     cv=rkf,
     scoring=run_cfg['scoring'],
-    n_jobs=env_cfg['n_jobs']
+    n_jobs=env_cfg['n_jobs'],
+    verbose=env_cfg['verbose']
   )
 
   columns = [

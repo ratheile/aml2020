@@ -1,5 +1,6 @@
 logging:  INFO
 n_jobs: -1
+verbose: 3
 datasets:
   project1:
     path: '/home/shafall/datasets/aml/project1'
