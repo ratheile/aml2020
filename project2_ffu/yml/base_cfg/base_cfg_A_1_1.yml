@@ -7,7 +7,7 @@ preproc:
 
   # over / undersample
   balancing:
-    enabled: true
+    enabled: false
     method: ADASYN
 
     models:
@@ -36,18 +36,18 @@ preproc:
     cvmin: 0.0001
 
   outlier: # random forest
-    enabled: true
+    enabled: false
     cont_lim: 0.05
     impl: ines
   
   rmf:
-    pipeline: pca  # auto, rfe, pca
+    pipeline: rfe  # auto, rfe, pca
     # if set to 'false' 'rmf/pipeline' 
     # needs to be set to 'rfe' to avoid crashing.
-    enabled: true 
+    enabled: false
 
     rfe:
-      method: rfecv # rfecv, rfe
+      method: rfe # rfecv
       estimator: svc_rfe # SVC_RFE
       min_feat: 900 # default 20
       step_size: 50 # default 10
@@ -75,7 +75,7 @@ models:
     C: 1.0 
     kernel: 'rbf' 
     degree: 3 # ignored if kernel not poly
-    gamma: 'scale' 
+    gamma: 0.0003 
 
     # Independent term in kernel function.
     # It is only significant in ‘poly’ and ‘sigmoid’.
@@ -83,9 +83,9 @@ models:
     shrinking: True # What it this?
     probability: False 
     class_weight:
-      0: 1
-      1: 1
-      2: 1
+      0: 2.68656716
+      1: 0.534157656
+      2: 2.62295082
     tol: 0.001 
     verbose: False
     max_iter: -1 # no limit
@@ -108,3 +108,5 @@ scoring: 'balanced_accuracy'
 cross_validation:
   test_set_size: 0.1
   n_splits: 10
+
+model_path: 'project2_ffu/yml/cv/cfg_A_1_1'

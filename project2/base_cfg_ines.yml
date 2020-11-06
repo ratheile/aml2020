@@ -32,7 +32,7 @@ preproc:
     strategy: median # mean, median
 
   zero_and_const:
-    enabled: false
+    enabled: true
     cvmin: 0.0001
 
   outlier: # random forest
@@ -44,7 +44,7 @@ preproc:
     pipeline: pca  # auto, rfe, pca
     # if set to 'false' 'rmf/pipeline' 
     # needs to be set to 'rfe' to avoid crashing.
-    enabled: true 
+    enabled: true
 
     rfe:
       method: rfecv # rfecv, rfe
