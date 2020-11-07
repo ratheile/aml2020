@@ -1,10 +1,6 @@
 logging:  INFO
-euler:
-  username: ratheile
-  cluster_dir: aml2020
-  cluster_url: euler.ethz.ch
 n_jobs: -1
-verbose: 3
+verbose: 0
 datasets:
   project1:
     path: '/home/shafall/datasets/aml/project1'

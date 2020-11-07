@@ -1,5 +1,5 @@
 source $HOME/miniconda3/etc/profile.d/conda.sh
-cd /cluster/home/inesb/aml2020  # Change inesb to your own ETH username
+cd $HOME/aml2020  # Change inesb to your own ETH username
 
-conda activate aml_env
+conda activate aml2020
 python main.py --env env/cluster.yml --cfg "$@"

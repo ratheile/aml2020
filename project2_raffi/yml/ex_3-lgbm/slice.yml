@@ -1,0 +1,11 @@
+experiment_name: ex3-lgbm
+yml_output_folder: experiments/cfg_A
+run_cfg:
+  preproc/rmf/pca/model/n_components: [3, 10, 25]
+  preproc/rmf/pca/model/kernel: [linear, sigmoid]
+  models/lightgbm/num_leaves: [31, 63, 127]
+  models/lightgbm/n_estimators: [100, 500, 1000]
+  models/lightgbm/learning_rate: [0.01, 0.05, 0.1]
+  models/lightgbm/boosting_type: [dart, gbdt]
+
+
