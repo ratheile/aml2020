@@ -1,0 +1,10 @@
+experiment_name: ex4-svc
+yml_output_folder: experiments/cfg_A
+run_cfg:
+  preproc/balancing/enabled: [true, false]
+  preproc/zero_and_const/enabled: [true, false]
+  preproc/outlier/enabled: [true, false]
+  preproc/rmf/enabled: [true, false]
+  preproc/rmf/pipeline: [pca, rfe]
+
+

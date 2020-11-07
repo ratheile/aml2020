@@ -8,7 +8,6 @@ sys.path.insert(0, os.path.abspath('..'))
 
 #%%
 from project2_raffi.visualization import pca
-from project2_raffi.balancing import balance_dataset
 from modules import ConfigLoader
 
 # Other modules
@@ -19,7 +18,6 @@ import matplotlib.pyplot as plt
 #%% some local testing:
 run_cfg = ConfigLoader().from_file('base_cfg.yml')
 env_cfg = ConfigLoader().from_file('../env/env.yml')
-
 #%%
 print(env_cfg)
 
@@ -30,24 +28,78 @@ df_X_u = pd.read_csv(f"{env_cfg['datasets/project2/path']}/X_test.csv") # unlabe
 # %%
 
 # Remove index column
+from sklearn.preprocessing import StandardScaler
 X = df_X.iloc[:,1:]
-y = df_y.iloc[:,1:]
-# %%
+y = df_y.iloc[:,1:].values.ravel()
+scaler = StandardScaler().fit(X)
+X = scaler.transform(X)
 
+# %%
 from sklearn.decomposition import PCA, KernelPCA
 from sklearn.manifold import TSNE
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklego.mixture import GMMOutlierDetector
+from umap import UMAP
 
-pca = KernelPCA(kernel='linear',  n_components=3)
-# tsne = TSNE(n_components=3)
-X_pca = pca.fit_transform(X)
-# X_tsne = tsne.fit_transform(X)
+from pandas.plotting import parallel_coordinates
+from sklego.decomposition import UMAPOutlierDetection, PCAOutlierDetection
 
-pc_names = ['pc1', 'pc2', 'pc3']
-X_dr = pd.DataFrame(X_pca, columns=pc_names)
+def plot_model(mod,X_orig, components, threshold):
+    mod = mod(n_components=components, threshold=threshold).fit(X_orig)
+    X = pd.DataFrame(X_orig).copy()
+    X['label'] = mod.predict(X)
 
-X_dr
+    plt.figure(figsize=(12, 3))
+    plt.subplot(121)
+    parallel_coordinates(X.loc[lambda d: d['label'] == 1], class_column='label', alpha=0.5)
+    parallel_coordinates(X.loc[lambda d: d['label'] == -1], class_column='label', color='red', alpha=0.7)
+    plt.title("outlier shown via parallel coordinates")
+
+    if components == 2:
+        plt.subplot(122)
+        X_reduced = mod.transform(X_orig)
+        plt.scatter(X_reduced[:, 0], X_reduced[:, 1], c=X['label'])
+        plt.title("outlier shown in 2d")
+
+
 
 # %%
+plot_model(PCAOutlierDetection,X, components=2, threshold=0.1 )
+
+
+
+
+# %%
+# pca = KernelPCA(kernel='sigmoid',  n_components=10)
+# X_pca = pca.fit_transform(X)
+# lda = LinearDiscriminantAnalysis(n_components=2)
+# X_lda = lda.fit(X_pca, y).transform(X_pca)
+# gmm_ol = GMMOutlierDetector(n_components=18, threshold=0.95).fit(X)
+
+# mask = gmm_ol.predict(X)
+# X = X
+
+umap = UMAP(n_neighbors=5)
+X_umap = umap.fit_transform(X)
+
+# lda = LinearDiscriminantAnalysis(
+#   solver='eigen',
+#   # shrinkage='auto', 
+#   n_components=2)
+# X_lda = lda.fit(X, y).transform(X)
+
+# tsne = TSNE(n_components=3)
+# X_tsne = tsne.fit_transform(X)
+
+# clf = QuadraticDiscriminantAnalysis()
+# X_qda = clf.fit(X, y).transform(X)
+
+
+
+# pc_names = ['pc1', 'pc2', 'pc3']
+# X_dr_3d = pd.DataFrame(X_lda, columns=pc_names)
+X_dr_2d = pd.DataFrame(X_umap, columns=['pc1', 'pc2'])
 
 plt.figure()
 plt.figure(figsize=(10,10))
@@ -59,14 +111,17 @@ plt.title("Principal Component Analysis",fontsize=20)
 targets = [0,1,2]
 colors = ['r', 'g', 'b']
 for target, color in zip(targets,colors):
-    indicesToKeep = y['y'] == target
-    plt.scatter(X_dr.loc[indicesToKeep, 'pc1']
-               , X_dr.loc[indicesToKeep, 'pc2'], c = color, s = 50)
+    indicesToKeep = y == target
+    plt.scatter(X_dr_2d.loc[indicesToKeep, 'pc1']
+               , X_dr_2d.loc[indicesToKeep, 'pc2'], c = color, s = 50)
 
 plt.legend(targets,prop={'size': 15})
-# %%
+
+
+
+# %% 3d Plot
 import plotly.express as px
-Xy_dr = pd.merge(X_dr, y, right_index=True, left_index=True)
+Xy_dr = pd.merge(X_dr_3d, y, right_index=True, left_index=True)
 fig = px.scatter_3d(Xy_dr,
   x='pc1', y='pc2', z='pc3',
   color='y'
