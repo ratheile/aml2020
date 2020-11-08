@@ -15,7 +15,7 @@ preproc:
         k_neighbors: 12
       BSMOTE:
         k_neighbors: 12
-        kind: 'borderline-1' # or 2
+        kind: 'borderline-2' # or 2
       SVMSMOTE:
         k_neighbors: 12
       ADASYN:
@@ -41,14 +41,12 @@ preproc:
     impl: ines
   
   rmf:
-    pipeline: pca  # auto, rfe, pca
-    # if set to 'false' 'rmf/pipeline' 
-    # needs to be set to 'rfe' to avoid crashing.
-    enabled: true 
+    enabled: true
+    pipeline: pca # auto, rfe, pca, umap
 
     rfe:
       needs_persistence: false
-      method: rfecv # rfecv, rfe
+      method: rfe # rfecv
       estimator: svc_rfe # SVC_RFE
       min_feat: 900 # default 20
       step_size: 50 # default 10
@@ -62,15 +60,15 @@ preproc:
       needs_persistence: true
       method : kernel-pca # pca kernel-pca
       model:
-        n_components : 10
-        kernel : 'poly'
-
-
+        n_components : 10 
+        kernel : 'linear'
+    
     umap:
       needs_persistence: true
       model:
         n_neighbors: 15
         n_components: 50
+
 
   normalize:
     enabled: true
@@ -102,14 +100,14 @@ models:
     break_ties: False 
 
   lightgbm:
-    num_leaves: 127 # default 31
+    num_leaves: 31 # default 31
     learning_rate: 0.1 # default 0.1
-    num_iterations: 1000 # default 100
-    boosting_type: dart # default gbdt [dart, goss, rf]
-    class_weight:
-      0: 1
-      1: 1
-      2: 1
+    num_iterations: 100 # default 100
+    boosting_type:  gbdt # default gbdt [dart, goss, rf]
+    # class_weight:
+    #   0: 1
+    #   1: 1
+    #   2: 1
 
 # https://scikit-learn.org/stable/modules/model_evaluation.html
 scoring: 'balanced_accuracy' 
@@ -117,3 +115,5 @@ scoring: 'balanced_accuracy'
 cross_validation:
   test_set_size: 0.1
   n_splits: 10
+
+model_path: 'project2_ffu/yml/cv/cfg_A_1_3'
