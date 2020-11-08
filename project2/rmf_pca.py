@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 
 from sklearn.decomposition import PCA, KernelPCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 
 methods = {

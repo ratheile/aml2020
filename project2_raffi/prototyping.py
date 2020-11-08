@@ -14,6 +14,7 @@ from modules import ConfigLoader
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 #%% some local testing:
 run_cfg = ConfigLoader().from_file('base_cfg.yml')
@@ -31,261 +32,253 @@ df_X_u = pd.read_csv(f"{env_cfg['datasets/project2/path']}/X_test.csv") # unlabe
 from sklearn.preprocessing import StandardScaler
 X = df_X.iloc[:,1:]
 y = df_y.iloc[:,1:].values.ravel()
+X_u = df_X.iloc[:,1:]
+
 scaler = StandardScaler().fit(X)
 X = scaler.transform(X)
+X_u = scaler.transform(X_u)
+
+X, X_test, y, y_test = train_test_split(X, y, test_size=0.3)
 
 # %%
 from sklearn.decomposition import PCA, KernelPCA
 from sklearn.manifold import TSNE
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.cluster import KMeans
 from sklego.mixture import GMMOutlierDetector
 from umap import UMAP
+
 
 from pandas.plotting import parallel_coordinates
 from sklego.decomposition import UMAPOutlierDetection, PCAOutlierDetection
 
 def plot_model(mod,X_orig, components, threshold):
     mod = mod(n_components=components, threshold=threshold).fit(X_orig)
-    X = pd.DataFrame(X_orig).copy()
-    X['label'] = mod.predict(X)
+    X = X_orig.copy()
+    outlier_labels = mod.predict(X)
+    X = PCA(n_components=5).fit_transform(X)
+    X = pd.DataFrame(X)
+    X['label'] = outlier_labels
 
-    plt.figure(figsize=(12, 3))
-    plt.subplot(121)
-    parallel_coordinates(X.loc[lambda d: d['label'] == 1], class_column='label', alpha=0.5)
-    parallel_coordinates(X.loc[lambda d: d['label'] == -1], class_column='label', color='red', alpha=0.7)
-    plt.title("outlier shown via parallel coordinates")
+    
+    f, axes = plt.subplots(nrows=1, ncols=2, figsize=(12,3))
+
+    ax = axes[0]
+    parallel_coordinates(X.loc[lambda d: d['label'] == 1], class_column='label', alpha=0.5,  ax=ax)
+    parallel_coordinates(X.loc[lambda d: d['label'] == -1], class_column='label', color='red', alpha=0.3, ax=ax)
+    ax.set_title("outlier shown via parallel coordinates")
 
     if components == 2:
-        plt.subplot(122)
+        ax = axes[1]
         X_reduced = mod.transform(X_orig)
-        plt.scatter(X_reduced[:, 0], X_reduced[:, 1], c=X['label'])
-        plt.title("outlier shown in 2d")
-
-
-
-# %%
-plot_model(PCAOutlierDetection,X, components=2, threshold=0.1 )
+        ax.scatter(X_reduced[:, 0], X_reduced[:, 1], c=X['label'])
+    return f, ax
 
 
 
 
-# %%
-# pca = KernelPCA(kernel='sigmoid',  n_components=10)
-# X_pca = pca.fit_transform(X)
-# lda = LinearDiscriminantAnalysis(n_components=2)
-# X_lda = lda.fit(X_pca, y).transform(X_pca)
 # gmm_ol = GMMOutlierDetector(n_components=18, threshold=0.95).fit(X)
-
 # mask = gmm_ol.predict(X)
-# X = X
 
-umap = UMAP(n_neighbors=5)
-X_umap = umap.fit_transform(X)
+# %%
+# X = X[mask == 1]
+# y = y[mask == 1]
+
+
+# %%
+n_comp = 2
+umap = UMAP(n_neighbors=16, n_components=n_comp)
+X_umap_raw = umap.fit_transform(X)
+X_umap = pd.DataFrame(X_umap_raw, 
+  columns=[f'c{c}' for c in range(n_comp)])
+X_umap['label'] = y
+
+n_km_clusters = 2
+kmeans = KMeans(n_clusters=n_km_clusters)
+km_label = kmeans.fit_predict(X_umap_raw)
+
+
+#%% UMAP parallel coordinates plot
+f, axes = plt.subplots(nrows=1, ncols=1, figsize=(12,3))
+colors=['red', 'geen', 'blue']
+for i in [2, 1, 0]:
+  ax = axes
+  parallel_coordinates(X_umap.loc[lambda d: d['label'] == i],
+    class_column='label',
+    color=colors[i],
+    alpha=0.1,  ax=ax)
+
+X_umap['km_label'] = km_label
+
+
+# %% UMAP 2d visualization
+f, axes = plt.subplots(nrows=1, ncols=1)
+targets = [0,1]
+colors = ['r', 'g']
+for target, color in zip(targets,colors):
+    indicesToKeep = km_label == target
+    plt.scatter(X_umap.loc[indicesToKeep, 'c0']
+               , X_umap.loc[indicesToKeep, 'c1'], c = color, s = 50)
+
+# %% filter out majority cluster 
+class_counts = [np.sum(y == i) for i in range(3)]
+large_class_index = np.argmax(class_counts)
+
+minority_cluster = np.argmax(
+[ X_umap.loc[lambda d:  (d['label'] != large_class_index) & \
+                      (d['km_label'] == i)].shape[0] 
+for i in range(n_km_clusters) ])
+
+assert X_umap.shape[0] == 4800 - X_test.shape[0]
+mask = X_umap['km_label'] == minority_cluster
+X_2 = X[mask]
+y_2 = y[mask]
+
+# %% visualize minority cluster
+
+from dml import DMLMJ, KDA, LLDA, NCA
+
+def pca_lda(X,y):
+  pca = KernelPCA(kernel='linear',  n_components=200)
+  X_pca = pca.fit_transform(X_2)
+  lda = LinearDiscriminantAnalysis(n_components=2)
+  X_lda = lda.fit(X_pca, y_2).transform(X_pca)
+  return X_lda
+
+# dmlmj = DMLMJ(num_dims=2)
+# X_dmlmj = dmlmj.fit_transform(X_2,y_2)
+
+
+# kda = KDA(n_components=2, kernel='poly')
+# X_kda = kda.fit_transform(X_2, y_2)
+
+algos = {
+#  'llda': lambda n: LLDA(n_components=n),
+#  'dmlmj':lambda n,X,y: DMLMJ(num_dims=n).fit_transform(X,y),
+#  'pca_lda': lambda n,X,y: pca_lda(X,y),
+ 'lda': lambda n,X,y: LinearDiscriminantAnalysis(n_components=2).fit(X,y).transform(X)
+  #  'nca': NCA(num_dims=2)
+}
 
 # lda = LinearDiscriminantAnalysis(
 #   solver='eigen',
-#   # shrinkage='auto', 
+#   shrinkage='auto', 
 #   n_components=2)
-# X_lda = lda.fit(X, y).transform(X)
+# X_lda = lda.fit(X_2, y_2).transform(X_2)
 
-# tsne = TSNE(n_components=3)
-# X_tsne = tsne.fit_transform(X)
+
+# tsne = TSNE(n_components=2)
+# X_tsne = tsne.fit_transform(X_2)
 
 # clf = QuadraticDiscriminantAnalysis()
 # X_qda = clf.fit(X, y).transform(X)
 
 
-
-# pc_names = ['pc1', 'pc2', 'pc3']
-# X_dr_3d = pd.DataFrame(X_lda, columns=pc_names)
-X_dr_2d = pd.DataFrame(X_umap, columns=['pc1', 'pc2'])
-
-plt.figure()
-plt.figure(figsize=(10,10))
-plt.xticks(fontsize=12)
-plt.yticks(fontsize=14)
-plt.xlabel('Principal Component - 1',fontsize=20)
-plt.ylabel('Principal Component - 2',fontsize=20)
-plt.title("Principal Component Analysis",fontsize=20)
-targets = [0,1,2]
-colors = ['r', 'g', 'b']
-for target, color in zip(targets,colors):
-    indicesToKeep = y == target
-    plt.scatter(X_dr_2d.loc[indicesToKeep, 'pc1']
-               , X_dr_2d.loc[indicesToKeep, 'pc2'], c = color, s = 50)
-
-plt.legend(targets,prop={'size': 15})
+for algo_name, algo_f in algos.items():
 
 
+  # 2d
+  X_algo = algo_f(2, X_2, y_2)
+  X_dr_2d = pd.DataFrame(X_algo, columns=['pc1', 'pc2'])
 
-# %% 3d Plot
-import plotly.express as px
-Xy_dr = pd.merge(X_dr_3d, y, right_index=True, left_index=True)
-fig = px.scatter_3d(Xy_dr,
-  x='pc1', y='pc2', z='pc3',
-  color='y'
-)
-fig
+  plt.figure()
+  plt.figure(figsize=(10,10))
+  plt.xticks(fontsize=12)
+  plt.yticks(fontsize=14)
+  plt.xlabel('Component - 1',fontsize=20)
+  plt.ylabel('Component - 2',fontsize=20)
+  plt.title(f"{algo_name}",fontsize=20)
+  targets = [0,1,2]
+  colors = ['r', 'g', 'b']
+  for target, color in zip(targets,colors):
+      indicesToKeep = y_2 == target
+      plt.scatter(X_dr_2d.loc[indicesToKeep, 'pc1']
+                , X_dr_2d.loc[indicesToKeep, 'pc2'], c = color, s = 50)
+
+  plt.legend(targets,prop={'size': 15})
+
+
+  # 3d
+  # X_algo = algo_f(2, X_2, y_2)
+  # pc_names = ['pc1', 'pc2', 'pc3']
+  # X_dr_3d = pd.DataFrame(X_algo, columns=pc_names)
+  # import plotly.express as px
+  # y_2_df = pd.DataFrame(y_2, columns=['y'])
+  # Xy_dr = pd.merge(X_dr_3d, y_2_df, right_index=True, left_index=True)
+  # fig = px.scatter_3d(Xy_dr,
+  #   x='pc1', y='pc2', z='pc3',
+  #   color='y'
+  # )
+  # fig
+  # print(f'Computation of {algo_name} completed')
 
 
 
 
 # %%
-Xy_dr
+from sklearn.metrics import balanced_accuracy_score
+from sklearn.svm import SVC
 
-# %%
-from imblearn.over_sampling import \
-  SMOTE, \
-  SVMSMOTE, \
-  SMOTENC, \
-  BorderlineSMOTE, \
-  KMeansSMOTE, \
-  ADASYN, \
-  RandomOverSampler
-
-
-from imblearn.combine import \
-  SMOTEENN, \
-  SMOTETomek
-
-# import loras
-from sklearn.model_selection import \
-    RepeatedKFold, \
-    cross_val_score, \
-    train_test_split
-
-# %%
-class LorasSampler():
-
-  def __init__(self):
-    pass
-  #   min_class_points = features_1_trn
-  #   maj_class_points = features_0_trn
-  #   k = 30
-  #   num_shadow_points = 100
-  #   sigma = [.005]*min_class_points.shape[1]
-  #   num_generated_points = (len(features_0)-len(features_1))//len(features_1)
-  #   num_aff_comb = 300
-  #   seed = 42
-
-  # def fit_resample(X, y):
-  #   loras_min_class_points = loras.fit_resample(maj_class_points, 
-  #                                               min_class_points, k=k, 
-  #                                               num_shadow_points=num_shadow_points, 
-  #                                               num_generated_points=num_generated_points,
-  #                                               num_aff_comb=num_aff_comb)
-  #   print(loras_min_class_points.shape)
-  #   LoRAS_feat = np.concatenate((loras_min_class_points, maj_class_points))
-  #   LoRAS_labels = np.concatenate((np.zeros(len(loras_min_class_points))+1, 
-  #                                 np.zeros(len(maj_class_points))))
-  #   print(LoRAS_feat.shape)
-  #   print(LoRAS_labels.shape)## SMOTE and its extensions oversampling
-
-# %%
-from sklearn.metrics import f1_score, balanced_accuracy_score, average_precision_score
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression
-
-def get_metrics(y_test, y_pred, y_prob):
-    metrics = []
-    metrics.append(f1_score(y_test, y_pred, average='micro'))
-    metrics.append(balanced_accuracy_score(y_test, y_pred))
-    # metrics.append(average_precision_score(y_test, y_prob[:,1]))
-    return metrics
-
-def knn(X_train,y_train,X_test,y_test):
-    knn = KNeighborsClassifier(n_neighbors=29)
-    knn.fit(X_train, y_train)
-    y_pred = knn.predict(X_test)
-    y_prob = knn.predict_proba(X_test)
-    return get_metrics(y_test, y_pred, y_prob)
-
-def lr(X_train, y_train, X_test, y_test):
-    logreg = LogisticRegression(
-      C=1e5,
-      solver='lbfgs',
-      multi_class='ovr',
-      class_weight={0: 1, 1: 1, 2:1}
-    )
-    logreg.fit(X_train, y_train)
-    y_pred = logreg.predict(X_test)
-    y_prob = logreg.predict_proba(X_test)
-    return get_metrics(y_test, y_pred, y_prob)
-
-
-random_state = 42
-
-# Oversampling
-# KMeansSMOTE,. SMOTENC, RandomOverSampler
-
-# Over and undersampling
-# SMOTETomek, SMOTENN
-oversamplers = {
-  'NoUpsampling': None,
-  'SMOTE': SMOTE(random_state=random_state, k_neighbors=12), 
-  'B1SMOTE' : BorderlineSMOTE(random_state=random_state, k_neighbors=12, kind='borderline-1'),
-  'B2SMOTE' : BorderlineSMOTE(random_state=random_state, k_neighbors=12, kind='borderline-2'),
-  'SVMSMOTE': SVMSMOTE(random_state=random_state, k_neighbors=12),
-  'ADASYN':  ADASYN(random_state=random_state, n_neighbors=12),
-  'KMeansSMOTE': KMeansSMOTE(random_state=random_state),
-  # 'SMOTENC': SMOTENC(random_state=random_state), # nominal + cont. data
-  'RandomOverSampler': RandomOverSampler(random_state=random_state),
-  'SMOTEENN':SMOTEENN(random_state=random_state),
-  'SMOTETomek': SMOTETomek(random_state=random_state)
+classifiers={
+  'SVC': lambda: SVC(
+    C=1.0, 
+    kernel='rbf', 
+    degree=3, # ignored if kernel not poly
+    gamma='scale', 
+    coef0=0.0, # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
+    shrinking=True, # What it this?
+    probability=False, 
+    tol=0.001, 
+    #class_weight='balanced',
+    # class_weight={0: weights[0], 1: weights[1]*1.2, 2: weights[2]},
+    verbose=True, 
+    max_iter=-1, # no limit
+    decision_function_shape='ovo', #ovo or ovr
+    break_ties=False, 
+    random_state=None),
 }
-  # 'LORAS':  LorasSampler()
+
+lda = LinearDiscriminantAnalysis(n_components=2).fit(X_2, y_2)
+X_2_lda = lda.transform(X_2)
 
 
-#%%
-
-met_names = ['f1_score', 'balanced_accuracy_score']
-            #  'average_precision_score']
-
-X_train, X_test, y_train, y_test = train_test_split(
-  X, y, test_size=0.3
-)
-
-#%%
-def plot_upsampling(X):
-  pca = KernelPCA(kernel='linear',  n_components=3)
-  X_pca = pca.fit_transform(X)
-  pc_names = ['pc1', 'pc2', 'pc3']
-  Xy_dr = pd.merge(X_dr, y, right_index=True, left_index=True)
-  fig = px.scatter_3d(Xy_dr,
-    x='pc1', y='pc2', z='pc3',
-    color='y'
-  )
-  return fig
+# Choose one classifier and train
+clf = classifiers['SVC']()
+clf = clf.fit(X_2_lda,y_2)
 
 
-#%%
-sampler0 = oversamplers['ADASYN']
-X_o, y_o = sampler0.fit_resample(
-  X_train.copy(deep=True),
-  y_train.copy(deep=True)
-)
+# %%
+def predict(kmeans, umap, lda, svc, minority_cluster_label, large_class_index, X):
+  majority_cluster_label = 1 - minority_cluster_label
+  X_umap = umap.transform(X)
+  km_labels = kmeans.predict(X_umap)
+
+  minority_mask = km_labels == minority_cluster_label
+  y = (km_labels == majority_cluster_label) * large_class_index
+
+  X_m = X[minority_mask]
+  X_m_lda = lda.transform(X_m)
+  y_m = svc.predict(X_m_lda)
+  y[minority_mask] = y_m
+  return y
+
+y_pred = predict(kmeans, umap, lda, clf, minority_cluster, large_class_index, X_test)
+
+# %%
+BMAC = balanced_accuracy_score(y_test, y_pred)
+print(f'BMAC: {BMAC}')
 
 
-#%%
-for key, sampler in oversamplers.items():
+# %%
+y_u = predict(kmeans, umap, lda, clf, minority_cluster, large_class_index, X_u)
 
-  if sampler is not None:
-    X_o, y_o = sampler.fit_resample(
-      X_train.copy(deep=True),
-      y_train.copy(deep=True)
-    )
-  else:
-    X_o, y_o = X_train.copy(deep=True), y_train.copy(deep=True)
-
-  res_knn = knn(X_o, y_o, X_test, y_test)
-  res_lr = lr(X_o, y_o, X_test, y_test)
-
-  print(f'Method: {key}')
-  for k, v in zip(met_names, res_knn):
-    print(f'KNN | {k}:{v}')
-
-  for k, v in zip(met_names, res_lr):
-    print(f'LR  | {k}:{v}')
+# %%
+print("Preparing submission ...")
+submissions =  pd.DataFrame({
+  'id': np.arange(0,len(y_u)).astype(float),
+  'y': y_u
+})
+submissions.to_csv(f'submission_svc.csv', index=False)
 
 # %%
