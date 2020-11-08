@@ -423,11 +423,11 @@ class Project2Estimator(BaseEstimator):
         logging.info(f'RFE args: {rfe_estimator_args}')
         X = rmf_pipelines[rmf_pipeline_name](X,y)
       elif rmf_pipeline_name == 'pca':
-        logging.info(f'PCA args: {rfe_estimator_args}')
+        logging.info(f'PCA args: {pca_estimator_args}')
         X, pca = rmf_pipelines[rmf_pipeline_name](X,y)
         self._dim_red_ = pca
       elif rmf_pipeline_name == 'umap':
-        logging.info(f'UMAP args: {rfe_estimator_args}')
+        logging.info(f'UMAP args: {umap_args}')
         X, umap = rmf_pipelines[rmf_pipeline_name](X,y)
         self._dim_red_ = umap 
       else:

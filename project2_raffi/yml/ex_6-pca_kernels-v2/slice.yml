@@ -1,0 +1,7 @@
+experiment_name: project2_pca_tests_v2
+yml_output_folder: experiments/cfg_A
+run_cfg:
+  # preproc/oversampling/enabled: [true, false]
+  preproc/rmf/pca/model/n_components: [10, 25, 50, 100]
+  preproc/rmf/pca/model/kernel: [linear , poly , rbf , sigmoid , cosine , precomputed]
+  # models/svc/C: [1.01, 1.1]
