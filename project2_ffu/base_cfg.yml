@@ -72,7 +72,7 @@ fit_model: svc
 
 models:
   svc:
-    C: 1.2 
+    C: 1.1 
     kernel: 'rbf' 
     degree: 3 # ignored if kernel not poly
     gamma: 0.0003 
@@ -82,7 +82,10 @@ models:
     coef0: 0.0 
     shrinking: True # What it this?
     probability: False 
-    class_weight: 'balanced'
+    class_weight:
+      0: 2.68656716
+      1: 0.534157656
+      2: 2.62295082
     tol: 0.001 
     verbose: False
     max_iter: -1 # no limit
@@ -103,7 +106,7 @@ models:
 scoring: 'balanced_accuracy' 
 
 cross_validation:
-  test_set_size: 0.1
+  #test_set_size: 0.1
   n_splits: 10
 
-model_path: 'project2_ffu/yml/cv/cfg_A_0_1'
+model_path: 'project2_ffu/yml/cv/cfg_A_1_3'
