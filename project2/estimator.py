@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 from .outlier import find_isolation_forest_outlier
 from .rmf_rfe import rfe_dim_reduction
 from .rmf_pca import pca_dim_reduction, pca_dim_reduction_transform
+from .umap import umap_dim_reduction, umap_dim_reduction_transform
+
+
 from .sampling import balancing
 
 from autofeat import FeatureSelector
@@ -96,7 +99,11 @@ class Project2Estimator(BaseEstimator):
     # Bypass Data Input
     hash_dir = self.env_cfg['datasets/project2/hash_dir']
     skip_preprocessing = False
-    load_pca = self.run_cfg['preproc/rmf/pipeline'] == 'pca'
+
+    dim_red_pipeline = self.run_cfg['preproc/rmf/pipeline']
+    load_dim_red =  self.run_cfg[f'preproc/rmf/{dim_red_pipeline}/needs_persistence'] and \
+                    self.run_cfg[f'preproc/rmf/enabled']
+
 
     df_hash_f = lambda df: hashlib.sha1(pd.util.hash_pandas_object(df).values).hexdigest()
     fn_func = lambda hash_df, hash_cfg, postfix: f'{hash_dir}/{hash_df}_{hash_cfg}_{postfix}'
@@ -113,7 +120,7 @@ class Project2Estimator(BaseEstimator):
       X_file = fn_func(X_hash,cfg_hash, 'X.pkl')
       y_file = fn_func(y_hash,cfg_hash, 'y.pkl')
       scaler_file = fn_func(X_hash,cfg_hash, 'scaler.joblib')
-      pca_file = fn_func(X_hash,cfg_hash, 'pca.joblib')
+      dim_red_file = fn_func(X_hash,cfg_hash, 'dimred.joblib')
       
     self._scaler_ = None
     if load_flag:
@@ -121,8 +128,8 @@ class Project2Estimator(BaseEstimator):
         os.path.isfile(y_file) and \
         os.path.isfile(scaler_file)
       
-      if load_pca:
-        files_present = files_present and os.path.isfile(pca_file)
+      if load_dim_red:
+        files_present = files_present and os.path.isfile(dim_red_file)
 
       if files_present:
         logging.warning(f'Files found to preload config hash {cfg_hash} for dataset.')
@@ -133,9 +140,9 @@ class Project2Estimator(BaseEstimator):
         y = pd.read_pickle(y_file)
         self._scaler_ = load(scaler_file)
 
-        if load_pca:
+        if load_dim_red:
           # logging.warning(f'found pickle for PCA model: {pca_file}')
-          self._pca_dim_red_ = load(pca_file)
+          self._dim_red_ = load(dim_red_file)
 
         skip_preprocessing = True
 
@@ -152,8 +159,8 @@ class Project2Estimator(BaseEstimator):
       X.to_pickle(X_file)
       y.to_pickle(y_file)
       dump(self._scaler_, scaler_file)
-      if load_pca:
-        dump(self._pca_dim_red_, pca_file)
+      if load_dim_red:
+        dump(self._dim_red_, dim_red_file)
 
 
     # Regression model fit
@@ -186,13 +193,17 @@ class Project2Estimator(BaseEstimator):
     # based on feature selection on training data 
     rmf_pipeline  = self.run_cfg['preproc/rmf/pipeline']
     
-    if rmf_pipeline == 'pca':
-      logging.info('transforming X_u via pca')
-      X_u = pca_dim_reduction_transform(self._pca_dim_red_, X_u)
-    elif rmf_pipeline == 'rfe':
-      X_u = X_u[self._X.columns]
-    else:
-      raise ValueError(f'prediction rmf not implemented for {rmf_pipeline}')
+    if self.run_cfg['preproc/rmf/enabled']:
+      if rmf_pipeline == 'pca':
+        logging.info('transforming X_u via pca')
+        X_u = pca_dim_reduction_transform(self._dim_red_, X_u)
+      elif rmf_pipeline == 'umap':
+        logging.info('transforming X_u via umap')
+        X_u = umap_dim_reduction_transform(self._dim_red_, X_u)
+      elif rmf_pipeline == 'rfe':
+        X_u = X_u[self._X.columns]
+      else:
+        raise ValueError(f'prediction rmf not implemented for {rmf_pipeline}')
     
     y_u = self._fitted_model_.predict(X_u)
     return y_u
@@ -388,6 +399,8 @@ class Project2Estimator(BaseEstimator):
       
       pca_method = run_cfg['preproc/rmf/pca/method']
       pca_estimator_args = run_cfg['preproc/rmf/pca/model']
+
+      umap_args = run_cfg['preproc/rmf/umap/model']
   
       rmf_pipelines = {
         'rfe': lambda X,y: rfe_dim_reduction(  # TODO to ask: do you know if we can just pass in the dictionary of options instead of creating a ton of variables for this?
@@ -396,6 +409,7 @@ class Project2Estimator(BaseEstimator):
           min_feat = rfe_min_feat,
           step = rfe_step_size
         ),
+        'umap': lambda X,y: umap_dim_reduction(X,y, umap_args=umap_args),
         'pca': lambda X,y: pca_dim_reduction(
             X,y,
             pca_method=pca_method,
@@ -411,7 +425,11 @@ class Project2Estimator(BaseEstimator):
       elif rmf_pipeline_name == 'pca':
         logging.info(f'PCA args: {rfe_estimator_args}')
         X, pca = rmf_pipelines[rmf_pipeline_name](X,y)
-        self._pca_dim_red_ = pca
+        self._dim_red_ = pca
+      elif rmf_pipeline_name == 'umap':
+        logging.info(f'UMAP args: {rfe_estimator_args}')
+        X, umap = rmf_pipelines[rmf_pipeline_name](X,y)
+        self._dim_red_ = umap 
       else:
         raise ValueError(f'rmf not implemented for {rmf_pipeline_name}')
       

@@ -15,6 +15,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 
 #%% some local testing:
 run_cfg = ConfigLoader().from_file('base_cfg.yml')
@@ -33,6 +34,8 @@ from sklearn.preprocessing import StandardScaler
 X = df_X.iloc[:,1:]
 y = df_y.iloc[:,1:].values.ravel()
 X_u = df_X.iloc[:,1:]
+
+X, y = shuffle(X,y)
 
 scaler = StandardScaler().fit(X)
 X = scaler.transform(X)
@@ -78,18 +81,20 @@ def plot_model(mod,X_orig, components, threshold):
 
 
 
-# gmm_ol = GMMOutlierDetector(n_components=18, threshold=0.95).fit(X)
-# mask = gmm_ol.predict(X)
+gmm_ol = GMMOutlierDetector(n_components=18, threshold=0.95).fit(X)
+mask = gmm_ol.predict(X)
 
 # %%
-# X = X[mask == 1]
-# y = y[mask == 1]
+X = X[mask == 1]
+y = y[mask == 1]
 
 
 # %%
 n_comp = 2
-umap = UMAP(n_neighbors=16, n_components=n_comp)
-X_umap_raw = umap.fit_transform(X)
+umap = UMAP(
+  n_neighbors=5,
+  n_components=n_comp)
+X_umap_raw = umap.fit_transform(X, y=y)
 X_umap = pd.DataFrame(X_umap_raw, 
   columns=[f'c{c}' for c in range(n_comp)])
 X_umap['label'] = y
@@ -100,9 +105,9 @@ km_label = kmeans.fit_predict(X_umap_raw)
 
 
 #%% UMAP parallel coordinates plot
-f, axes = plt.subplots(nrows=1, ncols=1, figsize=(12,3))
+f, axes = plt.subplots(nrows=1, ncols=1, figsize=(20,7))
 colors=['red', 'geen', 'blue']
-for i in [2, 1, 0]:
+for i in [1,0,2]:
   ax = axes
   parallel_coordinates(X_umap.loc[lambda d: d['label'] == i],
     class_column='label',
@@ -114,10 +119,10 @@ X_umap['km_label'] = km_label
 
 # %% UMAP 2d visualization
 f, axes = plt.subplots(nrows=1, ncols=1)
-targets = [0,1]
-colors = ['r', 'g']
+targets = [0,1,2]
+colors = ['r', 'g', 'b']
 for target, color in zip(targets,colors):
-    indicesToKeep = km_label == target
+    indicesToKeep = y == target
     plt.scatter(X_umap.loc[indicesToKeep, 'c0']
                , X_umap.loc[indicesToKeep, 'c1'], c = color, s = 50)
 
@@ -280,5 +285,14 @@ submissions =  pd.DataFrame({
   'y': y_u
 })
 submissions.to_csv(f'submission_svc.csv', index=False)
+
+# %%
+from mlxtend.plotting import plot_decision_regions
+f, ax = plt.subplots(nrows=1, ncols=1, figsize=(12,12))
+plot_decision_regions(X=X_2_lda, y=y_2, clf=clf, ax=ax, legend=2)
+
+# %%
+
+# %%
 
 # %%
