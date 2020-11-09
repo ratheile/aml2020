@@ -92,7 +92,9 @@ y = y[mask == 1]
 # %%
 n_comp = 2
 umap = UMAP(
-  n_neighbors=5,
+  n_neighbors=15,
+  min_dist=0.6,
+  metric='cosine',
   n_components=n_comp)
 X_umap_raw = umap.fit_transform(X, y=y)
 X_umap = pd.DataFrame(X_umap_raw, 
@@ -124,7 +126,7 @@ colors = ['r', 'g', 'b']
 for target, color in zip(targets,colors):
     indicesToKeep = y == target
     plt.scatter(X_umap.loc[indicesToKeep, 'c0']
-               , X_umap.loc[indicesToKeep, 'c1'], c = color, s = 50)
+               , X_umap.loc[indicesToKeep, 'c1'], c = color, s = 50, alpha=0.1)
 
 # %% filter out majority cluster 
 class_counts = [np.sum(y == i) for i in range(3)]
@@ -230,7 +232,7 @@ classifiers={
     C=1.0, 
     kernel='rbf', 
     degree=3, # ignored if kernel not poly
-    gamma='scale', 
+    gamma=0.0003, 
     coef0=0.0, # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’.
     shrinking=True, # What it this?
     probability=False, 
@@ -244,39 +246,41 @@ classifiers={
     random_state=None),
 }
 
-lda = LinearDiscriminantAnalysis(n_components=2).fit(X_2, y_2)
-X_2_lda = lda.transform(X_2)
+# lda = LinearDiscriminantAnalysis(n_components=2).fit(X_2, y_2)
+# X_2_lda = lda.transform(X_2)
 
 
 # Choose one classifier and train
+X_umap_d = X_umap[['c0', 'c1']]
 clf = classifiers['SVC']()
-clf = clf.fit(X_2_lda,y_2)
+clf = clf.fit(X_umap_d,y)
 
 
 # %%
-def predict(kmeans, umap, lda, svc, minority_cluster_label, large_class_index, X):
-  majority_cluster_label = 1 - minority_cluster_label
-  X_umap = umap.transform(X)
-  km_labels = kmeans.predict(X_umap)
+# def predict(kmeans, umap, lda, svc, minority_cluster_label, large_class_index, X):
+#   majority_cluster_label = 1 - minority_cluster_label
+#   X_umap = umap.transform(X)
+#   km_labels = kmeans.predict(X_umap)
 
-  minority_mask = km_labels == minority_cluster_label
-  y = (km_labels == majority_cluster_label) * large_class_index
+#   minority_mask = km_labels == minority_cluster_label
+#   y = (km_labels == majority_cluster_label) * large_class_index
 
-  X_m = X[minority_mask]
-  X_m_lda = lda.transform(X_m)
-  y_m = svc.predict(X_m_lda)
-  y[minority_mask] = y_m
-  return y
+#   X_m = X[minority_mask]
+#   X_m_lda = lda.transform(X_m)
+#   y_m = svc.predict(X_m_lda)
+#   y[minority_mask] = y_m
+#   return y
 
-y_pred = predict(kmeans, umap, lda, clf, minority_cluster, large_class_index, X_test)
-
+# y_pred = predict(kmeans, umap, lda, clf, minority_cluster, large_class_index, X_test)
+y_pred = clf.predict(umap.transform(X_test))
 # %%
 BMAC = balanced_accuracy_score(y_test, y_pred)
 print(f'BMAC: {BMAC}')
 
 
 # %%
-y_u = predict(kmeans, umap, lda, clf, minority_cluster, large_class_index, X_u)
+# y_u = predict(kmeans, umap, lda, clf, minority_cluster, large_class_index, X_u)
+y_u = clf.predict(umap.transform(X_u))
 
 # %%
 print("Preparing submission ...")
@@ -289,7 +293,7 @@ submissions.to_csv(f'submission_svc.csv', index=False)
 # %%
 from mlxtend.plotting import plot_decision_regions
 f, ax = plt.subplots(nrows=1, ncols=1, figsize=(12,12))
-plot_decision_regions(X=X_2_lda, y=y_2, clf=clf, ax=ax, legend=2)
+plot_decision_regions(X=X_umap_d.values, y=y, clf=clf, ax=ax, legend=2)
 
 # %%
 

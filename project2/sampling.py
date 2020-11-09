@@ -15,6 +15,9 @@ from sklearn.metrics import f1_score, balanced_accuracy_score, average_precision
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 
+from imblearn.under_sampling import NeighbourhoodCleaningRule, \
+  ClusterCentroids
+
 from imblearn.over_sampling import \
   SMOTE, \
   SVMSMOTE, \
@@ -44,7 +47,9 @@ balancers = {
   'KMeansSMOTE': lambda args: KMeansSMOTE(**args),
   'RandomOverSampler': lambda args: RandomOverSampler(**args),
   'SMOTEENN': lambda args: SMOTEENN(**args),
-  'SMOTETomek': lambda args: SMOTETomek(**args)
+  'SMOTETomek': lambda args: SMOTETomek(**args),
+  'neighborhood_cleaning': lambda args: NeighbourhoodCleaningRule(**args),
+  'cluster_centroids': lambda args: ClusterCentroids(**args)
 }
 
 # def plot_upsampling(X,y):

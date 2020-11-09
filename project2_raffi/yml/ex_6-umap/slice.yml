@@ -1,0 +1,15 @@
+experiment_name: project2_umap_hparam
+yml_output_folder: experiments/cfg_A
+run_cfg:
+  preproc/rmf/umap/model/n_neighbors: [5, 10, 15]
+  preproc/rmf/umap/model/n_components: [2, 5, 10, 20, 50]
+  preproc/rmf/umap/model/min_dist: [0.0, 0.1, 0.25, 0.5, 0.8, 0.99]
+  
+  # preproc/rmf/umap/model/metric:  [mahalanobis]  
+  # preproc/rmf/umap/model/metric: [seuclidean, cosine] 
+  
+  # preproc/rmf/umap/model/metric: [minkowski, canberra, braycurtis]
+  # preproc/rmf/umap/model/metric: [euclidean, manhattan, chebyshev]
+  # preproc/rmf/umap/model/metric: [correlation, haversine, hamming, jaccard, dice, russelrao, kulsinski, ll_dirichlet, hellinger, rogerstanimoto, sokalmichener, sokalsneath, yule]
+
+  preproc/rmf/umap/model/metric: [correlation,  cosine, canberra, braycurtis]

@@ -1,0 +1,19 @@
+experiment_name: project2_pca_finetuning
+yml_output_folder: experiments/cfg_A
+run_cfg:
+  # preproc/rmf/umap/model/n_neighbors: [5, 10, 15]
+  # preproc/rmf/umap/model/n_components: [2, 5, 10, 20, 50]
+  preproc/rmf/pca/model/n_components: [20, 30, 40, 45, 50, 55, 60, 70]
+  # preproc/rmf/umap/model/min_dist: [0.0, 0.1, 0.25, 0.5, 0.8, 0.99]
+  
+  # preproc/rmf/umap/model/metric:  [mahalanobis]  
+  # preproc/rmf/umap/model/metric: [seuclidean, cosine] 
+  
+  # preproc/rmf/umap/model/metric: [minkowski, canberra, braycurtis]
+  # preproc/rmf/umap/model/metric: [euclidean, manhattan, chebyshev]
+  # preproc/rmf/umap/model/metric: [correlation, haversine, hamming, jaccard, dice, russelrao, kulsinski, ll_dirichlet, hellinger, rogerstanimoto, sokalmichener, sokalsneath, yule]
+
+  # preproc/rmf/umap/model/metric: [correlation,  cosine, canberra, braycurtis]
+  # models/svc/C: [0.7, 0.72, 0.74, 0.76, 0.78, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 1.0, 1.02, 1.04, 1.06, 1.08, 1.1, 1.12, 1.14, 1.16, 1.18, 1.200.] # default 1.0
+  # models/svc/C: [0.5,0.7,0.9,1,1.1,1.3,1.5]
+  # models/svc/gamma: [0.0003, 0.0006, 0.0009, 0.0012, 0.0015] # default 'scale'. scale = 1 / (n_features * X.var()) ~ 0.0012

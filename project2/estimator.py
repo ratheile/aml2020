@@ -317,7 +317,6 @@ class Project2Estimator(BaseEstimator):
         'model': lambda : Perceptron(
           penalty=run_cfg['models/perceptron/penalty'],
           shuffle=run_cfg['models/perceptron/shuffle'],
-          class_weight=run_cfg['models/perceptron/class_weight']
         ),
         'fit': self.simple_fit,
         'validate': lambda m,X,y: m.score(m,X,y)

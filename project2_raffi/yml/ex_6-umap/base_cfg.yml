@@ -41,9 +41,7 @@ preproc:
     impl: ines
   
   rmf:
-    pipeline: pca  # auto, rfe, pca
-    # if set to 'false' 'rmf/pipeline' 
-    # needs to be set to 'rfe' to avoid crashing.
+    pipeline: umap  # auto, rfe, pca
     enabled: true 
 
     rfe:
@@ -62,15 +60,17 @@ preproc:
       needs_persistence: true
       method : kernel-pca # pca kernel-pca
       model:
-        n_components : 10
-        kernel : 'poly'
+        n_components : 50
+        kernel : 'linear'
 
 
     umap:
       needs_persistence: true
       model:
         n_neighbors: 15
-        n_components: 50
+        n_components: 10
+        min_dist: 0.1
+        metric: 'euclidean'
 
   normalize:
     enabled: true
