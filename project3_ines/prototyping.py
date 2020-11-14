@@ -8,6 +8,9 @@ import pywt # for wavelet transform bits
 import wfdb # for physionet tools
 import biosppy
 import neurokit2 as nk
+import scipy
+import seaborn as sns
+import heartpy
 
 import os
 repopath = '/Users/inespereira/Documents/Github/aml2020'
@@ -21,6 +24,7 @@ y = y.iloc[:,1:]
 X_test = pd.read_csv(f'{repopath}/project3_ines/X_test.csv')
 logging.info('I have imported your training dataset! :D')
 print(f'Shape of training set is {X.shape}')
+sampling_rate = 300
 
 # %%
 # print(X)
@@ -37,30 +41,40 @@ class2 = y.index[y['y'] == 2].tolist()
 class3 = y.index[y['y'] == 3].tolist()
 
 # %%
-print(class2)
+print(class3)
 
 # %% Observations:
 # - a lot of NaNs: but we probably need to extract features anyway
 # - Class imbalance
 
-# %% Plot some time series
-n = 2
-X.iloc[n,:].plot()
-plt.show()
-print(f'The corresponding class is: {y.iloc[n]}')
-print(X.iloc[n,:])
+#%% Allocate space for new training data
+col_names = [
+  'mean_HR',
+  'std_HR',
+  'P_waved'
+]
+new_X_train = pd.DataFrame(columns=col_names)
+print(new_X_train)
 
-#%%
+# %% Plot some time series
+# TODO: write for loop wrapper over this to apply preprocessing over all time series
+n = 10
 ecg = X.iloc[n,:].dropna().to_numpy()
 plt.plot(ecg)
 plt.show()
-type(ecg)
+print(f'The corresponding class is: {y.iloc[n]}')
 print(ecg)
 
+# %% Apply Fourier transform: use this to exclude class 3 samples?
+ecg_fft = np.fft.fft(ecg)
+plt.plot(abs(ecg_fft))
+plt.show()
+type(ecg_fft)
+print(ecg_fft)
 #%% Biosppy
 ecg_biosppy = biosppy.signals.ecg.ecg(
   signal=ecg, 
-  sampling_rate=300, 
+  sampling_rate=sampling_rate, 
   show=True)
 
 #%% Analyse biosppy summary
@@ -69,11 +83,18 @@ ecg_biosppy = biosppy.signals.ecg.ecg(
 # ecg_biosppy['rpeaks']
 plt.plot(ecg_biosppy['filtered'])
 plt.show()
-
 # ecg_biosppy['templates_ts']
 # ecg_biosppy['templates']
 # ecg_biosppy['heart_rate_ts']
-# ecg_biosppy['heart_rate']
+ecg_biosppy['heart_rate']
+
+# %% Populate new_X_train
+new_X_train.loc[n,'mean_HR']=np.mean(ecg_biosppy['heart_rate'])
+new_X_train.loc[n,'std_HR']=np.std(ecg_biosppy['heart_rate'])
+print(new_X_train)
+
+#%% Save filtered data to mat file
+scipy.io.savemat('test.mat', {'mydata': ecg_biosppy['filtered']})
 
 # %% Wavelets
 wavelets = pywt.wavedec(
@@ -82,19 +103,35 @@ wavelets = pywt.wavedec(
   level=5
 )
 
-#%% Neurokit: has a bug and needs correction in source code or downgrading of sklearn
-bio_features = nk.bio_process(
-  ecg=ecg, 
-  sampling_rate=300,
-  ecg_filter_type='FIR',
-  ecg_filter_band='bandpass',
-  ecg_filter_frequency=[0.1,100],
-  ecg_segmenter='hamilton',
-)
+# %% Neurokit2
+#%% Also do analysis
+df, info = nk.ecg_process(ecg_biosppy['filtered'], sampling_rate=sampling_rate)
+analyze_df = nk.ecg_analyze(df, sampling_rate=sampling_rate)
+analyze_df
+
+#%%
+df
+#%% Download data
+# ecg_signal = nk.data(dataset="ecg_3000hz")['ECG']
+# ecg_signal = pd.Series(ecg_biosppy['filtered'],dtype='float64')
+ecg_signal = pd.Series(df['ECG_Clean'],dtype='float64')
+
+# Analyze the ecg signal
+type(ecg_signal)
+print(ecg_signal)
+#%%
+
+# Extract R-peaks locations
+_, rpeaks = nk.ecg_peaks(ecg_signal, sampling_rate=sampling_rate)
+
+# Delineate
+signal, waves = nk.ecg_delineate(ecg_signal, rpeaks, sampling_rate=sampling_rate, method="dwt", show=True, show_type='all')
+
+
 # %% Plan: define the features you want to look at.
 # 1. Preprocessing of data
 #    1.1. (Ines) Removal of low frequency components. R peaks should be at the same height
-#         + Smoothing of signal
+#         + Smoothing of signal → ecg function from biosppy does filtering.
 #    1.3. (Raffi) Artefact removal (outlier removal): visuelle Überprüfung
 #    1.4. (Francesco) Identify QRS complex and verify polarity
 #         + Find features related to waves
@@ -120,3 +157,10 @@ bio_features = nk.bio_process(
 
 # Other ideas: consider nested CV https://www.youtube.com/watch?v=DuDtXtKNpZs
 
+# Pipeline steps
+# 1. Detection and exclusion of class 3 from training set (TODO)
+# 2. Detection of flipped signals and flipping (TODO)
+# 3. Filtering (getting isoelectric line and smoothing)
+# 4. Waveform detection
+#   4.1 R-peaks and HR: mean_HR, std_HR
+#   4.2 P, QRS and T: number of P waves, mean_QRS_amplitude, mean_QRS_duration, std_QRS_duration (TODO: analysis of analysis results to get these features)
