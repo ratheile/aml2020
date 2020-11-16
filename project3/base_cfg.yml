@@ -1,0 +1,57 @@
+# Pipeline steps
+persistence:
+  load_from_file: true
+  save_to_file: true
+
+preproc:
+
+  outlier: # random forest
+    enabled: true
+    cont_lim: 0.05
+    impl: ines
+
+  normalize:
+    enabled: false
+    method: standard
+    use_pretrained_for_X_u: True
+    
+fit_model: svc
+
+models:
+  svc:
+    C: 1.0 
+    kernel: 'rbf' 
+    degree: 3 # ignored if kernel not poly
+    gamma: 'scale' 
+
+    # Independent term in kernel function.
+    # It is only significant in ‘poly’ and ‘sigmoid’.
+    coef0: 0.0 
+    shrinking: True # What it this?
+    probability: False 
+    class_weight:
+      0: 1
+      1: 1
+      2: 1
+    tol: 0.001 
+    verbose: False
+    max_iter: -1 # no limit
+    decision_function_shape: 'ovo' #ovo or ovr
+    break_ties: False 
+
+  lightgbm:
+    num_leaves: 127 # default 31
+    learning_rate: 0.1 # default 0.1
+    num_iterations: 1000 # default 100
+    boosting_type: dart # default gbdt [dart, goss, rf]
+    class_weight:
+      0: 1
+      1: 1
+      2: 1
+
+# https://scikit-learn.org/stable/modules/model_evaluation.html
+scoring: 'balanced_accuracy' 
+
+cross_validation:
+  test_set_size: 0.1
+  n_splits: 10
