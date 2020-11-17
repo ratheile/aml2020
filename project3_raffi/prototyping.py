@@ -20,7 +20,6 @@ from copy import deepcopy
 from modules import ConfigLoader
 from project2_raffi.visualization import pca
 
-
 import plotly.express as px
 
 # %% some local testing:
@@ -29,8 +28,8 @@ env_cfg = ConfigLoader().from_file('../env/env.yml')
 print(env_cfg)
 
 # %%
-df_X = pd.read_csv(f"{env_cfg['datasets/project3/path']}/X_train.csv")
-df_y = pd.read_csv(f"{env_cfg['datasets/project3/path']}/y_train.csv")
+df_X = pd.read_csv(f"{env_cfg['datasets/project3/path']}/X_train_small.csv")
+df_y = pd.read_csv(f"{env_cfg['datasets/project3/path']}/y_train_small.csv")
 df_X_u = pd.read_csv(f"{env_cfg['datasets/project3/path']}/X_test.csv")  # unlabeled
 
 #%%
@@ -47,8 +46,8 @@ X_3 = X.iloc[y == 3]
 
 
 #%%
-crv = X_124.iloc[11, ]
-crv = X_3.iloc[24]
+# crv = X_124.iloc[1, ]
+crv = X.iloc[10]
 crv = crv[~np.isnan(crv.values.astype(float))]
 crv_df = pd.DataFrame({
     'v': crv.values,
@@ -57,6 +56,8 @@ crv_df = pd.DataFrame({
 
 px.line(crv_df, x='t', y='v')
 
+# %%
+len(X)
 
 # %%
 def wavelet_decomposition(sig):
