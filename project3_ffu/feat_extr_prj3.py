@@ -84,6 +84,7 @@ def calc_peak_summary(signals, sampling_rate):
     summary.append(s_std)
     
     #QRS duration
+    #TO DO: needs a fix for the case in which the number of q and r peaks is not the same
     d_qrs_N = sig_ss.index.to_numpy().ravel() - sig_qq.index.to_numpy().ravel() #number of samples between Q and R
     d_qrs_t = (d_qrs_N - 1) / sampling_rate
     d_qrs_t_mean = d_qrs_t.mean()
@@ -95,7 +96,7 @@ def calc_peak_summary(signals, sampling_rate):
     return summary
 
 #%% extract features from ECGs
-def extract_features(df, Fs, feature_list, remove_outlier, biosspy_cleaning, ecg_quality_check, ecg_quality_threshold, class_id):
+def extract_features(df, Fs, feature_list, remove_outlier, biosppy_cleaning, ecg_quality_check, ecg_quality_threshold, class_id):
     
     if remove_outlier:
         logging.info('Removing ecg outliers with pyheart...')
@@ -119,7 +120,7 @@ def extract_features(df, Fs, feature_list, remove_outlier, biosspy_cleaning, ecg
             
         
         # filter ecg signal with biosspy first
-        if biosspy_cleaning:
+        if biosppy_cleaning:
             out = ecg.ecg(signal=sig_i_np, sampling_rate=Fs, show=False)
             
             # ts (array) – Signal time axis reference (seconds).
@@ -145,12 +146,12 @@ def extract_features(df, Fs, feature_list, remove_outlier, biosspy_cleaning, ecg
         # calculate ecg signal HR indicators
         df_analyze = nk.ecg_analyze(signals, sampling_rate=Fs, method='auto')
         
-        # filter signal for peak counts, amplitudes, and QRS event duration
+        # filter signals for peak counts, amplitudes, and QRS event duration
         peak_summary_neurokit = calc_peak_summary(signals=signals, sampling_rate=Fs)
         
         # calculate the mean and standard devation of the signal quality
-        ecg_q_mean = signals['ECG_Quality'].mean() #TODO check naming
-        ecg_q_std = signals['ECG_Quality'].std()   #TODO check naming
+        ecg_q_mean = signals['ECG_Quality'].mean() 
+        ecg_q_std = signals['ECG_Quality'].std()
         
         # consolidate the features for sample i
         feat_i = [df.iloc[i,0]] # sample id
@@ -162,8 +163,10 @@ def extract_features(df, Fs, feature_list, remove_outlier, biosspy_cleaning, ecg
         for elem in peak_summary_neurokit:
             feat_i.append(elem)
         
-        #TODO aggregate feat_i into F_array
         F[i,:] = feat_i
+        
+        #TODO: in a suitable container collect the sample id and the signals dataframe (output of neurokit), which
+        #which contains all the info for the plots
         
     #TODO build a dataframe with aggregated feat_i
     
@@ -186,7 +189,7 @@ X0, X1, X2, X3 = split_classes(X, y)
 #%% Define dataframe template in which will be filled with the extracted features
 feature_list = ['Sample_Id', 
                 'ECQ_Quality_Mean', 'ECQ_Quality_STD', 
-                'ECG_Rate_Mean', 'ECG_Rate_STD'
+                'ECG_Rate_Mean', 'ECG_Rate_STD',
                 'R_P_biosppy', 'P_P/R_P', 'Q_P/R_P', 'R_P_neurokit' ,'S_P/R_P', 'T_P/R_P',  #relative number of peaks TODO
                 'P_Amp_Mean', 'P_Amp_STD', 'S_Amp_Mean', 'S_Amp_STD',
                 'QRS_t_Mean', 'QRS_t_STD']
@@ -197,14 +200,29 @@ X0_features = extract_features(df=X0,
                                Fs = 300,
                                feature_list = feature_list, 
                                remove_outlier=True, 
-                               biosspy_cleaning=True, 
+                               biosppy_cleaning=True, 
                                ecg_quality_check=True, 
                                ecg_quality_threshold=0.8, 
                                class_id='0')
 
 X0_features.head()
-#%%
-print(X.shape[1])
-F=np.zeros([X0.shape[0],len(feature_list)])
-print(F.shape)
-# %%
+#%% Feature extraction class 1
+X1_features = extract_features(df=X1,
+                               Fs = 300,
+                               feature_list = feature_list, 
+                               remove_outlier=True, 
+                               biosppy_cleaning=True, 
+                               ecg_quality_check=True, 
+                               ecg_quality_threshold=0.8, 
+                               class_id='1')
+X1_features.head()
+#%% Feature extraction class 2
+X2_features = extract_features(df=X2,
+                               Fs = 300,
+                               feature_list = feature_list, 
+                               remove_outlier=True, 
+                               biosppy_cleaning=True, 
+                               ecg_quality_check=True, 
+                               ecg_quality_threshold=0.8, 
+                               class_id='2')
+X2_features.head()
