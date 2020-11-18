@@ -212,14 +212,19 @@ def extract_features(df, Fs, feature_list, remove_outlier, biosppy_enabled, ecg_
 
                 (ts, filtered_biosppy, rpeaks_biosppy, templates_ts, 
                 templates, heart_rate_ts, heart_rate) = out
+                
+                no_rpeaks_biosppy = len(rpeaks_biosppy)
         
             except Exception:
                 logging.info(f'biosppy crashed for sample {i} in class {class_id}')
                 rpeaks_biosppy = np.nan
+                no_rpeaks_biosppy = np.nan
                 filtered_biosppy = np.nan
         else:
             rpeaks_biosppy = np.nan
+            no_rpeaks_biosppy = np.nan
             filtered_biosppy = np.nan
+
             
         # process ecg sample with with neurokit
         # signals, info = nk.ecg_process(sig_i_np, sampling_rate=Fs)
@@ -255,13 +260,13 @@ def extract_features(df, Fs, feature_list, remove_outlier, biosppy_enabled, ecg_
             n = len(feature_list)
             feat_i = [np.nan]*n
             feat_i[0] = df.iloc[i,0] # sample id
-            feat_i[5] = len(rpeaks_biosppy) #maybe biosppy worked
+            feat_i[5] = no_rpeaks_biosppy #maybe biosppy worked
         
         F[i,:] = feat_i
         plotData = populate_PlotData(plotData,i,df.iloc[i,0],class_id,sig_i_np,rpeaks_biosppy,filtered_biosppy,signals)
         if verbose:
             sample_left = df.shape[0]-i
-            print(f'Proprocessed ECG sample {i}({df.iloc[i,0]}) in class {class_id}... {sample_left} samples to go!')
+            print(f'Preprocessed ECG sample {i}({df.iloc[i,0]}) in class {class_id}... {sample_left} samples to go!')
         #TODO: in a suitable container collect the sample id and the signals dataframe (output of neurokit), which
         #which contains all the info for the plots
     
@@ -307,7 +312,7 @@ X1_features, X1_plotData = extract_features(df=X1,
                                Fs = 300,
                                feature_list = feature_list, 
                                remove_outlier=False, 
-                               biosppy_enabled=False, 
+                               biosppy_enabled=True, 
                                ecg_quality_check=False, 
                                ecg_quality_threshold=0.8, 
                                class_id=1,
