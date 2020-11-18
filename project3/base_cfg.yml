@@ -5,8 +5,20 @@ persistence:
 
 preproc:
 
-  outlier: #TODO: outlier detection to detect class 3
+  remove_outlier: #TODO: outlier detection to detect class 3
     enabled: true
+  biosppy_enabled:
+    enabled: true
+  ecg_quality_check:
+    enabled: true
+  ecg_quality_threshold: 0.8
+
+  filtering:
+    enabled: True
+    method: 'biosppy'
+  
+  rpeak_detection:
+    method: 'neurokit'
 
   normalize:
     enabled: false
