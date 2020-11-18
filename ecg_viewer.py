@@ -13,6 +13,8 @@ import neurokit2 as nk
 
 import matplotlib.pyplot as plt
 import plotly.express as px
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 
 import seaborn as sns
 import numpy as np
@@ -30,8 +32,8 @@ env_cfg = ConfigLoader().from_file('env/env.yml')
 print(env_cfg)
 
 # %%
-df_X = pd.read_csv(f"{env_cfg['datasets/project3/path']}/X_train.csv")
-df_y = pd.read_csv(f"{env_cfg['datasets/project3/path']}/y_train.csv")
+df_X = pd.read_csv(f"{env_cfg['datasets/project3/path']}/X_train_small.csv")
+df_y = pd.read_csv(f"{env_cfg['datasets/project3/path']}/y_train_small.csv")
 # df_X_u = pd.read_csv( f"{env_cfg['datasets/project3/path']}/X_test.csv")  # unlabeled
 
 # %%
@@ -53,7 +55,7 @@ app.layout = \
 html.Div([
 dcc.Store(id='sync', data={
   'id' : 0,
-  'features': ['filtered_nk2', 'filtered_bspy', 'quality','peaks_nk2', 'peaks_bspy']
+  'features': ['original','filtered_nk2', 'filtered_bspy', 'quality','peaks_nk2', 'peaks_bspy', 'onsetoffset']
 }),
 html.Div([
   html.Div([
@@ -121,13 +123,15 @@ html.Div([
   dcc.Checklist(
       id='features',
       options=[
+          {'label': 'Show Original', 'value': 'original'},
           {'label': 'Show Filtered Neurokit2', 'value': 'filtered_nk2'},
           {'label': 'Show Filtered Biosppy', 'value': 'filtered_bspy'},
           {'label': 'Show Quality', 'value': 'quality'},
           {'label': 'Show Detected Peaks Neurokit2', 'value': 'peaks_nk2'},
           {'label': 'Show Detected Peaks Biosppy', 'value': 'peaks_bspy'},
+          {'label': 'Show All Onsets / Offsets', 'value': 'onsetoffset'},
       ],
-      value=['filtered_nk2', 'filtered_bspy', 'quality','peaks_nk2', 'peaks_bspy']
+      value=['original', 'filtered_nk2', 'filtered_bspy', 'quality','peaks_nk2', 'peaks_bspy']
   )  
   ],
   style={ 
@@ -183,14 +187,18 @@ def sync_input_value(input_value, slider_value, features, data):
 #     input_value = current_value if current_value != input_prev else dash.no_update
 #     slider_value = current_value if current_value != slider_prev else dash.no_update
 #     return [input_value, slider_value]
+def compute_quality(a_really_long_var, a_really_other):
+  pass
 
 
-
-@app.callback(
-  Output('timeseries-plot', 'figure'), [
-      Input('filter-class', 'value'),
-      Input('sync', 'data')
+@app.callback([
+    Output('timeseries-plot', 'figure'), 
+  ],
+  [
+    Input('filter-class', 'value'),
+    Input('sync', 'data')
   ])
+
 def update_timeseries_plot(filter_class, data):
   if data is None:
       raise PreventUpdate
@@ -199,12 +207,15 @@ def update_timeseries_plot(filter_class, data):
   crv = crv[~np.isnan(crv.values.astype(float))]
   sig_i_np = (crv.to_numpy()).ravel()
 
-  # Convert data to plotting dataframe (plotly express)
-  crv_dict = {
-      'v': crv.values,
-      't': time_scale(crv)
-  }
+  fig = make_subplots(rows=3, cols=1, row_heights=[0.5, 0.25, 0.25])
+  time_ax = time_scale(crv)
 
+
+  if 'original' in data['features']:
+    fig.add_trace(
+      go.Scatter(x=time_ax, y=crv, name='original'),
+      row=1, col=1
+    )
 
   if 'filtered_bspy' in data['features']:
     out = ecg.ecg(signal=sig_i_np, sampling_rate=sample_rate, show=False)
@@ -212,48 +223,118 @@ def update_timeseries_plot(filter_class, data):
     # templates, heart_rate_ts, heart_rate) = out
     _, filtered_bspy, peaks_bspy, _, _, _, _ = out
 
-    crv_dict['filtered_bspy'] = filtered_bspy
+    fig.add_trace(
+      go.Scatter(x=time_ax, y=filtered_bspy, name='filtered_bspy'),
+      row=1, col=1
+    )
 
   if 'filtered_nk2' in data['features']:
     out, info = nk.ecg_process(sig_i_np, sampling_rate=sample_rate)
     filtered_nk2 = out['ECG_Clean'].to_numpy().ravel()
-    crv_dict['filtered_nk2'] = filtered_nk2
-    # Signals is a dataframe
-
-
   
+    fig.add_trace(
+      go.Scatter(x=time_ax, y=filtered_nk2, name='filtered_nk2'),
+      row=1, col=1
+    )
+
   if 'quality' in data['features']:
     print("computing quality ...")
     quality_nk2 = out['ECG_Quality']
     rate_nk2 = out['ECG_Rate']
+    
+    
+    fig.add_trace(
+      go.Scatter(x=time_ax, y=rate_nk2, name='rate_nk2'),
+      row=2, col=1
+    )
+    fig.add_trace(
+      go.Scatter(x=time_ax, y=quality_nk2, name='quality_nk2'),
+      row=3, col=1
+    )
 
-  crv_df = pd.DataFrame(crv_dict)
-  crv_y = list(crv_dict.keys())
-  fig = px.line(crv_df, x='t', y=crv_y)
+  def plot_points(metric_name, color='black'):
+    metric = out[metric_name]
+    marker_index = metric[metric == 1].index.tolist()
+    marker_ts = time_ax[marker_index]
+    fig.add_trace(
+      go.Scatter(x=marker_ts, y=crv[marker_index],
+        name=metric_name, mode='markers',
+        marker=dict(
+            color=color,
+            size=12,
+            line=dict(
+                color='MediumPurple',
+                width=3
+            )
+        )),
+      row=1, col=1
+    )
 
 
-  if 'peaks_nk2' in data['features']:
-    print("computing peaks ...")
-    peaks_nk2 = out['ECG_R_Peaks']
-    peaks_nk2 = peaks_nk2[peaks_nk2 == 1].index.tolist()
-    peak_ts_nk2 = crv_dict['t'][peaks_nk2]
-    peak_val_nk2 = crv[peaks_nk2]
-    fig.add_scatter(x=peak_ts_nk2, y=peak_val_nk2, mode='markers')
+  def plot_lines(metric_start, metric_end, color='black'):
+    a = out[metric_start]
+    b = out[metric_end]
+    a = a[a == 1].index.tolist()
+    b = b[b == 1].index.tolist()
+    a = time_ax[a]
+    b = time_ax[b]
+
+    for i in a:   
+      fig.add_vline(i, row=1, col=1)
+
+  if 'onsetoffset' in data['features']:
+    # Index(['ECG_Raw', 'ECG_Clean', 'ECG_Rate', 'ECG_Quality', 'ECG_R_Peaks',
+    #        'ECG_P_Peaks', 'ECG_Q_Peaks', 'ECG_S_Peaks', 'ECG_T_Peaks',
+    #        'ECG_P_Onsets', 'ECG_T_Offsets', 'ECG_Phase_Atrial',
+    #        'ECG_Phase_Completion_Atrial', 'ECG_Phase_Ventricular',
+    #        'ECG_Phase_Completion_Ventricular'],
+    #       dtype='object')
+    plot_points('ECG_Q_Peaks', color='green')
+    plot_points('ECG_S_Peaks', color='blue')
+
+    plot_points('ECG_P_Peaks', color='orange')
+    plot_points('ECG_P_Onsets', color='orange')
+
+    plot_points('ECG_T_Peaks', color='red')
+    plot_points('ECG_T_Offsets', color='red')
+    # plot_lines('ECG_P_Onsets', 'ECG_T_Offsets')
+
+
+
 
   if 'peaks_bspy' in data['features']:
     print("computing peaks ...")
-    peak_ts_bspy = crv_dict['t'][peaks_bspy]
+    peak_ts_bspy = time_ax[peaks_bspy]
     peak_val_bspy = crv[peaks_bspy]
-    fig.add_scatter(x=peak_ts_bspy, y=peak_val_bspy, mode='markers')
+    fig.add_trace(
+      go.Scatter(
+        x=peak_ts_bspy, y=peak_val_bspy, name='peaks_bspy', mode='markers',
+        marker=dict(
+            symbol='x',
+            color='purple',
+            size=15,
+            line=dict(
+                color='violet',
+                width=3
+            )
+        )),
+      row=1, col=1
+    )
+
+  if 'peaks_nk2' in data['features']:
+    print("computing peaks ...")
+    plot_points('ECG_R_Peaks', color='black')
+    
+
 
   fig.update_layout(margin={
       'l': 40,
       'b': 40,
       't': 10,
       'r': 0
-  }, hovermode='closest')
+  }, hovermode='closest', height=700)
 
-  return fig
+  return [fig]
 
 
 @app.callback(
