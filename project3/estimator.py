@@ -100,6 +100,8 @@ class Project3Estimator(BaseEstimator):
       y.to_pickle(y_file)
       dump(self._scaler_, scaler_file)
 
+    # Shuffle
+    X, y = shuffle(X, y) # https://scikit-learn.org/stable/modules/generated/sklearn.utils.shuffle.html
 
     # Regression model fit
     estimator_name = self.run_cfg['fit_model']
@@ -194,8 +196,6 @@ class Project3Estimator(BaseEstimator):
       scaler = scaler.fit(X)
 
   def preprocess(self, run_cfg, X, y):
-
-    X, y = shuffle(X, y) # https://scikit-learn.org/stable/modules/generated/sklearn.utils.shuffle.html
     
     new_feat = [
       'mean_HR',
@@ -213,11 +213,12 @@ class Project3Estimator(BaseEstimator):
 
     return X_new, y 
 
-  def preprocess_time_series(self, run_cfg, x):
+  def preprocess_time_series(self, run_cfg, x): #TODO: main function to complete!
+
     # 0. Remove NaNs
     x = x.dropna().to_numpy()
 
-    # 0. Drop first part of signal: noisy
+    # 0. Drop first part of signal: noisy TODO: entweder ganze nehmen oder Threshold definieren
 
     # 1. Detection and exclusion of class 3 from training set (TODO Raffi)
 

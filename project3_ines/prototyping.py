@@ -1,11 +1,11 @@
-#%% Imports
+# %% Imports
 import pandas as pd
 import numpy as np
 import logging
 import matplotlib.pyplot as plt
-import peakutils # for basic peak-finding utils
-import pywt # for wavelet transform bits
-import wfdb # for physionet tools
+import peakutils  # for basic peak-finding utils
+import pywt  # for wavelet transform bits
+import wfdb  # for physionet tools
 import biosppy
 import neurokit2 as nk
 import scipy
@@ -16,11 +16,11 @@ import os
 repopath = '/Users/inespereira/Documents/Github/aml2020'
 os.chdir(repopath)
 
-#%% Load training dataset from csv
+# %% Load training dataset from csv
 X = pd.read_csv(f'{repopath}/project3_ines/X_train.csv')
-X = X.iloc[:,1:]
+X = X.iloc[:, 1:]
 y = pd.read_csv(f'{repopath}/project3_ines/y_train.csv')
-y = y.iloc[:,1:]
+y = y.iloc[:, 1:]
 X_test = pd.read_csv(f'{repopath}/project3_ines/X_test.csv')
 logging.info('I have imported your training dataset! :D')
 print(f'Shape of training set is {X.shape}')
@@ -47,11 +47,11 @@ print(class2)
 # - a lot of NaNs: but we probably need to extract features anyway
 # - Class imbalance
 
-#%% Allocate space for new training data
+# %% Allocate space for new training data
 col_names = [
-  'mean_HR',
-  'std_HR',
-  'P_waved'
+    'mean_HR',
+    'std_HR',
+    'P_waved'
 ]
 new_X_train = pd.DataFrame(columns=col_names)
 print(new_X_train)
@@ -59,7 +59,7 @@ print(new_X_train)
 # %% Plot some time series
 # TODO: write for loop wrapper over this to apply preprocessing over all time series
 n = 3
-ecg = X.iloc[n,:].dropna().to_numpy()
+ecg = X.iloc[n, :].dropna().to_numpy()
 plt.plot(ecg)
 plt.show()
 print(f'The corresponding class is: {y.iloc[n]}')
@@ -71,13 +71,13 @@ plt.plot(abs(ecg_fft))
 plt.show()
 type(ecg_fft)
 print(ecg_fft)
-#%% Biosppy
+# %% Biosppy
 ecg_biosppy = biosppy.signals.ecg.ecg(
-  signal=ecg, 
-  sampling_rate=sampling_rate, 
-  show=True)
+    signal=ecg,
+    sampling_rate=sampling_rate,
+    show=True)
 
-#%% Analyse biosppy summary
+# %% Analyse biosppy summary
 # type(ecg_biosppy)
 # ecg_biosppy['ts']
 # ecg_biosppy['rpeaks']
@@ -89,43 +89,44 @@ plt.show()
 ecg_biosppy['heart_rate']
 
 # %% Populate new_X_train
-new_X_train.loc[n,'mean_HR']=np.mean(ecg_biosppy['heart_rate'])
-new_X_train.loc[n,'std_HR']=np.std(ecg_biosppy['heart_rate'])
+new_X_train.loc[n, 'mean_HR'] = np.mean(ecg_biosppy['heart_rate'])
+new_X_train.loc[n, 'std_HR'] = np.std(ecg_biosppy['heart_rate'])
 print(new_X_train)
 
-#%% Save filtered data to mat file
+# %% Save filtered data to mat file
 scipy.io.savemat('test.mat', {'mydata': ecg_biosppy['filtered']})
 
 # %% Wavelets
 wavelets = pywt.wavedec(
-  data=ecg,
-  wavelet='db4', # from YouTube Video
-  level=5
+    data=ecg,
+    wavelet='db4',  # from YouTube Video
+    level=5
 )
 
 # %% Neurokit2
-#%% Also do analysis
+# %% Also do analysis
 df, info = nk.ecg_process(ecg_biosppy['filtered'], sampling_rate=sampling_rate)
 analyze_df = nk.ecg_analyze(df, sampling_rate=sampling_rate)
 analyze_df
 
-#%%
+# %%
 df
-#%% Download data
+# %% Download data
 # ecg_signal = nk.data(dataset="ecg_3000hz")['ECG']
 # ecg_signal = pd.Series(ecg_biosppy['filtered'],dtype='float64')
-ecg_signal = pd.Series(df['ECG_Clean'],dtype='float64')
+ecg_signal = pd.Series(df['ECG_Clean'], dtype='float64')
 
 # Analyze the ecg signal
 type(ecg_signal)
 print(ecg_signal)
-#%%
+# %%
 
 # Extract R-peaks locations
 _, rpeaks = nk.ecg_peaks(ecg_signal, sampling_rate=sampling_rate)
 
 # Delineate
-signal, waves = nk.ecg_delineate(ecg_signal, rpeaks, sampling_rate=sampling_rate, method="dwt", show=True, show_type='all')
+signal, waves = nk.ecg_delineate(
+    ecg_signal, rpeaks, sampling_rate=sampling_rate, method="dwt", show=True, show_type='all')
 
 
 # %% Plan: define the features you want to look at.
@@ -137,7 +138,7 @@ signal, waves = nk.ecg_delineate(ecg_signal, rpeaks, sampling_rate=sampling_rate
 #         + Find features related to waves
 # For an example: https://www.youtube.com/watch?v=WyjGCEWU4zY
 
-# (Raffi) To isolate class 3: 
+# (Raffi) To isolate class 3:
 #    - Extract Fourier transform and plot mean for each class. You should see a peak
 #    - Number of artefacts
 # Detect inverted QRS and reinvert them?
@@ -157,7 +158,7 @@ signal, waves = nk.ecg_delineate(ecg_signal, rpeaks, sampling_rate=sampling_rate
 # 2. Detection of flipped signals and flipping (TODO Raffi + Inês)
 # 3. Filtering (getting isoelectric line and smoothing)
 # 4. Waveform detection
-#   4.1 R-peaks and HR: 
+#   4.1 R-peaks and HR:
 #         - mean_HR (class 1)
 #         - std_HR (class 1)
 #   4.2 P, QRS and T: TODO (Francesco)
