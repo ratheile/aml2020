@@ -55,7 +55,7 @@ app.layout = \
 html.Div([
 dcc.Store(id='sync', data={
   'id' : 0,
-  'features': ['original','filtered_nk2', 'filtered_bspy', 'quality','peaks_nk2', 'peaks_bspy']
+  'features': ['original','filtered_nk2', 'filtered_bspy', 'quality','peaks_nk2', 'peaks_bspy', 'onsetoffset']
 }),
 html.Div([
   html.Div([
@@ -129,6 +129,7 @@ html.Div([
           {'label': 'Show Quality', 'value': 'quality'},
           {'label': 'Show Detected Peaks Neurokit2', 'value': 'peaks_nk2'},
           {'label': 'Show Detected Peaks Biosppy', 'value': 'peaks_bspy'},
+          {'label': 'Show All Onsets / Offsets', 'value': 'onsetoffset'},
       ],
       value=['original', 'filtered_nk2', 'filtered_bspy', 'quality','peaks_nk2', 'peaks_bspy']
   )  
@@ -251,18 +252,54 @@ def update_timeseries_plot(filter_class, data):
       row=3, col=1
     )
 
-
-  if 'peaks_nk2' in data['features']:
-    print("computing peaks ...")
-    peaks_nk2 = out['ECG_R_Peaks']
-    peaks_nk2 = peaks_nk2[peaks_nk2 == 1].index.tolist()
-    peak_ts_nk2 = time_ax[peaks_nk2]
-    peak_val_nk2 = crv[peaks_nk2]
-
+  def plot_points(metric_name, color='black'):
+    metric = out[metric_name]
+    marker_index = metric[metric == 1].index.tolist()
+    marker_ts = time_ax[marker_index]
     fig.add_trace(
-      go.Scatter(x=peak_ts_nk2, y=peak_val_nk2, name='peaks_nk2', mode='markers'),
+      go.Scatter(x=marker_ts, y=crv[marker_index],
+        name=metric_name, mode='markers',
+        marker=dict(
+            color=color,
+            size=12,
+            line=dict(
+                color='MediumPurple',
+                width=3
+            )
+        )),
       row=1, col=1
     )
+
+
+  def plot_lines(metric_start, metric_end, color='black'):
+    a = out[metric_start]
+    b = out[metric_end]
+    a = a[a == 1].index.tolist()
+    b = b[b == 1].index.tolist()
+    a = time_ax[a]
+    b = time_ax[b]
+
+    for i in a:   
+      fig.add_vline(i, row=1, col=1)
+
+  if 'onsetoffset' in data['features']:
+    # Index(['ECG_Raw', 'ECG_Clean', 'ECG_Rate', 'ECG_Quality', 'ECG_R_Peaks',
+    #        'ECG_P_Peaks', 'ECG_Q_Peaks', 'ECG_S_Peaks', 'ECG_T_Peaks',
+    #        'ECG_P_Onsets', 'ECG_T_Offsets', 'ECG_Phase_Atrial',
+    #        'ECG_Phase_Completion_Atrial', 'ECG_Phase_Ventricular',
+    #        'ECG_Phase_Completion_Ventricular'],
+    #       dtype='object')
+    plot_points('ECG_Q_Peaks', color='green')
+    plot_points('ECG_S_Peaks', color='blue')
+
+    plot_points('ECG_P_Peaks', color='orange')
+    plot_points('ECG_P_Onsets', color='orange')
+
+    plot_points('ECG_T_Peaks', color='red')
+    plot_points('ECG_T_Offsets', color='red')
+    # plot_lines('ECG_P_Onsets', 'ECG_T_Offsets')
+
+
 
 
   if 'peaks_bspy' in data['features']:
@@ -270,9 +307,25 @@ def update_timeseries_plot(filter_class, data):
     peak_ts_bspy = time_ax[peaks_bspy]
     peak_val_bspy = crv[peaks_bspy]
     fig.add_trace(
-      go.Scatter(x=peak_ts_bspy, y=peak_val_bspy, name='peaks_bspy', mode='markers'),
+      go.Scatter(
+        x=peak_ts_bspy, y=peak_val_bspy, name='peaks_bspy', mode='markers',
+        marker=dict(
+            symbol='x',
+            color='purple',
+            size=15,
+            line=dict(
+                color='violet',
+                width=3
+            )
+        )),
       row=1, col=1
     )
+
+  if 'peaks_nk2' in data['features']:
+    print("computing peaks ...")
+    plot_points('ECG_R_Peaks', color='black')
+    
+
 
   fig.update_layout(margin={
       'l': 40,
