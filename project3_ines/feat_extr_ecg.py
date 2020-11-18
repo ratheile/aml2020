@@ -15,13 +15,15 @@ import neurokit2 as nk
 # env_cfg = ConfigLoader().from_file('env/env.yml')
 
 #%% Populate container for plot signals
-def populate_PlotData(PD,i,sample_id,class_id,raw_ecg,rpeaks_biosppy,filtered_biosppy,signals_neurokit):
-    PD[i][0]=sample_id
-    PD[i][1]=class_id
-    PD[i][2]=raw_ecg
-    PD[i][3]=rpeaks_biosppy
-    PD[i][4]=filtered_biosppy
-    PD[i][5]=signals_neurokit
+def populate_PlotData(PD, i, sample_id, class_id, raw_ecg, rpeaks_biosppy, filtered_biosppy , signals_neurokit):
+    PD[i][0] = sample_id
+    PD[i][1] = class_id
+    PD[i][2] = raw_ecg
+    PD[i][3] = rpeaks_biosppy
+    PD[i][4] = filtered_biosppy
+    PD[i][5] = signals_neurokit
+
+    return PD
 
 #%%Load Data Set
 def load_data(repopath):
@@ -186,7 +188,7 @@ def extract_features(df, Fs, feature_list, remove_outlier, biosppy_enabled, ecg_
         logging.info('Removing ecg outliers with pyheart...')
         
     if biosppy_enabled:
-        logging.info('Pre-filtering with biosspy activated')
+        logging.info('Filtering with biosspy activated.')
     
     # Define F array to aggregate extracted sample features
     F=np.zeros([df.shape[0],len(feature_list)])
@@ -268,8 +270,7 @@ def extract_features(df, Fs, feature_list, remove_outlier, biosppy_enabled, ecg_
             feat_i.append(df_analyze.loc[0,'ECG_Rate_Mean'])
             feat_i.append(df_analyze.loc[0,'HRV_RMSSD'])
             feat_i.append(len(rpeaks_biosppy)) #no. of detected r-peaks in biosspy
-            for elem in peak_summary_neurokit:
-                feat_i.append(elem)
+            feat_i.extend(peak_summary_neurokit) # extend() does inplace update to the original list
         except Exception:
             logging.info(f'neurokit2 crashed for sample {i} in class {class_id}')
             n = len(feature_list)
