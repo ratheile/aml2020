@@ -5,10 +5,8 @@ persistence:
 
 preproc:
 
-  outlier: # random forest
+  outlier: #TODO: outlier detection to detect class 3
     enabled: true
-    cont_lim: 0.05
-    impl: ines
 
   normalize:
     enabled: false
