@@ -14,6 +14,16 @@ from biosppy.signals import ecg
 #from hrv import HRV
 import neurokit2 as nk
 
+#%% Populate container for plot signals
+def populate_PlotData(PD,i,sample_id,class_id,raw_ecg,rpeaks_biosppy,filtered_biosppy,signals_neurokit):
+    PD[i][0]=sample_id
+    PD[i][1]=class_id
+    PD[i][2]=raw_ecg
+    PD[i][3]=rpeaks_biosppy
+    PD[i][4]=filtered_biosppy
+    PD[i][5]=signals_neurokit
+    
+    return(PD)
 #%%Load Data Set
 def load_data(repopath):
     X = pd.read_csv(f'{repopath}/project3_ffu/X_train_small.csv')
@@ -154,7 +164,7 @@ def calc_peak_summary(signals, sampling_rate):
     return summary
 
 #%% extract features from ECGs
-def extract_features(df, Fs, feature_list, remove_outlier, biosppy_enabled, ecg_quality_check, ecg_quality_threshold, class_id):
+def extract_features(df, Fs, feature_list, remove_outlier, biosppy_enabled, ecg_quality_check, ecg_quality_threshold, class_id, verbose):
     
     if remove_outlier:
         logging.info('Removing ecg outliers with pyheart...')
@@ -165,12 +175,22 @@ def extract_features(df, Fs, feature_list, remove_outlier, biosppy_enabled, ecg_
     # Define F array to aggregate extracted sample features
     F=np.zeros([df.shape[0],len(feature_list)])
     
+    # Define PD as a list array to aggregate extracted sample infos (for later plotting)
+    # PD columns: [0:sample id | 1: class id | 2: raw signal| 3: r_peaks_biosspy | 4: filtered biosppy | 5: signals neurokit ]
+    # PD rows: number of ecg signals
+    plotData = []
+    for n_row in range(df.shape[0]):
+        column = []
+        for n_col in range(6):
+            column.append(0)
+            plotData.append(column)
+    
     # for all the rows in the df
     for i in range(len(df)):
         sig_i = df.iloc[i,1:] #signal i wo sample id
         sig_i = sig_i.replace(to_replace='NaN',value=np.nan)
         sig_i_np = (sig_i.to_numpy()).ravel()
-        sig_i_np = sig_i_np[~np.isnan(sig_i_np)]
+        sig_i_np = sig_i_np[~np.isnan(sig_i_np)] #this is our ecg raw signal
         
         # remove outliers using pyheart?
         if remove_outlier:
@@ -238,13 +258,16 @@ def extract_features(df, Fs, feature_list, remove_outlier, biosppy_enabled, ecg_
             feat_i[5] = len(rpeaks_biosppy) #maybe biosppy worked
         
         F[i,:] = feat_i
-        
+        plotData = populate_PlotData(plotData,i,df.iloc[i,0],class_id,sig_i_np,rpeaks_biosppy,filtered_biosppy,signals)
+        if verbose:
+            sample_left = df.shape[0]-i
+            print(f'Proprocessed ECG sample {i}({df.iloc[i,0]}) in class {class_id}... {sample_left} samples to go!')
         #TODO: in a suitable container collect the sample id and the signals dataframe (output of neurokit), which
         #which contains all the info for the plots
     
     feat_df = pd.DataFrame(data=F,columns=feature_list)
     
-    return(feat_df)    
+    return(feat_df, plotData)    
      
 #%% Main
 
@@ -267,35 +290,43 @@ feature_list = ['Sample_Id',
 
 
 #%% Feature extraction class 0
-X0_features = extract_features(df=X0,
+X0_features, X0_plotData = extract_features(df=X0,
                                Fs = 300,
                                feature_list = feature_list, 
                                remove_outlier=True, 
                                biosppy_enabled=True, 
                                ecg_quality_check=True, 
                                ecg_quality_threshold=0.8, 
-                               class_id=0)
+                               class_id=0,
+                               verbose=True
+                               )
 
 X0_features.head()
 #%% Feature extraction class 1
-X1_features = extract_features(df=X1,
+X1_features, X1_plotData = extract_features(df=X1,
                                Fs = 300,
                                feature_list = feature_list, 
                                remove_outlier=False, 
                                biosppy_enabled=False, 
                                ecg_quality_check=False, 
                                ecg_quality_threshold=0.8, 
-                               class_id=1)
+                               class_id=1,
+                               verbose=True
+                               )
 X1_features.head()
 #%% Feature extraction class 2
-X2_features = extract_features(df=X2,
+X2_features, X2_plotData = extract_features(df=X2,
                                Fs = 300,
                                feature_list = feature_list, 
                                remove_outlier=True, 
                                biosppy_enabled=True, 
                                ecg_quality_check=True, 
                                ecg_quality_threshold=0.8, 
-                               class_id=2)
+                               class_id=2,
+                               verbose=True
+                               )
 X2_features.head()
 #%% Write pickle or similar
 #TODO: write to pickle or similar for the features dataframes and ecg prepocessing
+
+# %%
