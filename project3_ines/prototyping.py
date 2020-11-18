@@ -17,14 +17,20 @@ repopath = '/Users/inespereira/Documents/Github/aml2020'
 os.chdir(repopath)
 
 # %% Load training dataset from csv
-X = pd.read_csv(f'{repopath}/project3_ines/X_train.csv')
-X = X.iloc[:, 1:]
-y = pd.read_csv(f'{repopath}/project3_ines/y_train.csv')
-y = y.iloc[:, 1:]
+X = pd.read_csv(f'{repopath}/project3_ines/X_train_small.csv')
+# X = X.iloc[:, 1:]
+y = pd.read_csv(f'{repopath}/project3_ines/y_train_small.csv')
+# y = y.iloc[:, 1:]
 X_test = pd.read_csv(f'{repopath}/project3_ines/X_test.csv')
 logging.info('I have imported your training dataset! :D')
 print(f'Shape of training set is {X.shape}')
 sampling_rate = 300
+
+# %% Save smaller dataset to not waste hours waiting for loading
+# NROWS = 100
+# X.iloc[:NROWS, :].to_csv('project3_ines/X_train_small.csv')
+# y.iloc[:NROWS, :].to_csv('project3_ines/y_train_small.csv')
+
 
 # %%
 # print(X)
