@@ -16,9 +16,14 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.utils import shuffle
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 
-
 # ECG libraries
 import biosppy
+from .feature_extraction import populate_PlotData, \
+  split_classes, \
+  ecg_process_AML, \
+  calc_peak_summary, \
+  extract_features, \
+
 
 
 class Project3Estimator(BaseEstimator):
@@ -100,7 +105,7 @@ class Project3Estimator(BaseEstimator):
       y.to_pickle(y_file)
       dump(self._scaler_, scaler_file)
 
-    # Shuffle
+    # Shuffle after preprocessing and before training
     X, y = shuffle(X, y) # https://scikit-learn.org/stable/modules/generated/sklearn.utils.shuffle.html
 
     # Regression model fit
@@ -195,56 +200,67 @@ class Project3Estimator(BaseEstimator):
       scaler = self.scaler_dic[method]()
       scaler = scaler.fit(X)
 
-  def preprocess(self, run_cfg, X, y):
-    
-    new_feat = [
-      'mean_HR',
-      'std_HR',
-      'amplitude_P_wave',
-      'std_S_amplitude',
-      'mean_QRS_duration',
-      'std_QRS_duration'
-    ]
+  def preprocess(self, run_cfg, X, y=None, mode='training'):
+    '''
+    mode: 'training' or 'test'
+    '''
 
-    X_new = pd.DataFrame(columns=new_feat)
-
-    for i in range(X.shape[0]):
-      X_new.iloc[i,:] = preprocess_time_series(X.iloc[i,:])
-
-    return X_new, y 
-
-  def preprocess_time_series(self, run_cfg, x): #TODO: main function to complete!
-
-    # 0. Remove NaNs
-    x = x.dropna().to_numpy()
-
-    # 0. Drop first part of signal: noisy TODO: entweder ganze nehmen oder Threshold definieren
-
+    # TODO: address the following open problems
     # 1. Detection and exclusion of class 3 from training set (TODO Raffi)
-
     # 2. Detection of flipped signals and flipping (TODO Raffi + Inês)
+    #%% Split the original dataframe according to class
 
-    # 3. Filtering (getting isoelectric line and smoothing)
-    ecg_info = biosppy.signals.ecg.ecg(
-      signal=ecg, 
-      sampling_rate=sampling_rate, 
-      show=True
-      )
-    ecg_filtered = ecg_info['filtered'] # Extract filtered data
+    if mode=='training':
+      X0, X1, X2, X3 = split_classes(X, y)
+
+      # Define features to extract
+      feature_list = ['Sample_Id', 
+                      'ECQ_Quality_Mean', 'ECQ_Quality_STD', 
+                      'ECG_Rate_Mean', 'ECG_Rate_STD',
+                      'R_P_biosppy', 'P_P/R_P', 'Q_P/R_P', 'R_P_neurokit' ,'S_P/R_P', 'T_P/R_P',  #relative number of peaks TODO
+                      'P_Amp_Mean', 'P_Amp_STD', 'S_Amp_Mean', 'S_Amp_STD',
+                      'QRS_t_Mean', 'QRS_t_STD']
+
+
+      # Feature extraction class 0
+      X0_features, X0_plotData = extract_features(
+                                    run_cfg=run_cfg,
+                                    df=X0,
+                                    feature_list = feature_list,
+                                    class_id=0,
+                                    verbose=run_cfg['preproc/verbose']
+                                    )
+
+      # Feature extraction class 1
+      X1_features, X1_plotData = extract_features(
+                                    run_cfg=run_cfg,
+                                    df=X1,
+                                    feature_list = feature_list,
+                                    class_id=1,
+                                    verbose=run_cfg['preproc/verbose']
+                                    )
+      
+      # Feature extraction class 2
+      X2_features, X2_plotData = extract_features(
+                                    run_cfg=run_cfg,
+                                    df=X2,
+                                    feature_list = feature_list,
+                                    class_id=2,
+                                    verbose=run_cfg['preproc/verbose']
+                                    )
+      X_new = pd.concat([X0_features, X1_features, X2_features])
+
+    elif mode=='test':
+      X_u_features, X_u_plotData = extract_features(
+                              run_cfg=run_cfg,
+                              df=X,
+                              feature_list = feature_list,
+                              class_id='test',
+                              verbose=run_cfg['preproc/verbose']
+                              )
+      X_new = X_u_features
     
-    x.loc[n,'mean_HR']=np.mean(ecg_info['heart_rate'])
-    x.loc[n,'std_HR']=np.std(ecg_info['heart_rate'])
-
-    # 4. Waveform detection
-    #   4.1 R-peaks and HR: 
-    #         - mean_HR (class 1)
-    #         - std_HR (class 1)
-    #   4.2 P, QRS and T: TODO (Francesco)
-    #         - number of P waves, amplitude_P_wave (class 1)
-    #         - mean_S_amplitude, ?? std_S_amplitude (class 2)
-    #         - mean_QRS_duration, (class 2)
-    #         - std_QRS_duration (class 2)
-    return x
+   return X_new, y
 
   def simple_fit(self, model, X, y):  # TODO to ask: do we need this?
     model = model.fit(X, y)
