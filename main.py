@@ -16,7 +16,8 @@ from project1_ines import main as ines
 from project1_ffu import main as ffu
 from project1 import main as project1
 from project2 import main as project2
-from project2.estimator import Project2Estimator
+from project3 import main as project3
+from project3.estimator import Project3Estimator
 
 class User(Enum):
   ines = 'ines'
@@ -55,7 +56,7 @@ if __name__ == "__main__":
   parser.add_argument('--env', type=file_path, default='env/env.yml',
     help='The environment yaml file.')
 
-  parser.add_argument('--slice', type=file_path, help='The slice for user grid') # TODO: change this to "The slice for grid search"?
+  parser.add_argument('--slice', type=file_path, help='The slice yaml file for grid search')
 
   input_grp.add_argument('--cfg', type=file_path,
     help='The main config yaml file.')
@@ -84,11 +85,11 @@ if __name__ == "__main__":
     logging.info("directory cfg mode")
     run_cfg_paths = glob.glob(f'{run_cfg_dir}/*.yml')
 
-  logging.info(f'Loading the data from: {env_cfg["datasets/project2/path"]}')
+  logging.info(f'Loading the data from: {env_cfg["datasets/project3/path"]}')
 
   # Modes available for a given project
   # e = env_cfg r = run_cfg
-  project2_catalog = {
+  project3_catalog = {
     User.ffu : {
       Type.run: lambda r,e: ffu.run(r,e)
     },
@@ -97,9 +98,9 @@ if __name__ == "__main__":
     },
     User.raffi: { },
     User.default: {
-      Type.run: lambda r,e: project2.run(r,e), 
-      Type.cv: lambda r,e: project2.cross_validate(r,e),
-      Type.grid: lambda r,e,s: project2.gridsearch(r,e,s) 
+      Type.run: lambda r,e: project3.run(r,e), 
+      Type.cv: lambda r,e: project3.cross_validate(r,e),
+      Type.grid: lambda r,e,s: project3.gridsearch(r,e,s) 
     },
   }
 
@@ -107,7 +108,7 @@ if __name__ == "__main__":
   pass_flg = True 
   pass_flg = pass_flg and env_cfg is not None
   pass_flg = pass_flg and len(run_cfg_paths) > 0
-  pass_flg = pass_flg and etype in project2_catalog[user]
+  pass_flg = pass_flg and etype in project3_catalog[user]
 
   if etype is Type.grid and pass_flg:
     pass_flg = pass_flg and slice_path is not None
@@ -120,7 +121,7 @@ if __name__ == "__main__":
       name = os.path.basename(run_cfg_path)
       run_cfg = ConfigLoader().from_file(run_cfg_path)
 
-      experment_f = project2_catalog[user][etype]
+      experment_f = project3_catalog[user][etype]
 
       if etype is Type.run or etype is Type.cv: 
         experment_f(run_cfg, env_cfg)
