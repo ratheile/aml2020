@@ -50,7 +50,7 @@ def split_classes(X,y):
     return(X0, X1, X2, X3)
 
 ##% Define more flexible ecg_process function
-def ecg_process_AML(ecg_signal, sampling_rate=300, method="neurokit"):
+def ecg_process_AML(ecg_signal, sampling_rate=300, method="neurokit"): #TODO method not used
     """Process an ECG signal as original neurokit2 function, see:
     https://neurokit2.readthedocs.io/en/latest/_modules/neurokit2/ecg/ecg_process.html#ecg_process
     
@@ -167,7 +167,7 @@ def calc_peak_summary(signals, sampling_rate):
     sig_r_offset = signals[signals['ECG_R_Offsets'] == 1]
     if (len(sig_r_onset) == len(sig_r_offset)):
         d_qrs_N = sig_r_offset.index.to_numpy().ravel() - sig_r_onset.index.to_numpy().ravel() #number of samples between R Onset and Offset
-        d_qrs_t = (d_qrs_N - 1) / sampling_rate
+        d_qrs_t = d_qrs_N / sampling_rate
         d_qrs_t_mean = d_qrs_t.mean()
         d_qrs_t_std = d_qrs_t.std()
     else:
@@ -205,10 +205,6 @@ def extract_features(df, Fs, feature_list, remove_outlier, biosppy_enabled, ecg_
     
     # for all the rows in the df
     for i in range(len(df)):
-        # sig_i = df.iloc[i,1:] #signal i without sample id
-        # sig_i = sig_i.replace(to_replace='NaN',value=np.nan)
-        # sig_i_np = (sig_i.to_numpy()).ravel()
-        # sig_i_np = sig_i_np[~np.isnan(sig_i_np)] #this is our ecg raw signal
         sig_i_np = df.iloc[i, 1:].dropna().to_numpy()
         
         # remove outliers using pyheart?
