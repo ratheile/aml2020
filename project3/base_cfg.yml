@@ -3,11 +3,13 @@ persistence:
   load_from_file: true
   save_to_file: true
 
-preproc:
+sampling_rate: 300
 
+preproc:
+  verbose: true
   remove_outlier: #TODO: outlier detection to detect class 3
     enabled: true
-  biosppy_enabled:
+  filtering_biosppy:
     enabled: true
   ecg_quality_check:
     enabled: true
