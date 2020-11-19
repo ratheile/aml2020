@@ -179,7 +179,7 @@ def extract_features(run_cfg, df, feature_list, class_id, verbose=False):
     remove_outlier=run_cfg['preproc/remove_outlier/enabled']
     biosppy_enabled=run_cfg['preproc/filtering_biosppy/enabled']
     ecg_quality_check=run_cfg['preproc/ecg_quality_check/enabled']
-    ecg_quality_threshold=run_cfg['preproc/ecg_quality_threshold/enabled']
+    ecg_quality_threshold=run_cfg['preproc/ecg_quality_threshold']
 
     if remove_outlier:
         logging.info('Removing ecg outliers with pyheart...')
