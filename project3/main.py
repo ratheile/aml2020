@@ -1,6 +1,8 @@
 import logging
 import os
 import multiprocessing
+import joblib
+import time
 
 import pandas as pd
 import numpy as np
@@ -22,18 +24,9 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):
   and run 'python main.py --cfg project2/base_cfg.yml' in your terminal to get the predictions from that model.
   ''' 
 
-  # Define dataset to import
-  if run_cfg['test_run']:
-    data_label = '_small'
-  else:
-    data_label = ''
+  # Load training dataset from joblib files 
+  X, y, X_u = load_data(env_cfg)
 
-  # Load training dataset from csv
-  datapath = env_cfg['datasets/project3/path']
-  X = pd.read_csv(f'{datapath}/X_train{data_label}.csv')
-  y = pd.read_csv(f'{datapath}/y_train{data_label}.csv')
-  X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
-  
   # Remove index column
   y = y.iloc[:,1:]
   X = X.iloc[:,1:]
@@ -68,23 +61,43 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):
 
   logging.info('GridSearchCV complete')
 
+def convert_data(run_cfg, env_cfg): 
+  begin_time = time.time()
+
+  # Load training dataset from csv
+  datapath = env_cfg['datasets/project3/path']
+  logging.info('CSV loading started ...')
+  X = pd.read_csv(f'{datapath}/X_train.csv')
+  y = pd.read_csv(f'{datapath}/y_train.csv')
+  X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
+
+  joblib.dump(X, f'{datapath}/X_train.joblib')
+  joblib.dump(y, f'{datapath}/y_train.joblib')
+  joblib.dump(X_u, f'{datapath}/X_test.joblib')
+
+  end_time = time.time()
+  logging.info(f'Data conversion done in {end_time - begin_time}')
+
+def load_data(env_cfg):
+  begin_time = time.time()
+  logging.info('Joblib loading started ...')
+  datapath = env_cfg['datasets/project3/path']
+  X = joblib.load(f'{datapath}/X_train.joblib')
+  y = joblib.load(f'{datapath}/y_train.joblib')
+  X_u = joblib.load(f'{datapath}/X_test.joblib')
+  end_time = time.time()
+  logging.info(f'Joblib loading done in {end_time - begin_time}')
+  return X, y, X_u
+
+
 def run(run_cfg, env_cfg):
   '''
   Fits a single model and returns predictions. To be used for prototyping or after
   performing GridSearch.
   '''
 
-  # Define dataset to import
-  if run_cfg['test_run']:
-    data_label = '_small'
-  else:
-    data_label = ''
-
-  # Load training dataset from csv
-  datapath = env_cfg['datasets/project3/path']
-  X = pd.read_csv(f'{datapath}/X_train{data_label}.csv')
-  y = pd.read_csv(f'{datapath}/y_train{data_label}.csv')
-  X_u = pd.read_csv(f'{datapath}/X_test{data_label}.csv') # unlabeled
+  # Load training dataset from joblib files 
+  X, y, X_u = load_data(env_cfg)
   
   # Remove ID column
   y = y.iloc[:, 1:]
@@ -120,18 +133,9 @@ def cross_validate(run_cfg, env_cfg):
   Cross validates a single model.
   '''
 
-  # Define dataset to import
-  if run_cfg['test_run']:
-    data_label = '_small'
-  else:
-    data_label = ''
+  # Load training dataset from joblib files 
+  X, y, X_u = load_data(env_cfg)
 
-  # Load training dataset from csv
-  datapath = env_cfg['datasets/project3/path']
-  X = pd.read_csv(f'{datapath}/X_train{data_label}.csv')
-  y = pd.read_csv(f'{datapath}/y_train{data_label}.csv')
-  X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
-  
   # Remove index column
   y = y.iloc[:,1:]
   X = X.iloc[:,1:]

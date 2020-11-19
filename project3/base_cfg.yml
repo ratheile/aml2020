@@ -1,6 +1,3 @@
-# Test run?
-test_run: true
-
 # Pipeline steps
 persistence:
   load_from_file: true
