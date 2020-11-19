@@ -1,5 +1,5 @@
 # Test run?
-test_run: true
+test_run: true # Pipeline expects X_train_small.csv, y_train_small.csv and X_test_small.csv in the same folder where you put the full data
 
 # Pipeline steps
 persistence:
