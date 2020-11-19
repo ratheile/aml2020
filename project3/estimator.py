@@ -16,6 +16,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.utils import shuffle
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.svm import SVC
+from sklearn.impute import SimpleImputer, KNNImputer
 
 # ECG libraries
 import biosppy
@@ -64,6 +65,7 @@ class Project3Estimator(BaseEstimator):
     
     load_flag = self.run_cfg['persistence/load_from_file']
     save_flag = self.run_cfg['persistence/save_to_file']
+    save_plot_data = self.run_cfg['persistence/save_plot_data']
 
     if load_flag or save_flag:
       # hashes
@@ -98,7 +100,7 @@ class Project3Estimator(BaseEstimator):
     self._preprocessing_skipped_ = skip_preprocessing
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
-      X, y = self.preprocess(self.run_cfg, X, y)
+      X, X_plot_data = self.preprocess(self.run_cfg, X, y)
 
     # Store
     if save_flag and not skip_preprocessing:
@@ -106,6 +108,11 @@ class Project3Estimator(BaseEstimator):
       y.to_pickle(y_file)
       dump(self._scaler_, scaler_file)
 
+      # if save_plot_data: #TODO: not working because X_plot_data is still a complicated data structure. Probably needs reformulation.
+      #   plot_data_hash = df_hash_f(X_plot_data)
+      #   plot_data_file = fn_func(plot_data_hash, cfg_hash, 'plotData.pkl')
+      #   X_plot_data.to_pickle(plot_data_file) #TODO: temporarily saved in hashdir. Raffi will then pass this to plot viewer.
+    
     # Shuffle after preprocessing and before training
     X, y = shuffle(X, y) # https://scikit-learn.org/stable/modules/generated/sklearn.utils.shuffle.html
 
@@ -132,7 +139,7 @@ class Project3Estimator(BaseEstimator):
     check_is_fitted(self)
 
     X_u = self.df_sanitization(X_u)
-    X_u = self.preprocess(self.run_cfg, X_u, mode='test')
+    X_u, X_u_plotData = self.preprocess(self.run_cfg, X_u)
     y_u = self._fitted_model_.predict(X_u)
 
     return y_u
@@ -190,6 +197,14 @@ class Project3Estimator(BaseEstimator):
       data=npa, columns=copy.columns.tolist()
     )
 
+  def fill_nan(self, run_cfg, X):
+    imputers ={
+      'simple': lambda: SimpleImputer(missing_values=np.nan, strategy=run_cfg['preproc/imputer/strategy']),
+      'kNN': lambda: KNNImputer(missing_values=np.nan)
+    }
+    imputer = imputers[run_cfg['preproc/imputer/type']]
+    return(imputer().fit_transform(X))
+
   def normalize(self, X, method, use_pretrained=False):
     if self._preprocessing_skipped_ and self._scaler_ is None:
       logging.error('Preprocessing skipped: data is probalby normalized with a wrong (empty) scaler!')
@@ -201,79 +216,42 @@ class Project3Estimator(BaseEstimator):
       scaler = self.scaler_dic[method]()
       scaler = scaler.fit(X)
 
-  def preprocess(self, run_cfg, X, y=None, mode='training'):
-    '''
-    mode: 'training' or 'test'
-    '''
+  def preprocess(self, run_cfg, X, y=None):
 
     # TODO: address the following open problems
     # 1. Detection and exclusion of class 3 from training set (TODO Raffi)
     # 2. Detection of flipped signals and flipping (TODO Raffi + Inês)
-    #%% Split the original dataframe according to class
+    # 3. NaN? When biosppy or neurokit crashen, QRS mean or SD when offsets and onsets not the same are.
+    #      - Diagnostics using Raffi's viewer as first step.
+    #      - Exclude observations?
+    #      - FillNaN from Project 1
+    #      - KNN Imputer
+    # 4. Handle emply slices: NaN.
 
-    if mode=='training':
-      X0, X1, X2, X3 = split_classes(X, y)
+    # Define features to extract
+    feature_list = ['Sample_Id',
+                    'ECG_Quality_Mean', 'ECG_Quality_STD',
+                    'ECG_Rate_Mean', 'ECG_HRV',
+                    'R_P_biosppy', 'P_P/R_P', 'Q_P/R_P', 'R_P_neurokit' , 'S_P/R_P', 'T_P/R_P',  #relative number of peaks TODO
+                    'P_Amp_Mean', 'P_Amp_STD', 'S_Amp_Mean', 'S_Amp_STD',
+                    'QRS_t_Mean', 'QRS_t_STD']
 
-      # Define features to extract
-      feature_list = ['Sample_Id', 
-                      'ECQ_Quality_Mean', 'ECQ_Quality_STD', 
-                      'ECG_Rate_Mean', 'ECG_Rate_STD',
-                      'R_P_biosppy', 'P_P/R_P', 'Q_P/R_P', 'R_P_neurokit' ,'S_P/R_P', 'T_P/R_P',  #relative number of peaks TODO
-                      'P_Amp_Mean', 'P_Amp_STD', 'S_Amp_Mean', 'S_Amp_STD',
-                      'QRS_t_Mean', 'QRS_t_STD']
+    X_new, X_new_plotData = extract_features(
+                            run_cfg=run_cfg,
+                            df=X,
+                            y=y,
+                            feature_list=feature_list,
+                            verbose=run_cfg['preproc/verbose']
+                            )
+    X_new = X_new.set_index('Sample_Id')
 
+    # Address NaNs
+    X_new[:] = self.fill_nan(
+      run_cfg=run_cfg,
+      X=X_new
+      ) #TODO (check why this happens): With median, we sometimes get negative durations for QRS_t_mean
 
-      # Feature extraction class 0
-      X0_features, X0_plotData = extract_features(
-                                    run_cfg=run_cfg,
-                                    df=X0,
-                                    feature_list = feature_list,
-                                    class_id=0,
-                                    verbose=run_cfg['preproc/verbose']
-                                    )
-
-      # Feature extraction class 1
-      X1_features, X1_plotData = extract_features(
-                                    run_cfg=run_cfg,
-                                    df=X1,
-                                    feature_list = feature_list,
-                                    class_id=1,
-                                    verbose=run_cfg['preproc/verbose']
-                                    )
-      
-      # Feature extraction class 2
-      X2_features, X2_plotData = extract_features(
-                                    run_cfg=run_cfg,
-                                    df=X2,
-                                    feature_list = feature_list,
-                                    class_id=2,
-                                    verbose=run_cfg['preproc/verbose']
-                                    )
-
-
-      # Feature extraction class 3
-      X3_features, X3_plotData = extract_features(
-                                    run_cfg=run_cfg,
-                                    df=X3,
-                                    feature_list=feature_list,
-                                    class_id=3,
-                                    verbose=run_cfg['preproc/verbose']
-                                    )
-
-      X_new = pd.concat([X0_features, X1_features, X2_features, X3_features])
-      X_new = X_new.sort_values('Sample_Id')
-
-    elif mode=='test':
-      X_u_features, X_u_plotData = extract_features(
-                              run_cfg=run_cfg,
-                              df=X,
-                              feature_list = feature_list,
-                              class_id='test',
-                              verbose=run_cfg['preproc/verbose']
-                              )
-      X_new = X_u_features
-    
-    return X_new, y
+    return X_new, X_new_plotData
 
   def simple_fit(self, model, X, y):  # TODO to ask: do we need this?
     model = model.fit(X, y)
