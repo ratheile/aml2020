@@ -84,7 +84,7 @@ def run(run_cfg, env_cfg):
   datapath = env_cfg['datasets/project3/path']
   X = pd.read_csv(f'{datapath}/X_train{data_label}.csv')
   y = pd.read_csv(f'{datapath}/y_train{data_label}.csv')
-  X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
+  X_u = pd.read_csv(f'{datapath}/X_test{data_label}.csv') # unlabeled
   
   # Remove ID column
   y = y.iloc[:, 1:]
