@@ -15,6 +15,7 @@ from sklearn.base import BaseEstimator
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.utils import shuffle
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
+from sklearn.svm import SVC
 
 # ECG libraries
 import biosppy
@@ -70,10 +71,10 @@ class Project3Estimator(BaseEstimator):
       X_hash = df_hash_f(X)
       y_hash = df_hash_f(y)
       # filenames
-      X_file = fn_func(X_hash,cfg_hash, 'X.pkl')
-      y_file = fn_func(y_hash,cfg_hash, 'y.pkl')
-      scaler_file = fn_func(X_hash,cfg_hash, 'scaler.joblib')
-      dim_red_file = fn_func(X_hash,cfg_hash, 'dimred.joblib')
+      X_file = fn_func(X_hash, cfg_hash, 'X.pkl')
+      y_file = fn_func(y_hash, cfg_hash, 'y.pkl')
+      scaler_file = fn_func(X_hash, cfg_hash, 'scaler.joblib')
+      dim_red_file = fn_func(X_hash, cfg_hash, 'dimred.joblib')
       
     self._scaler_ = None
     if load_flag:
@@ -248,7 +249,19 @@ class Project3Estimator(BaseEstimator):
                                     class_id=2,
                                     verbose=run_cfg['preproc/verbose']
                                     )
-      X_new = pd.concat([X0_features, X1_features, X2_features])
+
+
+      # Feature extraction class 3
+      X3_features, X3_plotData = extract_features(
+                                    run_cfg=run_cfg,
+                                    df=X3,
+                                    feature_list=feature_list,
+                                    class_id=3,
+                                    verbose=run_cfg['preproc/verbose']
+                                    )
+
+      X_new = pd.concat([X0_features, X1_features, X2_features, X3_features])
+      X_new = X_new.sort_values('Sample_Id')
 
     elif mode=='test':
       X_u_features, X_u_plotData = extract_features(
