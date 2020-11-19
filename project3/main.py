@@ -86,21 +86,21 @@ def run(run_cfg, env_cfg):
   y = pd.read_csv(f'{datapath}/y_train{data_label}.csv')
   X_u = pd.read_csv(f'{datapath}/X_test.csv') # unlabeled
   
-  # Remove index column
-  y = y.iloc[:,1:]
-  X = X.iloc[:,1:]
-  X_u = X_u.iloc[:,1:]
+  # Remove ID column
+  y = y.iloc[:, 1:]
+  X = X.iloc[:, 1:]
+  X_u = X_u.iloc[:, 1:]
   logging.info('Training dataset imported')
 
   p3e = Project3Estimator(run_cfg, env_cfg)
-  p3e.fit(X,y)  # Needed to do preprocessing. Under sklearn guidelines this is what you should do.
+  p3e.fit(X, y)  # Needed to do preprocessing. Under sklearn guidelines this is what you should do.
   y_u = p3e.predict(X_u)
   
   if len(y_u.shape) > 1:
     yuf = y_u.flatten()
     y_u = yuf
-  y_u_df =  pd.DataFrame({
-    'id': np.arange(0,len(y_u)).astype(float),
+  y_u_df = pd.DataFrame({
+    'id': np.arange(0, len(y_u)).astype(float),
     'y': y_u
   })
 
