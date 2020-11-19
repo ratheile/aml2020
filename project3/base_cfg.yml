@@ -5,6 +5,7 @@ test_run: true
 persistence:
   load_from_file: true
   save_to_file: true
+  save_plot_data: true
 
 sampling_rate: 300
 
@@ -17,6 +18,9 @@ preproc:
   ecg_quality_check:
     enabled: true
   ecg_quality_threshold: 0.8
+  imputer:
+    type: 'simple' # 'simple' or 'knn'
+    strategy: 'median' # works with 'mean', 'median', 'most_frequent'
 
   filtering:
     enabled: True
