@@ -22,7 +22,7 @@ from .feature_extraction import populate_PlotData, \
   split_classes, \
   ecg_process_AML, \
   calc_peak_summary, \
-  extract_features, \
+  extract_features
 
 
 
@@ -131,7 +131,7 @@ class Project3Estimator(BaseEstimator):
     check_is_fitted(self)
 
     X_u = self.df_sanitization(X_u)
-    X_u = self.preprocess(self.run_cfg, X_u)
+    X_u = self.preprocess(self.run_cfg, X_u, mode='test')
     y_u = self._fitted_model_.predict(X_u)
 
     return y_u
@@ -260,7 +260,7 @@ class Project3Estimator(BaseEstimator):
                               )
       X_new = X_u_features
     
-   return X_new, y
+    return X_new, y
 
   def simple_fit(self, model, X, y):  # TODO to ask: do we need this?
     model = model.fit(X, y)
