@@ -29,6 +29,7 @@ class Type(Enum):
   run = 'run'
   grid = 'grid'  # grid search
   cv = 'cv'  # cross validation
+  convert = 'convert' # convert data to joblib
 
   def __str__(self):
       return self.value
@@ -100,7 +101,8 @@ if __name__ == "__main__":
     User.default: {
       Type.run: lambda r,e: project3.run(r,e), 
       Type.cv: lambda r,e: project3.cross_validate(r,e),
-      Type.grid: lambda r,e,s: project3.gridsearch(r,e,s) 
+      Type.grid: lambda r,e,s: project3.gridsearch(r,e,s),
+      Type.convert: lambda r,e: project3.convert_data(r,e) 
     },
   }
 
@@ -123,10 +125,13 @@ if __name__ == "__main__":
 
       experment_f = project3_catalog[user][etype]
 
-      if etype is Type.run or etype is Type.cv: 
-        experment_f(run_cfg, env_cfg)
+      logging.info(f'running experiment {id_ex + 1} with name {name} in mode {etype}')
+
+      if etype is Type.run \
+        or etype is Type.cv \
+        or etype is Type.convert:
+          experment_f(run_cfg, env_cfg)
       elif etype is Type.grid:
         slice_cfg = ConfigLoader().from_file(slice_path)
         experment_f(run_cfg, env_cfg, slice_cfg)
 
-      logging.info(f'running experiment {id_ex + 1} with name {name}')
