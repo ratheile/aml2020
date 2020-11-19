@@ -129,8 +129,8 @@ if __name__ == "__main__":
 
       if etype is Type.run \
         or etype is Type.cv \
-        or etype is Type.convert: 
-        experment_f(run_cfg, env_cfg)
+        or etype is Type.convert:
+          experment_f(run_cfg, env_cfg)
       elif etype is Type.grid:
         slice_cfg = ConfigLoader().from_file(slice_path)
         experment_f(run_cfg, env_cfg, slice_cfg)
