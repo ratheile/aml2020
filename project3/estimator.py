@@ -221,11 +221,14 @@ class Project3Estimator(BaseEstimator):
     # TODO: address the following open problems
     # 1. Detection and exclusion of class 3 from training set (TODO Raffi)
     # 2. Detection of flipped signals and flipping (TODO Raffi + Inês)
+    #     - Proposal from Inês: Measure amplitude of signal at Q peaks and S peaks. Pseudocode: 
+    #       If abs(mean(amplitude_Q_peak)) > abs(mean(amplitude_R_peak)) OR abs(mean(amplitude_S_peak)) > abs(mean(amplitude_R_peak))
+    #         time_series = -time_series
     # 3. NaN? When biosppy or neurokit crashen, QRS mean or SD when offsets and onsets not the same are.
     #      - Diagnostics using Raffi's viewer as first step.
     #      - Exclude observations?
-    #      - FillNaN from Project 1
-    #      - KNN Imputer
+    #      - (DONE) FillNaN from Project 1
+    #      - (DONE) KNN Imputer: TODO: needs testing.
     # 4. Handle emply slices: NaN.
 
     # Define features to extract

@@ -179,7 +179,7 @@ def extract_features(run_cfg, df, feature_list, y=None, verbose=False):
   ecg_quality_threshold=run_cfg['preproc/ecg_quality_threshold']
 
   if remove_outlier:
-    logging.info('Removing ecg outliers with pyheart...')
+    logging.info('Removing ecg outliers with pyheart... NOT IMPLEMENTED YET!')
       
   if biosppy_enabled:
     logging.info('Filtering with biosspy activated.')
@@ -199,7 +199,7 @@ def extract_features(run_cfg, df, feature_list, y=None, verbose=False):
   
   # for all the rows in the df
   for i in range(len(df)):
-    sig_i_np = df.iloc[i, :].dropna().to_numpy().astype('float64')
+    sig_i_np = df.iloc[i, :].replace(to_replace=['NaN','\\n'],value=np.nan).dropna().to_numpy().astype('float64')
     if y is not None:
       class_id = y.iloc[i].values[0] # Very convoluted way to get just the class integer
     else:
@@ -272,6 +272,7 @@ def extract_features(run_cfg, df, feature_list, y=None, verbose=False):
         feat_i = [np.nan]*n
         feat_i[0] = df.iloc[i,0] # sample id
         feat_i[5] = no_rpeaks_biosppy #maybe biosppy worked
+        signals = np.nan
       
       F[i,:] = feat_i
       plotData = populate_PlotData(plotData,i,df.iloc[i,0],class_id,sig_i_np,rpeaks_biosppy,filtered_biosppy,signals)
