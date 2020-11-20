@@ -16,7 +16,7 @@ preproc:
     enabled: true
   ecg_quality_threshold: 0.8
   imputer:
-    type: 'simple' # 'simple' or 'knn'
+    type: 'knn' # 'simple' or 'knn'
     strategy: 'median' # works with 'mean', 'median', 'most_frequent'
 
   filtering:
