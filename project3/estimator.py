@@ -224,6 +224,9 @@ class Project3Estimator(BaseEstimator):
     #     - Proposal from Inês: Measure amplitude of signal at Q peaks and S peaks. Pseudocode: 
     #       If abs(mean(amplitude_Q_peak)) > abs(mean(amplitude_R_peak)) OR abs(mean(amplitude_S_peak)) > abs(mean(amplitude_R_peak))
     #         time_series = -time_series
+    #       (I am not suggesting using the mean amplitude of P and T waves and checking whether they are negative because, 
+    #       with flipped signals, the detection of these waves is not great, as can be seen from Raffi's visualizer. On the 
+    #       hand, Q R ans S waves are still quite detected, as they are very prominent)
     # 3. NaN? When biosppy or neurokit crashen, QRS mean or SD when offsets and onsets not the same are.
     #      - Diagnostics using Raffi's viewer as first step.
     #      - Exclude observations?
