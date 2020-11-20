@@ -25,21 +25,30 @@ from modules import ConfigLoader
 from biosppy.signals import ecg
 import neurokit2 as nk
 
+import joblib
+import logging 
+import time
+
 
 # %% some local testing:
 env_cfg = ConfigLoader().from_file('env/env.yml')
-# %%
 print(env_cfg)
 
-# %%
-df_X = pd.read_csv(f"{env_cfg['datasets/project3/path']}/X_train_small.csv")
-df_y = pd.read_csv(f"{env_cfg['datasets/project3/path']}/y_train_small.csv")
-# df_X_u = pd.read_csv( f"{env_cfg['datasets/project3/path']}/X_test.csv")  # unlabeled
+def load_data(env_cfg):
+  begin_time = time.time()
+  logging.info('Joblib loading started ...')
+  datapath = env_cfg['datasets/project3/path']
+  X = joblib.load(f'{datapath}/X_train.joblib')
+  y = joblib.load(f'{datapath}/y_train.joblib')
+  X_u = joblib.load(f'{datapath}/X_test.joblib')
+  end_time = time.time()
+  logging.info(f'Joblib loading done in {end_time - begin_time}')
+  return X, y, X_u
 
-# %%
+df_X, df_y, _ = load_data(env_cfg)
+
 X = df_X.iloc[:, 1:]
 y = df_y.iloc[:, 1:].values.ravel()
-# X_u = df_X.iloc[:, 1:]
 
 X_124 = X.iloc[y != 3]
 X_3 = X.iloc[y == 3]
