@@ -26,6 +26,9 @@ logging.info('I have imported your training dataset! :D')
 print(f'Shape of training set is {X.shape}')
 sampling_rate = 300
 
+# %%
+X.iloc[:,17979]
+
 # %% Save smaller dataset to not waste hours waiting for loading
 NROWS = 30
 X.iloc[:NROWS, :].to_csv('project3_ines/X_train_small.csv', index=False)
