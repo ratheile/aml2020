@@ -139,20 +139,30 @@ def calc_peak_summary(is_flipped, signals, sampling_rate):
   summary.append(t_rel)
   
   # Peak p amplitude
-  p_mean = sig_pp['ECG_Clean'].mean()
-  summary.append(p_mean)
-  p_std = sig_pp['ECG_Clean'].std()
-  summary.append(p_std)
+  if len(sig_pp) > 0:
+    p_mean = sig_pp['ECG_Clean'].mean()
+    summary.append(p_mean)
+    p_std = sig_pp['ECG_Clean'].std()
+    summary.append(p_std)
+  else:
+    p_mean = np.nan
+    p_std = np.nan
   
   # Peak s amplitude
-  s_mean = sig_ss['ECG_Clean'].mean()
-  summary.append(s_mean)
-  s_std = sig_ss['ECG_Clean'].std()
-  summary.append(s_std)
+  if len(sig_ss) > 0:
+    s_mean = sig_ss['ECG_Clean'].mean()
+    summary.append(s_mean)
+    s_std = sig_ss['ECG_Clean'].std()
+    summary.append(s_std)
+  else:
+    s_mean = np.nan
+    s_std = np.nan
   
    #check whether the signal is flipped
   if not is_flipped and (
+    len(sig_qq) > 0 and len(sig_rr) > 0 and
     abs(sig_qq['ECG_Clean'].mean()) > abs(sig_rr['ECG_Clean'].mean()) or
+    len(sig_ss) > 0 and len(sig_rr) > 0 and
     abs(sig_ss['ECG_Clean'].mean()) > abs(sig_rr['ECG_Clean'].mean())
   ):
     is_flipped = True
