@@ -220,7 +220,7 @@ class Project3Estimator(BaseEstimator):
 
     # TODO: address the following open problems
     # 1. Detection and exclusion of class 3 from training set (TODO Raffi)
-    # 2. Detection of flipped signals and flipping (TODO Raffi + Inês)
+    # 2. Detection of flipped signals and flipping (Raffi + Inês) (DONE): TODO: needs testing
     #     - Proposal from Inês: Measure amplitude of signal at Q peaks and S peaks. Pseudocode: 
     #       If abs(mean(amplitude_Q_peak)) > abs(mean(amplitude_R_peak)) OR abs(mean(amplitude_S_peak)) > abs(mean(amplitude_R_peak))
     #         time_series = -time_series
@@ -231,8 +231,9 @@ class Project3Estimator(BaseEstimator):
     #      - Diagnostics using Raffi's viewer as first step.
     #      - Exclude observations?
     #      - (DONE) FillNaN from Project 1
-    #      - (DONE) KNN Imputer: TODO: needs testing.
-    # 4. Handle emply slices: NaN.
+    #      - (DONE) KNN Imputer: TODO: needs testing
+    #         -  TODO: KNN imputation would be better done on class by class basis
+    # 4. Handle emply slices: NaN. (DONE)
 
     # Define features to extract
     feature_list = ['Sample_Id',
