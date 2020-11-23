@@ -100,7 +100,7 @@ class Project3Estimator(BaseEstimator):
     self._preprocessing_skipped_ = skip_preprocessing
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
-      X, X_plot_data = self.preprocess(self.run_cfg, X, y)
+      X, X_plot_data = self.preprocess(X, y)
 
     # Store
     if save_flag and not skip_preprocessing:
@@ -108,10 +108,9 @@ class Project3Estimator(BaseEstimator):
       y.to_pickle(y_file)
       dump(self._scaler_, scaler_file)
 
-      # if save_plot_data: #TODO: not working because X_plot_data is still a complicated data structure. Probably needs reformulation.
-      #   plot_data_hash = df_hash_f(X_plot_data)
-      #   plot_data_file = fn_func(plot_data_hash, cfg_hash, 'plotData.pkl')
-      #   X_plot_data.to_pickle(plot_data_file) #TODO: temporarily saved in hashdir. Raffi will then pass this to plot viewer.
+      if save_plot_data: 
+        plot_data_file = fn_func(X_hash, cfg_hash, 'plotData.joblib')
+        dump(X_plot_data, plot_data_file) 
     
     # Shuffle after preprocessing and before training
     X, y = shuffle(X, y) # https://scikit-learn.org/stable/modules/generated/sklearn.utils.shuffle.html
@@ -200,7 +199,7 @@ class Project3Estimator(BaseEstimator):
   def fill_nan(self, run_cfg, X):
     imputers ={
       'simple': lambda: SimpleImputer(missing_values=np.nan, strategy=run_cfg['preproc/imputer/strategy']),
-      'kNN': lambda: KNNImputer(missing_values=np.nan)
+      'knn': lambda: KNNImputer(missing_values=np.nan)
     }
     imputer = imputers[run_cfg['preproc/imputer/type']]
     return(imputer().fit_transform(X))
@@ -216,7 +215,7 @@ class Project3Estimator(BaseEstimator):
       scaler = self.scaler_dic[method]()
       scaler = scaler.fit(X)
 
-  def preprocess(self, run_cfg, X, y=None):
+  def preprocess(self, X, y=None):
 
     # TODO: address the following open problems
     # 1. Detection and exclusion of class 3 from training set (TODO Raffi)
@@ -244,17 +243,18 @@ class Project3Estimator(BaseEstimator):
                     'QRS_t_Mean', 'QRS_t_STD']
 
     X_new, X_new_plotData = extract_features(
-                            run_cfg=run_cfg,
+                            run_cfg=self.run_cfg,
+                            env_cfg=self.env_cfg,
                             df=X,
                             y=y,
                             feature_list=feature_list,
-                            verbose=run_cfg['preproc/verbose']
+                            verbose=self.run_cfg['preproc/verbose']
                             )
     X_new = X_new.set_index('Sample_Id')
 
     # Address NaNs
     X_new[:] = self.fill_nan(
-      run_cfg=run_cfg,
+      run_cfg=self.run_cfg,
       X=X_new
       ) #TODO (check why this happens): With median, we sometimes get negative durations for QRS_t_mean
 
