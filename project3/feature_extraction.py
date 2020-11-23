@@ -198,7 +198,7 @@ def process_signal(sig_i_np, y,  sample_index,
                   remove_outlier, biosppy_enabled, ecg_quality_check):
   Fs = sampling_rate
 
-  sample_id = sig_i_np[0], # sample_id,
+  sample_id = sig_i_np[0] # sample_id, TODO: is amplitude, not sample ID!!
   sig_i_np = sig_i_np.replace(to_replace=['NaN','\\n'],value=np.nan).dropna().to_numpy().astype('float64')
 
   if y is not None:
@@ -298,7 +298,7 @@ def process_signal(sig_i_np, y,  sample_index,
       ecg_q_std = signals['ECG_Quality'].std()
       
       # consolidate the features for sample i
-      feat_i = [class_id] # find sample ID based on index
+      feat_i = [class_id] # find sample ID based on index TODO: Check if this is necessary
       feat_i.append(ecg_q_mean) # ECG_Quality_Mean
       feat_i.append(ecg_q_std,) # ECG_Quality_STD
       feat_i.append(df_analyze.loc[0,'ECG_Rate_Mean']) # ECG_Rate_Mean
@@ -315,7 +315,7 @@ def process_signal(sig_i_np, y,  sample_index,
   
   # F[i,:] = feat_i
   plotData = populate_PlotData(plotData,sample_index,sample_id,class_id,sig_i_np,rpeaks_biosppy,filtered_biosppy,signals)
-  return (feat_i, class_id) 
+  return (np.array(feat_i, dtype=float), class_id) 
 
 
 # Extract features from ECGs
@@ -334,8 +334,6 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   if biosppy_enabled:
     logging.info('Filtering with biosspy activated.')
   
-  # Define F array to aggregate extracted sample features
-  F=np.zeros([df.shape[0],len(feature_list)])
   
   # Define PD as a list array to aggregate extracted sample infos (for later plotting)
   # PD columns: [0:sample id | 1: class id | 2: raw signal| 3: r_peaks_biosspy | 4: filtered biosppy | 5: signals neurokit ]
@@ -347,8 +345,9 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
       column.append(0)
       plotData.append(column)
   
+  
   # for all the rows in the df
-  result = Parallel(n_jobs=env_cfg['n_jobs'])(
+  results = Parallel(n_jobs=env_cfg['n_jobs'])(
     delayed(process_signal)
       (
         df.iloc[i, :],
@@ -359,8 +358,20 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
       )
       for i in tqdm(range(len(df)))) 
 
-  for i, res in enumerate(result):
-    F[i,:] = res[0]
+  # res is a touple (features, class_id)
+  no_nan_mask =  [np.sum(np.isnan(res[0][0:15])) == 0 for res in results]
+
+  # Define F array to aggregate extracted sample features
+  F=np.zeros([df.shape[0],len(feature_list)])
+
+  for i, res in enumerate(results):
+    if no_nan_mask[i] == True:
+      F[i,:] = res[0]
+
+  feat_df = pd.DataFrame(data=F,columns=feature_list)
+  y = y[no_nan_mask]
+  feat_df = feat_df[no_nan_mask] 
+  
   # for i in range(len(df)):
   #   feat_i, class_id = process_signal(df, y, i, Fs, feature_list, 
   #                       plotData,
@@ -369,6 +380,5 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
     #   sample_left = df.shape[0]-i
     #   print(f'Preprocessed ECG sample {i} from class {class_id}... {sample_left} samples to go!')
   
-  feat_df = pd.DataFrame(data=F,columns=feature_list)
   
   return(feat_df, plotData)

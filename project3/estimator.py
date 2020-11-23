@@ -138,13 +138,14 @@ class Project3Estimator(BaseEstimator):
     check_is_fitted(self)
 
     X_u = self.df_sanitization(X_u)
-    X_u, X_u_plotData = self.preprocess(self.run_cfg, X_u)
+    X_u, X_u_plotData = self.preprocess(X_u)
     y_u = self._fitted_model_.predict(X_u)
 
     return y_u
 
   def score(self, X, y=None):
     score_fn = {
+      # scoring
       'balanced_accuracy': lambda: balanced_accuracy_score
     }
     return(score_fn[self.run_cfg['scoring']](self.predict(X), y))
