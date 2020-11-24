@@ -20,7 +20,7 @@ from sklearn.impute import SimpleImputer, KNNImputer
 
 # ECG libraries
 import biosppy
-from .feature_extraction import populate_PlotData, \
+from .feature_extraction import \
   split_classes, \
   ecg_process_AML, \
   calc_peak_summary, \

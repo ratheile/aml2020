@@ -14,18 +14,6 @@ from joblib import Parallel, delayed
 from tqdm import tqdm  
 
 
-# Populate container for plot signals
-def populate_PlotData(PD, i, sample_id, class_id, raw_ecg, rpeaks_biosppy, filtered_biosppy , signals_neurokit):
-  PD[i][0] = sample_id
-  PD[i][1] = class_id
-  PD[i][2] = raw_ecg
-  PD[i][3] = rpeaks_biosppy
-  PD[i][4] = filtered_biosppy
-  PD[i][5] = signals_neurokit
-
-  return PD
-
-
 # Split Classes
 def split_classes(X,y):
   class0_ls = y.index[y['y'] == 0].tolist() #healthy
@@ -194,7 +182,6 @@ def calc_peak_summary(is_flipped, signals, sampling_rate):
 
 def process_signal(sig_i_np, y,  sample_index,
                   sampling_rate, feature_list,
-                  plotData,
                   remove_outlier, biosppy_enabled, ecg_quality_check):
   Fs = sampling_rate
 
@@ -313,13 +300,23 @@ def process_signal(sig_i_np, y,  sample_index,
     feat_i[5] = no_rpeaks_biosppy #maybe biosppy worked
     signals = np.nan
   
-  # F[i,:] = feat_i
-  plotData = populate_PlotData(plotData,sample_index,sample_id,class_id,sig_i_np,rpeaks_biosppy,filtered_biosppy,signals)
-  return (np.array(feat_i, dtype=float), class_id) 
+  plot_data = [
+    sample_id, # np.int64
+    class_id,  # np.int64
+    sig_i_np, # raw ecg  # ndarray
+    rpeaks_biosppy, # ndarray
+    filtered_biosppy, # ndarray
+    signals # signals_neurokit # DataFrame
+  ]
+
+  return (np.array(feat_i, dtype=float), class_id, plot_data)
 
 
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
+
+  # df = df.iloc[0:20]
+  # y = y.iloc[0:20]
 
   # Predefine important variables
   Fs = run_cfg['sampling_rate']
@@ -334,18 +331,6 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   if biosppy_enabled:
     logging.info('Filtering with biosspy activated.')
   
-  
-  # Define PD as a list array to aggregate extracted sample infos (for later plotting)
-  # PD columns: [0:sample id | 1: class id | 2: raw signal| 3: r_peaks_biosspy | 4: filtered biosppy | 5: signals neurokit ]
-  # PD rows: number of ecg signals
-  plotData = []
-  for n_row in range(df.shape[0]):
-    column = []
-    for n_col in range(6):
-      column.append(0)
-      plotData.append(column)
-  
-  
   # for all the rows in the df
   results = Parallel(n_jobs=env_cfg['n_jobs'])(
     delayed(process_signal)
@@ -353,7 +338,7 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
         df.iloc[i, :],
         y, 
         i, # sample index
-        Fs, feature_list, plotData, 
+        Fs, feature_list, 
         remove_outlier, biosppy_enabled, ecg_quality_check # flags
       )
       for i in tqdm(range(len(df)))) 
@@ -362,11 +347,17 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   no_nan_mask =  [np.sum(np.isnan(res[0][0:15])) == 0 for res in results]
 
   # Define F array to aggregate extracted sample features
-  F=np.zeros([df.shape[0],len(feature_list)])
+  F=np.zeros([df.shape[0],len(feature_list)]) 
+
+  # Define PD as a list array to aggregate extracted sample infos (for later plotting)
+  # PD columns: [0:sample id | 1: class id | 2: raw signal| 3: r_peaks_biosspy | 4: filtered biosppy | 5: signals neurokit ]
+  # PD rows: number of ecg signals
+  plotData = np.zeros(shape=(df.shape[0], 6), dtype=np.object)
 
   for i, res in enumerate(results):
     if no_nan_mask[i] == True:
       F[i,:] = res[0]
+      plotData[i,:] = res[2]
 
   feat_df = pd.DataFrame(data=F,columns=feature_list)
   y = y[no_nan_mask]
@@ -381,4 +372,4 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
     #   print(f'Preprocessed ECG sample {i} from class {class_id}... {sample_left} samples to go!')
   
   
-  return(feat_df, plotData)
+  return(feat_df, y, plotData)
