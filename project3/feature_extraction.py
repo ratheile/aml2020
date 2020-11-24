@@ -285,8 +285,8 @@ def process_signal(sig_i_np, y,  sample_index,
       ecg_q_std = signals['ECG_Quality'].std()
       
       # consolidate the features for sample i
-      feat_i = [class_id] # find sample ID based on index TODO: Check if this is necessary
-      feat_i.append(ecg_q_mean) # ECG_Quality_Mean
+      #feat_i = [class_id] # not required and not known for X_test
+      feat_i = [ecg_q_mean] # ECG_Quality_Mean
       feat_i.append(ecg_q_std,) # ECG_Quality_STD
       feat_i.append(df_analyze.loc[0,'ECG_Rate_Mean']) # ECG_Rate_Mean
       feat_i.append(df_analyze.loc[0,'HRV_RMSSD']) # ECG_HRV
@@ -341,13 +341,15 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
         Fs, feature_list, 
         remove_outlier, biosppy_enabled, ecg_quality_check # flags
       )
-      for i in tqdm(range(len(df)))) 
+      for i in tqdm(range(len(df))))
+      #for i in tqdm(range(50))) 
 
   # res is a touple (features, class_id)
   no_nan_mask =  [np.sum(np.isnan(res[0][0:15])) == 0 for res in results]
 
   # Define F array to aggregate extracted sample features
-  F=np.zeros([df.shape[0],len(feature_list)]) 
+  F=np.zeros([df.shape[0],len(feature_list)])
+  # F=np.zeros([50,len(feature_list)])
 
   # Define PD as a list array to aggregate extracted sample infos (for later plotting)
   # PD columns: [0:sample id | 1: class id | 2: raw signal| 3: r_peaks_biosspy | 4: filtered biosppy | 5: signals neurokit ]
@@ -363,8 +365,10 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   feat_df = feat_df[no_nan_mask]
   
   # with .predict method y is set to None
-  if y:
-    y = y[no_nan_mask] 
+  if isinstance(y, pd.DataFrame):
+  #  y = y.iloc[0:50]
+    y = y[no_nan_mask]
+     
   
   # for i in range(len(df)):
   #   feat_i, class_id = process_signal(df, y, i, Fs, feature_list, 
