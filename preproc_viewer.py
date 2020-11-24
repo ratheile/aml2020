@@ -134,7 +134,7 @@ html.Div([
   dcc.Slider(
     id='samples-slider',
     min=0,
-    max=len(X),
+    max=len(D),
     value=0,
     # marks={str(i): str(i) for i in range(len(X))},
     # step=None
@@ -222,8 +222,10 @@ def compute_quality(a_really_long_var, a_really_other):
 def update_timeseries_plot(filter_class, data):
   if data is None:
       raise PreventUpdate
-
-  sig_i_np = D[I['sig_i_np']]
+  
+  D_id = D[int(data['id'])]
+  sig_i_np = D_id[I['sig_i_np']]
+  crv = sig_i_np
   fig = make_subplots(rows=3, cols=1, row_heights=[0.5, 0.25, 0.25])
   time_ax = time_scale(crv)
 
@@ -235,11 +237,12 @@ def update_timeseries_plot(filter_class, data):
     )
 
   if 'filtered_bspy' in data['features']:
-    out = D[I['filtered_biosppy']]
     # out = ecg.ecg(signal=sig_i_np, sampling_rate=sample_rate, show=False)
     # (ts, filtered, rpeaks, templates_ts, 
     # templates, heart_rate_ts, heart_rate) = out
-    _, filtered_bspy, peaks_bspy, _, _, _, _ = out
+    # _, filtered_bspy, peaks_bspy, _, _, _, _ = out
+    filtered_bspy = D_id[I['filtered_biosppy']]
+    peaks_bspy = D_id[I['rpeaks_biosppy']]
 
     fig.add_trace(
       go.Scatter(x=time_ax, y=filtered_bspy, name='filtered_bspy'),
@@ -247,7 +250,7 @@ def update_timeseries_plot(filter_class, data):
     )
 
   if 'filtered_nk2' in data['features']:
-    out = D[I['signals']]
+    out = D_id[I['signals']]
     # out, info = nk.ecg_process(sig_i_np, sampling_rate=sample_rate)
     filtered_nk2 = out['ECG_Clean'].to_numpy().ravel()
   
@@ -371,7 +374,7 @@ def update_info(data):
     ]),
     html.Tr([
       html.Td("Class"),
-      html.Td(f"{y[int(data['id'])]}")
+      html.Td(f"{D[int(data['id']), I['class_id']]}")
     ])
   ])
 
@@ -379,4 +382,4 @@ def update_info(data):
 
 
 if __name__ == '__main__':
-  app.run_server(debug=True)
+  app.run_server(debug=False)
