@@ -100,7 +100,7 @@ class Project3Estimator(BaseEstimator):
     self._preprocessing_skipped_ = skip_preprocessing
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
-      X, X_plot_data = self.preprocess(X, y)
+      X, y, X_plot_data = self.preprocess(X, y)
 
     # Store
     if save_flag and not skip_preprocessing:
@@ -243,7 +243,7 @@ class Project3Estimator(BaseEstimator):
                     'P_Amp_Mean', 'P_Amp_STD', 'S_Amp_Mean', 'S_Amp_STD',
                     'QRS_t_Mean', 'QRS_t_STD']
 
-    X_new, X_new_plotData = extract_features(
+    X_new, y_new, X_new_plotData = extract_features(
                             run_cfg=self.run_cfg,
                             env_cfg=self.env_cfg,
                             df=X,
@@ -253,13 +253,13 @@ class Project3Estimator(BaseEstimator):
                             )
     X_new = X_new.set_index('Sample_Id')
 
-    # Address NaNs
+    # Address NaNs TODO: still necessary
     X_new[:] = self.fill_nan(
       run_cfg=self.run_cfg,
       X=X_new
       ) #TODO (check why this happens): With median, we sometimes get negative durations for QRS_t_mean
 
-    return X_new, X_new_plotData
+    return X_new, y_new, X_new_plotData
 
   def simple_fit(self, model, X, y):  # TODO to ask: do we need this?
     model = model.fit(X, y)
