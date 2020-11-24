@@ -369,8 +369,11 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
       F[i,:] = res[0]
 
   feat_df = pd.DataFrame(data=F,columns=feature_list)
-  y = y[no_nan_mask]
-  feat_df = feat_df[no_nan_mask] 
+  feat_df = feat_df[no_nan_mask]
+  
+  # with .predict method y is set to None
+  if y:
+    y = y[no_nan_mask] 
   
   # for i in range(len(df)):
   #   feat_i, class_id = process_signal(df, y, i, Fs, feature_list, 
@@ -381,4 +384,4 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
     #   print(f'Preprocessed ECG sample {i} from class {class_id}... {sample_left} samples to go!')
   
   
-  return(feat_df, plotData)
+  return(feat_df, y, plotData)

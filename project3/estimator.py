@@ -138,7 +138,7 @@ class Project3Estimator(BaseEstimator):
     check_is_fitted(self)
 
     X_u = self.df_sanitization(X_u)
-    X_u, X_u_plotData = self.preprocess(X_u)
+    X_u, _, X_u_plotData = self.preprocess(X_u)
     y_u = self._fitted_model_.predict(X_u)
 
     return y_u
@@ -251,7 +251,6 @@ class Project3Estimator(BaseEstimator):
                             feature_list=feature_list,
                             verbose=self.run_cfg['preproc/verbose']
                             )
-    X_new = X_new.set_index('Sample_Id')
 
     # Address NaNs TODO: still necessary
     X_new[:] = self.fill_nan(
