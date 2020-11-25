@@ -160,7 +160,6 @@ def calc_peak_summary(signals, sampling_rate):
     abs(sig_ss['ECG_Clean'].mean()) > abs(sig_rr['ECG_Clean'].mean())
   ):
     is_flipped = True
-    return summary, is_flipped #exit the function and try again with flipped signal
   
   # QRS duration
   sig_r_onset = signals[signals['ECG_R_Onsets'] == 1]
@@ -327,10 +326,10 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
-  short_df_len = 200
-  df = df.iloc[0:short_df_len]
-  if y is not None:
-    y = y.iloc[0:short_df_len]
+  # short_df_len = 100
+  # df = df.iloc[0:short_df_len]
+  # if y is not None:
+  #   y = y.iloc[0:short_df_len]
 
   # Predefine important variables
   Fs = run_cfg['sampling_rate']
@@ -378,7 +377,8 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   # TODO: maybe plot the failing ones as well
   feat_df = pd.DataFrame(data=F,columns=feature_list)
 
-  logging,info(f'features of {np.sum(~no_nan_mask)} samples could not be extracted')
+  n_failures = np.sum(np.logical_not(no_nan_mask))
+  logging.warning(f'features of {n_failures} samples could not be extracted')
   # app = create_app(plotData)
   # app.run_server(debug=False)
   return(feat_df, y, plotData, no_nan_mask)

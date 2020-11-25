@@ -158,7 +158,7 @@ class Project3Estimator(BaseEstimator):
 
     y_total = np.zeros(len(no_nan_mask))
     y_total[no_nan_mask] = y_u
-    y_total[~(no_nan_mask)] = 0
+    y_total[np.logical_not(no_nan_mask)] = 0
     # TODO take care of last few unlabeled masked nan samples
 
     return y_total 
