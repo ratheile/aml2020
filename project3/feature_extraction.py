@@ -315,8 +315,9 @@ def process_signal(sig_i_np, y,  sample_index,
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
-  # df = df.iloc[0:100]
-  # y = y.iloc[0:100]
+  short_df_len = 20
+  df = df.iloc[0:short_df_len]
+  y = y.iloc[0:short_df_len]
 
   # Predefine important variables
   Fs = run_cfg['sampling_rate']
@@ -370,6 +371,6 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   #  y = y.iloc[0:50]
     y = y[no_nan_mask]
      
-  # app = create_app(plotData)
-  # app.run_server(debug=False)
+  app = create_app(plotData)
+  app.run_server(debug=False)
   return(feat_df, y, plotData)
