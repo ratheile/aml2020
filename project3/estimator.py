@@ -22,7 +22,6 @@ from sklearn.impute import SimpleImputer, KNNImputer
 import biosppy
 from .feature_extraction import \
   split_classes, \
-  ecg_process_AML, \
   calc_peak_summary, \
   extract_features
 

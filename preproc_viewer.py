@@ -45,7 +45,8 @@ def create_app(D):
     "sig_i_np" : 2, # raw ecg  # ndarray
     "rpeaks_biosppy" : 3 , # ndarray
     "filtered_biosppy" : 4, # ndarray
-    "signals": 5 # signals_neurokit # DataFrame
+    "signals": 5, # signals_neurokit # DataFrame
+    "filter_mask": 6
   }
   print("Data Loaded!!!")
 
@@ -246,6 +247,7 @@ def create_app(D):
     if 'quality' in data['features']:
       print("computing quality ...")
       quality_nk2 = out['ECG_Quality']
+      filter_mask = D_id[I['filter_mask']]
       rate_nk2 = out['ECG_Rate']
       
       
@@ -253,6 +255,11 @@ def create_app(D):
         go.Scatter(x=time_ax, y=rate_nk2, name='rate_nk2'),
         row=2, col=1
       )
+      fig.add_trace(
+        go.Scatter(x=time_ax, y=filter_mask, name='quality_nk2'),
+        row=3, col=1
+      )
+
       fig.add_trace(
         go.Scatter(x=time_ax, y=quality_nk2, name='quality_nk2'),
         row=3, col=1
