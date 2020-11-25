@@ -232,8 +232,12 @@ class Project3Estimator(BaseEstimator):
     #      - Exclude observations?
     #      - (DONE) FillNaN from Project 1
     #      - (DONE) KNN Imputer: TODO: needs testing
-    #         -  TODO: KNN imputation would be better done on class by class basis
-    # 4. Handle emply slices: NaN. (DONE)
+    #      - (DONE) KNN imputation would be better done on class by class basis. Not feasible for predict
+    # 4. Handle emply slices: NaN. (TODO Franc) this comes from neurokit directly (confirm) and we have a lot of them... is it related to crashes?
+    # 5. Handle missing samples: (TODO Franc) check whether missing samples stem from crashes and why we have so many of them
+    # 6. Check out extracted features:  (TODO Franc) check whether feature info allows classification
+    # 7. predict y indexing: TODO keep original index (although we might loose samples)
+    # 8. cv run: TODO needs testing and maybe fixing
 
     # Define features to extract
     feature_list = ['ECG_Quality_Mean', 'ECG_Quality_STD',

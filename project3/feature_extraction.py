@@ -182,7 +182,7 @@ def calc_peak_summary(is_flipped, signals, sampling_rate):
 
 def process_signal(sig_i_np, y,  sample_index,
                   sampling_rate, feature_list,
-                  remove_outlier, biosppy_enabled, ecg_quality_check):
+                  remove_outlier, biosppy_enabled, ecg_quality_check, check_is_flipped):
   Fs = sampling_rate
   sample_id = sig_i_np[0] # sample_id, TODO: is amplitude, not sample ID!!
   sig_i_np = sig_i_np.replace(to_replace=['NaN','\\n'],value=np.nan).dropna().to_numpy().astype('float64')
@@ -230,7 +230,7 @@ def process_signal(sig_i_np, y,  sample_index,
       
   # Preprocessing of ECG time series with Neurokit2 using customized function
   nk2_crash_after_sig_flip = False
-  is_flipped = False
+  is_flipped = not check_is_flipped #initialize with False will check and flip signals
   try: 
     signals, info = ecg_process_AML(sig_i_np, sampling_rate=Fs)
     
@@ -324,6 +324,7 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   biosppy_enabled=run_cfg['preproc/filtering_biosppy/enabled']
   ecg_quality_check=run_cfg['preproc/ecg_quality_check/enabled']
   ecg_quality_threshold=run_cfg['preproc/ecg_quality_threshold']
+  check_is_flipped=run_cfg['preproc/check_is_flipped/enabled']
 
   if remove_outlier:
     logging.info('Removing ecg outliers with pyheart... NOT IMPLEMENTED YET!')
@@ -339,7 +340,7 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
         y, 
         i, # sample index
         Fs, feature_list, 
-        remove_outlier, biosppy_enabled, ecg_quality_check # flags
+        remove_outlier, biosppy_enabled, ecg_quality_check, check_is_flipped # flags
       )
       for i in tqdm(range(len(df))))
       #for i in tqdm(range(50))) 
