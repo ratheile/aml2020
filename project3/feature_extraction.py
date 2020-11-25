@@ -343,15 +343,15 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
         Fs, feature_list, 
         remove_outlier, biosppy_enabled, ecg_quality_check, check_is_flipped # flags
       )
+      
       for i in tqdm(range(len(df))))
-      #for i in tqdm(range(50))) 
+       
 
   # res is a touple (features, class_id)
-  no_nan_mask =  [np.sum(np.isnan(res[0][0:15])) == 0 for res in results]
+  no_nan_mask =  [np.sum(np.isnan(res[0][0:14])) == 0 for res in results]
 
   # Define F array to aggregate extracted sample features
   F=np.zeros([df.shape[0],len(feature_list)])
-  # F=np.zeros([50,len(feature_list)])
 
   # Define PD as a list array to aggregate extracted sample infos (for later plotting)
   # PD columns: [0:sample id | 1: class id | 2: raw signal| 3: r_peaks_biosspy | 4: filtered biosppy | 5: signals neurokit ]
@@ -368,7 +368,6 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   
   # with .predict method y is set to None
   if isinstance(y, pd.DataFrame):
-  #  y = y.iloc[0:50]
     y = y[no_nan_mask]
      
   app = create_app(plotData)
