@@ -370,15 +370,6 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   #  y = y.iloc[0:50]
     y = y[no_nan_mask]
      
-  
-  # for i in range(len(df)):
-  #   feat_i, class_id = process_signal(df, y, i, Fs, feature_list, 
-  #                       plotData,
-  #                       remove_outlier, biosppy_enabled, ecg_quality_check)
-    # if verbose:
-    #   sample_left = df.shape[0]-i
-    #   print(f'Preprocessed ECG sample {i} from class {class_id}... {sample_left} samples to go!')
-  
-  app = create_app(plotData)
-  app.run_server(debug=False)
+  # app = create_app(plotData)
+  # app.run_server(debug=False)
   return(feat_df, y, plotData)
