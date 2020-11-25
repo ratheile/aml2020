@@ -16,7 +16,7 @@ preproc:
     enabled: true
   ecg_quality_threshold: 0.8
   check_is_flipped:
-    enabled: false
+    enabled: true
   imputer:
     type: 'knn' # 'simple' or 'knn'
     strategy: 'median' # works with 'mean', 'median', 'most_frequent'
