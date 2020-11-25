@@ -12,7 +12,7 @@ import neurokit2 as nk
 
 from joblib import Parallel, delayed  
 from tqdm import tqdm  
-
+from preproc_viewer import create_app
 
 # Split Classes
 def split_classes(X,y):
@@ -184,9 +184,9 @@ def process_signal(sig_i_np, y,  sample_index,
                   sampling_rate, feature_list,
                   remove_outlier, biosppy_enabled, ecg_quality_check, check_is_flipped):
   Fs = sampling_rate
-
   sample_id = sig_i_np[0] # sample_id, TODO: is amplitude, not sample ID!!
   sig_i_np = sig_i_np.replace(to_replace=['NaN','\\n'],value=np.nan).dropna().to_numpy().astype('float64')
+  raw_signal = sig_i_np.copy()
 
   if y is not None:
     class_id = y.iloc[sample_index].values[0] # Very convoluted way to get just the class integer
@@ -303,7 +303,7 @@ def process_signal(sig_i_np, y,  sample_index,
   plot_data = [
     sample_id, # np.int64
     class_id,  # np.int64
-    sig_i_np, # raw ecg  # ndarray
+    raw_signal, # raw ecg  # ndarray
     rpeaks_biosppy, # ndarray
     filtered_biosppy, # ndarray
     signals # signals_neurokit # DataFrame
@@ -315,8 +315,8 @@ def process_signal(sig_i_np, y,  sample_index,
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
-  # df = df.iloc[0:20]
-  # y = y.iloc[0:20]
+  # df = df.iloc[0:100]
+  # y = y.iloc[0:100]
 
   # Predefine important variables
   Fs = run_cfg['sampling_rate']
@@ -370,14 +370,6 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
     y = y.iloc[0:400]
     y = y[no_nan_mask]
      
-  
-  # for i in range(len(df)):
-  #   feat_i, class_id = process_signal(df, y, i, Fs, feature_list, 
-  #                       plotData,
-  #                       remove_outlier, biosppy_enabled, ecg_quality_check)
-    # if verbose:
-    #   sample_left = df.shape[0]-i
-    #   print(f'Preprocessed ECG sample {i} from class {class_id}... {sample_left} samples to go!')
-  
-  
+  # app = create_app(plotData)
+  # app.run_server(debug=False)
   return(feat_df, y, plotData)
