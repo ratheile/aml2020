@@ -99,7 +99,15 @@ class Project3Estimator(BaseEstimator):
     self._preprocessing_skipped_ = skip_preprocessing
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
-      X, y, X_plot_data = self.preprocess(X, y)
+      X, y, X_plot_data, no_nan_mask = self.preprocess(X, y)
+
+      # Address NaNs TODO: still necessary
+      #TODO (check why this happens): 
+      # With median, we sometimes get negative durations for QRS_t_mean
+      X[:] = self.fill_nan( run_cfg=self.run_cfg, X=X)
+
+      X = X[no_nan_mask]
+      y = y[no_nan_mask]
 
     # Store
     if save_flag and not skip_preprocessing:
@@ -137,8 +145,18 @@ class Project3Estimator(BaseEstimator):
     check_is_fitted(self)
 
     X_u = self.df_sanitization(X_u)
-    X_u, _, X_u_plotData = self.preprocess(X_u)
+    X_u, _, X_u_plotData, no_nan_mask = self.preprocess(X_u) 
+
+    # Address NaNs TODO: still necessary
+    # TODO (check why this happens): 
+    # With median, we sometimes get negative durations for QRS_t_mean
+    X_u[:] = self.fill_nan(run_cfg=self.run_cfg, X=X_u)
+    
+    X_u = X_u[no_nan_mask]
+    # we call predict only on a valid subset of X (not nan)
     y_u = self._fitted_model_.predict(X_u)
+
+    # TODO take care of last few unlabeled masked nan samples
 
     return y_u
 
@@ -245,7 +263,7 @@ class Project3Estimator(BaseEstimator):
                     'P_Amp_Mean', 'P_Amp_STD', 'S_Amp_Mean', 'S_Amp_STD',
                     'QRS_t_Mean', 'QRS_t_STD']
 
-    X_new, y_new, X_new_plotData = extract_features(
+    X_new, y_new, X_new_plotData, no_nan_mask = extract_features(
                             run_cfg=self.run_cfg,
                             env_cfg=self.env_cfg,
                             df=X,
@@ -254,13 +272,7 @@ class Project3Estimator(BaseEstimator):
                             verbose=self.run_cfg['preproc/verbose']
                             )
 
-    # Address NaNs TODO: still necessary
-    X_new[:] = self.fill_nan(
-      run_cfg=self.run_cfg,
-      X=X_new
-      ) #TODO (check why this happens): With median, we sometimes get negative durations for QRS_t_mean
-
-    return X_new, y_new, X_new_plotData
+    return X_new, y_new, X_new_plotData, no_nan_mask
 
   def simple_fit(self, model, X, y):  # TODO to ask: do we need this?
     model = model.fit(X, y)

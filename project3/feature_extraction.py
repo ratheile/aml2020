@@ -377,12 +377,7 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
   # TODO: maybe plot the failing ones as well
   feat_df = pd.DataFrame(data=F,columns=feature_list)
-  feat_df = feat_df[no_nan_mask]
-  
-  # with .predict method y is set to None
-  if isinstance(y, pd.DataFrame):
-    y = y[no_nan_mask]
-     
+
   app = create_app(plotData)
   app.run_server(debug=False)
-  return(feat_df, y, plotData)
+  return(feat_df, y, plotData, no_nan_mask)
