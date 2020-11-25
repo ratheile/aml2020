@@ -156,9 +156,12 @@ class Project3Estimator(BaseEstimator):
     # we call predict only on a valid subset of X (not nan)
     y_u = self._fitted_model_.predict(X_u)
 
+    y_total = np.zeros(len(no_nan_mask))
+    y_total[no_nan_mask] = y_u
+    y_total[~(no_nan_mask)] = 0
     # TODO take care of last few unlabeled masked nan samples
 
-    return y_u
+    return y_total 
 
   def score(self, X, y=None):
     score_fn = {

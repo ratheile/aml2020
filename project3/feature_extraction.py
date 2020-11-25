@@ -247,7 +247,7 @@ def process_signal(sig_i_np, y,  sample_index,
   class_id = np.nan if y is None else y.iloc[sample_index].values[0] 
 
   # perform the data extraction / flipping / etc.
-  rpeaks_biosppy, filtered_biosppy, signals, peak_summary_neurokit  = recursion(
+  rpeaks_biosppy, filtered_biosppy, signals, peak_summary_neurokit, feat_i  = recursion(
     sig_i_np, Fs, sample_index, class_id, feature_list,
     biosppy_enabled=biosppy_enabled,
     check_flipping=check_is_flipped
@@ -256,12 +256,12 @@ def process_signal(sig_i_np, y,  sample_index,
   if isinstance(signals, pd.DataFrame): 
     df_analyze = nk.ecg_analyze(signals, sampling_rate=Fs, method='auto')
 
-    # exclude valid low quality segments
-    filter_mask = np.ones(raw_signal.shape[0])
-
     # TODO: regenerate peak summary before the statistics extraction
     # compute relevant statistics on filtered signals
     feat_i = nk2_signal_statistics(signals, peak_summary_neurokit, df_analyze, rpeaks_biosppy)
+    
+  # exclude valid low quality segments
+  filter_mask = np.ones(raw_signal.shape[0])
 
   ######################### organize data for export #########################
   plot_data = [
@@ -275,7 +275,7 @@ def process_signal(sig_i_np, y,  sample_index,
   ]
   return feat_i, class_id, plot_data
 
-  return (np.array(feat_i, dtype=float), class_id, plot_data)
+  #return (np.array(feat_i, dtype=float), class_id, plot_data)
 
 
 def recursion(sig_i_np, Fs, sample_index, class_id, 
@@ -294,43 +294,43 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
   peak_summary_neurokit = np.nan
 
   ######################### 1. neurokit trial #########################
-  # try: 
-  signals, info = nk2_ecg_process_AML(sig_i_np, sampling_rate=Fs)
+  try: 
+    signals, info = nk2_ecg_process_AML(sig_i_np, sampling_rate=Fs)
 
-  # filter signals for peak counts, amplitudes, and QRS event duration
-  peak_summary_neurokit, is_flipped = calc_peak_summary(
-    signals=signals, sampling_rate=Fs
-  )
+    # filter signals for peak counts, amplitudes, and QRS event duration
+    peak_summary_neurokit, is_flipped = calc_peak_summary(
+      signals=signals, sampling_rate=Fs
+    )
 
-  #repeat feature extraction with flipped signal
-  # we only flip once (check_flipping) to avoid inf. loops
-  if is_flipped and check_flipping:
-    logging.info(f'swapped signal detected: mirroring sample {sample_index} in class {class_id}')
-    #mirror the signal
-    sig_i_np = -sig_i_np
-    return recursion( 
-        sig_i_np, Fs, sample_index, class_id, feature_list,
-        biosppy_enabled, check_flipping=False
-      )
+    #repeat feature extraction with flipped signal
+    # we only flip once (check_flipping) to avoid inf. loops
+    if is_flipped and check_flipping:
+      logging.info(f'swapped signal detected: mirroring sample {sample_index} in class {class_id}')
+      #mirror the signal
+      sig_i_np = -sig_i_np
+      return recursion( 
+          sig_i_np, Fs, sample_index, class_id, feature_list,
+          biosppy_enabled, check_flipping=False
+        )
 
-  # except Exception:
-  #   if check_flipping == False:
-  #     logging.info(f'neurokit crashed after flipping sample {sample_index} in class {class_id}')
-  #   else:
-  #     logging.info(f'neurokit2 crashed for sample {sample_index} in class {class_id}')
-
-  #   signals = np.nan
-  #   peak_summary_neurokit = np.nan
+  except (ValueError, IndexError):
+    if check_flipping == False:
+      logging.info(f'neurokit crashed after flipping sample {sample_index} in class {class_id}')
+    else:
+      logging.info(f'neurokit2 crashed for sample {sample_index} in class {class_id}')  
+    signals = np.nan
+    peak_summary_neurokit = np.nan
   
-  return rpeaks_biosppy, filtered_biosppy, signals, peak_summary_neurokit
+  return rpeaks_biosppy, filtered_biosppy, signals, peak_summary_neurokit, feat_i
 
 
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
-  short_df_len = 20
+  short_df_len = 200
   df = df.iloc[0:short_df_len]
-  y = y.iloc[0:short_df_len]
+  if y is not None:
+    y = y.iloc[0:short_df_len]
 
   # Predefine important variables
   Fs = run_cfg['sampling_rate']
@@ -378,6 +378,7 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   # TODO: maybe plot the failing ones as well
   feat_df = pd.DataFrame(data=F,columns=feature_list)
 
-  app = create_app(plotData)
-  app.run_server(debug=False)
+  logging,info(f'features of {np.sum(~no_nan_mask)} samples could not be extracted')
+  # app = create_app(plotData)
+  # app.run_server(debug=False)
   return(feat_df, y, plotData, no_nan_mask)
