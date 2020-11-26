@@ -109,6 +109,11 @@ class Project3Estimator(BaseEstimator):
       #TODO (check why this happens): 
       # With median, we sometimes get negative durations for QRS_t_mean
       X[:] = self.fill_nan( run_cfg=self.run_cfg, X=X)
+      
+      #normalize
+      flag_normalize = self.run_cfg['preproc/normalize/enabled']
+      if flag_normalize:
+        X = self.normalize(X, self.run_cfg['preproc/normalize/method'])
 
 
     # Store
@@ -157,6 +162,16 @@ class Project3Estimator(BaseEstimator):
     # TODO (check why this happens): 
     # With median, we sometimes get negative durations for QRS_t_mean
     X_u[:] = self.fill_nan(run_cfg=self.run_cfg, X=X_u)
+    
+    #normalize
+    flag_normalize = self.run_cfg['preproc/normalize/enabled']
+    if flag_normalize: 
+    #   X, X_u = normalize(X, X_u, run_cfg['preproc/normalize/method'])
+      X_u = self.normalize(
+        X_u, 
+        self.run_cfg['preproc/normalize/method'], 
+        use_pretrained=self.run_cfg['preproc/normalize/use_pretrained_for_X_u']
+      )
     
     # we call predict only on a valid subset of X (not nan)
     y_u = self._fitted_model_.predict(X_u)
@@ -240,6 +255,10 @@ class Project3Estimator(BaseEstimator):
     else:
       scaler = self.scaler_dic[method]()
       scaler = scaler.fit(X)
+    
+    X_scaled = pd.DataFrame(scaler.transform(X), index=X.index, columns=X.columns)
+    self._scaler_ = scaler
+    return X_scaled
 
   def preprocess(self, X, y=None):
 

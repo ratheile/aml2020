@@ -331,10 +331,10 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
-  # short_df_len = 100
-  # df = df.iloc[0:short_df_len]
-  # if y is not None:
-  #   y = y.iloc[0:short_df_len]
+  #short_df_len = 100
+  #df = df.iloc[0:short_df_len]
+  #if isinstance(y, pd.DataFrame):
+  #  y = y.iloc[0:short_df_len]
 
   # Predefine important variables
   Fs = run_cfg['sampling_rate']
