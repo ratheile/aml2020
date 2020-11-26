@@ -55,69 +55,71 @@ class Project3Estimator(BaseEstimator):
   def fit(self, X, y):
     begin_time = time.time()
     
-    # Bypass Data Input
-    hash_dir = self.env_cfg['datasets/project3/hash_dir']
-    skip_preprocessing = False
+    bypass_preproc = self.run_cfg['preproc/enabled']
+    if not bypass_preproc:
+      # Bypass Data Input
+      hash_dir = self.env_cfg['datasets/project3/hash_dir']
+      skip_preprocessing = False
 
-    df_hash_f = lambda df: hashlib.sha1(pd.util.hash_pandas_object(df).values).hexdigest()
-    fn_func = lambda hash_df, hash_cfg, postfix: f'{hash_dir}/{hash_df}_{hash_cfg}_{postfix}'
-    
-    load_flag = self.run_cfg['persistence/load_from_file']
-    save_flag = self.run_cfg['persistence/save_to_file']
-    save_plot_data = self.run_cfg['persistence/save_plot_data']
-
-    if load_flag or save_flag:
-      # hashes
-      cfg_hash = hashlib.sha256(json.dumps(self.run_cfg['preproc']).encode()).hexdigest()
-      X_hash = df_hash_f(X)
-      y_hash = df_hash_f(y)
-      # filenames
-      X_file = fn_func(X_hash, cfg_hash, 'X.pkl')
-      y_file = fn_func(y_hash, cfg_hash, 'y.pkl')
-      scaler_file = fn_func(X_hash, cfg_hash, 'scaler.joblib')
-      dim_red_file = fn_func(X_hash, cfg_hash, 'dimred.joblib')
+      df_hash_f = lambda df: hashlib.sha1(pd.util.hash_pandas_object(df).values).hexdigest()
+      fn_func = lambda hash_df, hash_cfg, postfix: f'{hash_dir}/{hash_df}_{hash_cfg}_{postfix}'
       
-    self._scaler_ = None
-    if load_flag:
-      files_present = os.path.isfile(X_file) and \
-        os.path.isfile(y_file) and \
-        os.path.isfile(scaler_file)
+      load_flag = self.run_cfg['persistence/load_from_file']
+      save_flag = self.run_cfg['persistence/save_to_file']
+      save_plot_data = self.run_cfg['persistence/save_plot_data']
 
-      if files_present:
-        logging.warning(f'Files found to preload config hash {cfg_hash} for dataset.')
-        # logging.warning(f'found pickle for X: {X_file}')
-        # logging.warning(f'found pickle for y: {y_file}')
-        # logging.warning(f'found pickle for normalization model: {scaler_file}')
-        X = pd.read_pickle(X_file)
-        y = pd.read_pickle(y_file)
-        self._scaler_ = load(scaler_file)
+      if load_flag or save_flag:
+        # hashes
+        cfg_hash = hashlib.sha256(json.dumps(self.run_cfg['preproc']).encode()).hexdigest()
+        X_hash = df_hash_f(X)
+        y_hash = df_hash_f(y)
+        # filenames
+        X_file = fn_func(X_hash, cfg_hash, 'X.pkl')
+        y_file = fn_func(y_hash, cfg_hash, 'y.pkl')
+        scaler_file = fn_func(X_hash, cfg_hash, 'scaler.joblib')
+        dim_red_file = fn_func(X_hash, cfg_hash, 'dimred.joblib')
+        
+      self._scaler_ = None
+      if load_flag:
+        files_present = os.path.isfile(X_file) and \
+          os.path.isfile(y_file) and \
+          os.path.isfile(scaler_file)
 
-        skip_preprocessing = True
+        if files_present:
+          logging.warning(f'Files found to preload config hash {cfg_hash} for dataset.')
+          # logging.warning(f'found pickle for X: {X_file}')
+          # logging.warning(f'found pickle for y: {y_file}')
+          # logging.warning(f'found pickle for normalization model: {scaler_file}')
+          X = pd.read_pickle(X_file)
+          y = pd.read_pickle(y_file)
+          self._scaler_ = load(scaler_file)
+
+          skip_preprocessing = True
 
 
-    # Data Preprocessing
-    self._preprocessing_skipped_ = skip_preprocessing
-    if not skip_preprocessing:
-      # preprocess also fits a _scaler_
-      X, y, X_plot_data, no_nan_mask = self.preprocess(X, y)
+      # Data Preprocessing
+      self._preprocessing_skipped_ = skip_preprocessing
+      if not skip_preprocessing:
+        # preprocess also fits a _scaler_
+        X, y, X_plot_data, no_nan_mask = self.preprocess(X, y)
 
-      # Address NaNs TODO: still necessary
-      #TODO (check why this happens): 
-      # With median, we sometimes get negative durations for QRS_t_mean
-      X[:] = self.fill_nan( run_cfg=self.run_cfg, X=X)
+        # Address NaNs TODO: still necessary
+        #TODO (check why this happens): 
+        # With median, we sometimes get negative durations for QRS_t_mean
+        X[:] = self.fill_nan( run_cfg=self.run_cfg, X=X)
 
-      X = X[no_nan_mask]
-      y = y[no_nan_mask]
+        X = X[no_nan_mask]
+        y = y[no_nan_mask]
 
-    # Store
-    if save_flag and not skip_preprocessing:
-      X.to_pickle(X_file)
-      y.to_pickle(y_file)
-      dump(self._scaler_, scaler_file)
+      # Store
+      if save_flag and not skip_preprocessing:
+        X.to_pickle(X_file)
+        y.to_pickle(y_file)
+        dump(self._scaler_, scaler_file)
 
-      if save_plot_data: 
-        plot_data_file = fn_func(X_hash, cfg_hash, 'plotData.joblib')
-        dump(X_plot_data, plot_data_file) 
+        if save_plot_data: 
+          plot_data_file = fn_func(X_hash, cfg_hash, 'plotData.joblib')
+          dump(X_plot_data, plot_data_file) 
     
     # Shuffle after preprocessing and before training
     X, y = shuffle(X, y) # https://scikit-learn.org/stable/modules/generated/sklearn.utils.shuffle.html
