@@ -17,6 +17,7 @@ from sklearn.utils import shuffle
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.svm import SVC
 from sklearn.impute import SimpleImputer, KNNImputer
+from sklearn.metrics import f1_score
 
 # ECG libraries
 import biosppy
@@ -100,14 +101,15 @@ class Project3Estimator(BaseEstimator):
     if not skip_preprocessing:
       # preprocess also fits a _scaler_
       X, y, X_plot_data, no_nan_mask = self.preprocess(X, y)
+      
+      X = X[no_nan_mask]
+      y = y[no_nan_mask]
 
       # Address NaNs TODO: still necessary
       #TODO (check why this happens): 
       # With median, we sometimes get negative durations for QRS_t_mean
       X[:] = self.fill_nan( run_cfg=self.run_cfg, X=X)
 
-      X = X[no_nan_mask]
-      y = y[no_nan_mask]
 
     # Store
     if save_flag and not skip_preprocessing:
@@ -145,14 +147,17 @@ class Project3Estimator(BaseEstimator):
     check_is_fitted(self)
 
     X_u = self.df_sanitization(X_u)
-    X_u, _, X_u_plotData, no_nan_mask = self.preprocess(X_u) 
+    X_u, _, X_u_plotData, no_nan_mask = self.preprocess(X_u)
+    
+    logging.warning(f'Length after preprocess: X_u, no_nan_mask = {X_u.shape[0]}, {len(no_nan_mask)}.')
+    
+    X_u = X_u[no_nan_mask] 
 
     # Address NaNs TODO: still necessary
     # TODO (check why this happens): 
     # With median, we sometimes get negative durations for QRS_t_mean
     X_u[:] = self.fill_nan(run_cfg=self.run_cfg, X=X_u)
     
-    X_u = X_u[no_nan_mask]
     # we call predict only on a valid subset of X (not nan)
     y_u = self._fitted_model_.predict(X_u)
 
@@ -166,9 +171,9 @@ class Project3Estimator(BaseEstimator):
   def score(self, X, y=None):
     score_fn = {
       # scoring
-      'balanced_accuracy': lambda: balanced_accuracy_score
+      'f1_score': lambda: f1_score
     }
-    return(score_fn[self.run_cfg['scoring']](self.predict(X), y))
+    return(score_fn[self.run_cfg['scoring']](self.predict(X), y, average='micro'))
 
   def get_params(self, deep=True):
     out = {}

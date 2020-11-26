@@ -1,6 +1,6 @@
 # Pipeline steps
 persistence:
-  load_from_file: false 
+  load_from_file: true 
   save_to_file: true
   save_plot_data: true
 
@@ -47,10 +47,7 @@ models:
     coef0: 0.0 
     shrinking: True # What it this?
     probability: False 
-    class_weight:
-      0: 1
-      1: 1
-      2: 1
+    class_weight: 'balanced'
     tol: 0.001 
     verbose: False
     max_iter: -1 # no limit
@@ -68,7 +65,7 @@ models:
       2: 1
 
 # https://scikit-learn.org/stable/modules/model_evaluation.html
-scoring: 'balanced_accuracy' 
+scoring: 'f1_score' 
 
 cross_validation:
   test_set_size: 0.1
