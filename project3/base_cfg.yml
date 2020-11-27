@@ -29,7 +29,7 @@ preproc:
     method: 'neurokit'
 
   normalize:
-    enabled: false
+    enabled: true
     method: standard
     use_pretrained_for_X_u: True
     
@@ -65,7 +65,7 @@ models:
       2: 1
 
 # https://scikit-learn.org/stable/modules/model_evaluation.html
-scoring: 'f1_score' 
+scoring: 'f1_micro' 
 
 cross_validation:
   test_set_size: 0.1
