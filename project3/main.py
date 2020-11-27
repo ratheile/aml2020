@@ -25,11 +25,11 @@ def gridsearch(run_cfg, env_cfg, slice_cfg):
   ''' 
 
   # Load training dataset from joblib files 
-  X, y, X_u = load_data(env_cfg)
+  X, y = load_preprocessed_pickle(env_cfg)
 
   # Remove index column
-  y = y.iloc[:,1:]
-  X = X.iloc[:,1:]
+  # y = y.iloc[:,1:] # not present in pickles
+  # X = X.iloc[:,1:]
   logging.info('Training dataset imported')
 
   p3e = Project3Estimator(run_cfg, env_cfg, slice_cfg)
@@ -77,6 +77,20 @@ def convert_data(run_cfg, env_cfg):
 
   end_time = time.time()
   logging.info(f'Data conversion done in {end_time - begin_time}')
+
+
+
+
+def load_preprocessed_pickle(env_cfg):
+  begin_time = time.time()
+  logging.info('Pickle loading started ...')
+  datapath = env_cfg['datasets/project3/path']
+  X = pd.read_pickle(f'{datapath}/X_train.pkl')
+  y = pd.read_pickle(f'{datapath}/y_train.pkl')
+  end_time = time.time()
+  logging.info(f'Pickle loading done in {end_time - begin_time}')
+  return X, y
+
 
 def load_data(env_cfg):
   begin_time = time.time()
@@ -134,12 +148,12 @@ def cross_validate(run_cfg, env_cfg):
   '''
 
   # Load training dataset from joblib files 
-  X, y, X_u = load_data(env_cfg)
+  # X, y, X_u = load_data(env_cfg)
+  X, y = load_preprocessed_pickle(env_cfg)
 
   # Remove index column
-  y = y.iloc[:,1:]
-  X = X.iloc[:,1:]
-  X_u = X_u.iloc[:,1:]
+  # y = y.iloc[:,1:]# not present in pickles
+  # X = X.iloc[:,1:]
   logging.info('Training dataset imported')
 
   p3e = Project3Estimator(run_cfg, env_cfg)
