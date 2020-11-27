@@ -110,19 +110,21 @@ def calc_peak_summary(signals, sampling_rate):
 #  feature_list = ['ECG_Quality_Mean', 'ECG_Quality_STD',
 #                    'ECG_Rate_Mean', 'ECG_HRV',
 #                    'R_P_biosppy', 
-#                    'P_P/R_P', 'Q_P/R_P', 'R_P_neurokit' , 'S_P/R_P', 'T_P/R_P', >> in this function
-#                    'P_Amp_Mean', 'P_Amp_STD',    >> in this function
-#                    'Q_Amp_Mean', 'Q_Amp_STD',    >> in this function
-#                    'R_Amp_Mean', 'R_Amp_STD',    >> in this function
-#                    'S_Amp_Mean', 'S_Amp_STD',    >> in this function
-#                    'T_Amp_Mean', 'T_Amp_STD',    >> in this function
-#                    'QRS_t_Mean', 'QRS_t_STD',   >> in this function
-#                    'PR_int', 'PR_seg',          >> in this function
-#                    'QT_int', 'ST_seg']          >> in this function
+#                    'P_P/R_P', 'Q_P/R_P', 'R_P_neurokit' , 'S_P/R_P', 'T_P/R_P', >> in this function (5)
+#                    'P_Amp_Mean', 'P_Amp_STD',    >> in this function (2)
+#                    'Q_Amp_Mean', 'Q_Amp_STD',    >> in this function (2)
+#                    'R_Amp_Mean', 'R_Amp_STD',    >> in this function (2)
+#                    'S_Amp_Mean', 'S_Amp_STD',    >> in this function (2)
+#                    'T_Amp_Mean', 'T_Amp_STD',    >> in this function (2)
+#                    'QRS_t_Mean', 'QRS_t_STD',    >> in this function (2)
+#                    'PR_int_Mean', 'PR_int_STD'   >> in this function (2)
+#                    'PR_seg_Mean', 'PR_seg_STD',  >> in this function (2)                
+#                    'QT_int_Mean', 'QT_int_STD']  >> in this function (2)
+#                    'ST_seg_Mean', 'ST_seg_STD']  >> in this function (2)
                     
   
   # Peak summary
-  summary = [] # needs to have len (2*9 = 18) at the end
+  summary = [] # needs to have len=25((2*10 = 20) + 5) at the end
   sig_pp = signals[signals['ECG_P_Peaks'] == 1]
   p_count= len(sig_pp)
   sig_qq = signals[signals['ECG_Q_Peaks'] == 1]
@@ -434,10 +436,10 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
-  #short_df_len = 100
-  #df = df.iloc[0:short_df_len]
-  #if isinstance(y, pd.DataFrame):
-  #  y = y.iloc[0:short_df_len]
+  short_df_len = 150
+  df = df.iloc[0:short_df_len]
+  if isinstance(y, pd.DataFrame):
+    y = y.iloc[0:short_df_len]
 
   # Predefine important variables
   Fs = run_cfg['sampling_rate']
@@ -488,6 +490,8 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   feat_df = pd.DataFrame(data=F,columns=feature_list)
   
   # TODO: drop features we don't need
+  if drop_features:
+    feat_df.drop(columns=dropped_features_list,inplace=True)
 
   n_failures = np.sum(np.logical_not(no_nan_mask))
   logging.warning(f'features of {n_failures} samples could not be extracted')

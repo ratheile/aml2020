@@ -306,8 +306,10 @@ class Project3Estimator(BaseEstimator):
                     'S_Amp_Mean', 'S_Amp_STD',
                     'T_Amp_Mean', 'T_Amp_STD',
                     'QRS_t_Mean', 'QRS_t_STD',
-                    'PR_int', 'PR_seg',
-                    'QT_int', 'ST_seg']
+                    'PR_int_Mean', 'PR_int_STD',
+                    'PR_seg_Mean', 'PR_seg_STD',
+                    'QT_int_Mean', 'QT_int_STD',
+                    'ST_seg_Mean', 'ST_seg_STD']
 
     X_new, y_new, X_new_plotData, no_nan_mask = extract_features(
                             run_cfg=self.run_cfg,
