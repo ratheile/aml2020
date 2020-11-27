@@ -56,8 +56,10 @@ class Project3Estimator(BaseEstimator):
   def fit(self, X, y):
     begin_time = time.time()
     
-    bypass_preproc = self.run_cfg['preproc/enabled']
-    if not bypass_preproc:
+    preproc_enabled = self.run_cfg['preproc/enabled']
+    if preproc_enabled:
+      logging.warning('preprocessing disabled for X in fit()')
+      logging.warning('preprocessing disabled: this mode should only be used in GridSearchCV')
       # Bypass Data Input
       hash_dir = self.env_cfg['datasets/project3/hash_dir']
       skip_preprocessing = False
@@ -152,17 +154,21 @@ class Project3Estimator(BaseEstimator):
 
     check_is_fitted(self)
 
-    X_u = self.df_sanitization(X_u)
-    X_u, _, X_u_plotData, no_nan_mask = self.preprocess(X_u)
-    
-    logging.warning(f'Length after preprocess: X_u, no_nan_mask = {X_u.shape[0]}, {len(no_nan_mask)}.')
-    
-    X_u = X_u[no_nan_mask] 
+    # X_u = self.df_sanitization(X_u) # TODO: check if still necessary
 
-    # Address NaNs TODO: still necessary
-    # TODO (check why this happens): 
-    # With median, we sometimes get negative durations for QRS_t_mean
-    X_u[:] = self.fill_nan(run_cfg=self.run_cfg, X=X_u)
+    preproc_enabled = self.run_cfg['preproc/enabled']
+    if preproc_enabled:
+      logging.warning('preprocessing disabled for unlabled X in predict()')
+      X_u, _, X_u_plotData, no_nan_mask = self.preprocess(X_u)
+      
+      logging.warning(f'Length after preprocess: X_u, no_nan_mask = {X_u.shape[0]}, {len(no_nan_mask)}.')
+    
+      X_u = X_u[no_nan_mask] 
+
+      # Address NaNs TODO: still necessary
+      # TODO (check why this happens): 
+      # With median, we sometimes get negative durations for QRS_t_mean
+      X_u[:] = self.fill_nan(run_cfg=self.run_cfg, X=X_u)
     
     #normalize
     flag_normalize = self.run_cfg['preproc/normalize/enabled']
@@ -177,17 +183,23 @@ class Project3Estimator(BaseEstimator):
     # we call predict only on a valid subset of X (not nan)
     y_u = self._fitted_model_.predict(X_u)
 
-    y_total = np.zeros(len(no_nan_mask))
-    y_total[no_nan_mask] = y_u
-    y_total[np.logical_not(no_nan_mask)] = 0
-    # TODO take care of last few unlabeled masked nan samples
+    # if we have done preprocessing, then we might have samples that failed 
+    # (crashed) the preprocessor. this is not the case if we only use
+    # successfully preprocessed data
+    if preproc_enabled:
+      y_total = np.zeros(len(no_nan_mask))
+      y_total[no_nan_mask] = y_u
+      y_total[np.logical_not(no_nan_mask)] = 0
+      # TODO take care of last few unlabeled masked nan samples
+    else:
+      y_total = y_u
 
     return y_total 
 
   def score(self, X, y=None):
     score_fn = {
       # scoring
-      'f1_score': lambda: f1_score
+      'f1_micro': lambda: f1_score
     }
     return(score_fn[self.run_cfg['scoring']](self.predict(X), y, average='micro'))
 
