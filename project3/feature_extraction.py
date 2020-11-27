@@ -106,9 +106,25 @@ def nk2_ecg_process_AML(ecg_signal, sampling_rate=300):
       
 # Extracted peaks summary
 def calc_peak_summary(signals, sampling_rate):
+#  method which calculates a subset on entries in feature list  
+#  feature_list = ['ECG_Quality_Mean', 'ECG_Quality_STD',
+#                    'ECG_Rate_Mean', 'ECG_HRV',
+#                    'R_P_biosppy', 
+#                    'P_P/R_P', 'Q_P/R_P', 'R_P_neurokit' , 'S_P/R_P', 'T_P/R_P', >> in this function (5)
+#                    'P_Amp_Mean', 'P_Amp_STD',    >> in this function (2)
+#                    'Q_Amp_Mean', 'Q_Amp_STD',    >> in this function (2)
+#                    'R_Amp_Mean', 'R_Amp_STD',    >> in this function (2)
+#                    'S_Amp_Mean', 'S_Amp_STD',    >> in this function (2)
+#                    'T_Amp_Mean', 'T_Amp_STD',    >> in this function (2)
+#                    'QRS_t_Mean', 'QRS_t_STD',    >> in this function (2)
+#                    'PR_int_Mean', 'PR_int_STD'   >> in this function (2)
+#                    'PR_seg_Mean', 'PR_seg_STD',  >> in this function (2)                
+#                    'QT_int_Mean', 'QT_int_STD']  >> in this function (2)
+#                    'ST_seg_Mean', 'ST_seg_STD']  >> in this function (2)
+                    
   
   # Peak summary
-  summary = []
+  summary = [] # needs to have len=25((2*10 = 20) + 5) at the end
   sig_pp = signals[signals['ECG_P_Peaks'] == 1]
   p_count= len(sig_pp)
   sig_qq = signals[signals['ECG_Q_Peaks'] == 1]
@@ -134,22 +150,52 @@ def calc_peak_summary(signals, sampling_rate):
   # Peak p amplitude
   if len(sig_pp) > 0:
     p_mean = sig_pp['ECG_Clean'].mean()
-    summary.append(p_mean)
     p_std = sig_pp['ECG_Clean'].std()
-    summary.append(p_std)
   else:
     p_mean = np.nan
     p_std = np.nan
+  summary.append(p_mean)
+  summary.append(p_std)
+  
+  # Peak q amplitude
+  if len(sig_qq) > 0:
+    q_mean = sig_qq['ECG_Clean'].mean()
+    q_std = sig_qq['ECG_Clean'].std()
+  else:
+    q_mean = np.nan
+    q_std = np.nan
+  summary.append(q_mean)
+  summary.append(q_std)
+  
+  # Peak r amplitude
+  if len(sig_rr) > 0:
+    r_mean = sig_rr['ECG_Clean'].mean()
+    r_std = sig_rr['ECG_Clean'].std()
+  else:
+    r_mean = np.nan
+    r_std = np.nan
+  summary.append(r_mean)
+  summary.append(r_std)
   
   # Peak s amplitude
   if len(sig_ss) > 0:
     s_mean = sig_ss['ECG_Clean'].mean()
-    summary.append(s_mean)
     s_std = sig_ss['ECG_Clean'].std()
-    summary.append(s_std)
   else:
     s_mean = np.nan
     s_std = np.nan
+  summary.append(s_mean)
+  summary.append(s_std)
+  
+  # Peak t amplitude
+  if len(sig_tt) > 0:
+    t_mean = sig_tt['ECG_Clean'].mean()
+    t_std = sig_tt['ECG_Clean'].std()
+  else:
+    s_mean = np.nan
+    s_std = np.nan
+  summary.append(t_mean)
+  summary.append(t_std)
   
   # check whether the signal is flipped
   is_flipped = False
@@ -170,13 +216,72 @@ def calc_peak_summary(signals, sampling_rate):
     d_qrs_t_mean = d_qrs_t.mean()
     d_qrs_t_std = d_qrs_t.std()
   else:
-    #TODO: in case of unenven R Onset and Offset detection develop more sofisticated algo to check which peaks can be retained?
+    #TODO: algo in case of unenven peaks
     d_qrs_t_mean = np.nan
     d_qrs_t_std = np.nan
-      
-  
+    
   summary.append(d_qrs_t_mean)
   summary.append(d_qrs_t_std)
+  
+  # PR interval
+  sig_p_onset = signals[signals['ECG_P_Onsets'] == 1]
+  if (len(sig_p_onset) == len(sig_r_onset)):
+    d_pri_N = sig_r_onset.index.to_numpy().ravel() - sig_p_onset.index.to_numpy().ravel() #number of samples between R Onset and P Offset
+    d_pri_t = d_pri_N / sampling_rate
+    d_pri_t_mean = d_pri_t.mean()
+    d_pri_t_std = d_pri_t.std()
+  else:
+    #TODO: in case of unenven R Onset and Offset detection develop more sofisticated algo to check which peaks can be retained?
+    d_pri_t_mean = np.nan
+    d_pri_t_std = np.nan
+  
+  summary.append(d_pri_t_mean)
+  summary.append(d_pri_t_std)
+  
+  # PR segment
+  sig_p_offset = signals[signals['ECG_P_Offsets'] == 1]
+  if (len(sig_p_offset) == len(sig_r_onset)):
+    d_prs_N = sig_r_onset.index.to_numpy().ravel() - sig_p_offset.index.to_numpy().ravel() #number of samples between P Offset and R Onset
+    d_prs_t = d_prs_N / sampling_rate
+    d_prs_t_mean = d_prs_t.mean()
+    d_prs_t_std = d_prs_t.std()
+  else:
+    #TODO: algo in case of unenven peaks
+    d_prs_t_mean = np.nan
+    d_prs_t_std = np.nan
+  
+  summary.append(d_prs_t_mean)
+  summary.append(d_prs_t_std)
+  
+  # QT interval
+  sig_t_offset = signals[signals['ECG_T_Offsets'] == 1]
+  if (len(sig_t_offset) == len(sig_r_onset)):
+    d_qti_N = sig_t_offset.index.to_numpy().ravel() - sig_r_onset.index.to_numpy().ravel() #number of samples between T Offset and R Onset
+    d_qti_t = d_qti_N / sampling_rate
+    d_qti_t_mean = d_qti_t.mean()
+    d_qti_t_std = d_qti_t.std()
+  else:
+    #TODO: algo in case of unenven peaks
+    d_qti_t_mean = np.nan
+    d_qti_t_std = np.nan
+  
+  summary.append(d_qti_t_mean)
+  summary.append(d_qti_t_std)
+  
+  # ST segment
+  sig_t_onset = signals[signals['ECG_T_Onsets'] == 1]
+  if (len(sig_t_onset) == len(sig_r_offset)):
+    d_sts_N = sig_t_onset.index.to_numpy().ravel() - sig_r_offset.index.to_numpy().ravel() #number of samples between T Onset and R Offset
+    d_sts_t = d_sts_N / sampling_rate
+    d_sts_t_mean = d_sts_t.mean()
+    d_sts_t_std = d_sts_t.std()
+  else:
+    #TODO: algo in case of unenven peaks
+    d_sts_t_mean = np.nan
+    d_sts_t_std = np.nan
+  
+  summary.append(d_sts_t_mean)
+  summary.append(d_sts_t_std)
   
   return summary, is_flipped
 
@@ -331,7 +436,7 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
-  #short_df_len = 100
+  #short_df_len = 150
   #df = df.iloc[0:short_df_len]
   #if isinstance(y, pd.DataFrame):
   #  y = y.iloc[0:short_df_len]
@@ -343,6 +448,8 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   ecg_quality_check=run_cfg['preproc/ecg_quality_check/enabled']
   ecg_quality_threshold=run_cfg['preproc/ecg_quality_threshold']
   check_is_flipped=run_cfg['preproc/check_is_flipped/enabled']
+  drop_features=run_cfg['preproc/drop_features/enabled']
+  dropped_features_list=run_cfg['preproc/drop_features/dropped_features']
 
   if remove_outlier:
     logging.info('Removing ecg outliers with pyheart... NOT IMPLEMENTED YET!')
@@ -381,6 +488,10 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
   # TODO: maybe plot the failing ones as well
   feat_df = pd.DataFrame(data=F,columns=feature_list)
+  
+  # TODO: drop features we don't need
+  if drop_features:
+    feat_df.drop(columns=dropped_features_list,inplace=True)
 
   n_failures = np.sum(np.logical_not(no_nan_mask))
   logging.warning(f'features of {n_failures} samples could not be extracted')

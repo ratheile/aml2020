@@ -18,6 +18,9 @@ preproc:
   ecg_quality_threshold: 0.8
   check_is_flipped:
     enabled: true
+  drop_features:
+    enabled: true
+    dropped_features: ['ECG_Quality_Mean', 'ECG_Quality_STD', 'R_P_biosppy', 'R_P_neurokit']
   imputer:
     type: 'knn' # 'simple' or 'knn'
     strategy: 'median' # works with 'mean', 'median', 'most_frequent'
@@ -30,7 +33,7 @@ preproc:
     method: 'neurokit'
 
   normalize:
-    enabled: false
+    enabled: true
     method: standard
     use_pretrained_for_X_u: True
     
