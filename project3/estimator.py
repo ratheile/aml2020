@@ -124,6 +124,9 @@ class Project3Estimator(BaseEstimator):
         if save_plot_data: 
           plot_data_file = fn_func(X_hash, cfg_hash, 'plotData.joblib')
           dump(X_plot_data, plot_data_file) 
+    else:
+      logging.warning('preprocessing disabled for X in fit()')
+      logging.warning('preprocessing disabled: this mode should only be used in GridSearchCV')
     
     #normalize
     flag_normalize = self.run_cfg['preproc/normalize/enabled']
@@ -159,7 +162,6 @@ class Project3Estimator(BaseEstimator):
 
     preproc_enabled = self.run_cfg['preproc/enabled']
     if preproc_enabled:
-      logging.warning('preprocessing disabled for unlabled X in predict()')
       X_u, _, X_u_plotData, no_nan_mask = self.preprocess(X_u)
       
       logging.warning(f'Length after preprocess: X_u, no_nan_mask = {X_u.shape[0]}, {len(no_nan_mask)}.')
@@ -170,6 +172,8 @@ class Project3Estimator(BaseEstimator):
       # TODO (check why this happens): 
       # With median, we sometimes get negative durations for QRS_t_mean
       X_u[:] = self.fill_nan(run_cfg=self.run_cfg, X=X_u)
+    else:
+      logging.warning('preprocessing disabled for unlabled X in predict()')
     
     #normalize
     flag_normalize = self.run_cfg['preproc/normalize/enabled']

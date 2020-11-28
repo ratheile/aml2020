@@ -1,13 +1,13 @@
 # Pipeline steps
 persistence:
-  load_from_file: true
+  load_from_file: false
   save_to_file: true 
   save_plot_data: true
 
 sampling_rate: 300
 
 preproc:
-  enabled: false
+  enabled: true
   verbose: true
   remove_outlier: #TODO: outlier detection to detect class 3
     enabled: true

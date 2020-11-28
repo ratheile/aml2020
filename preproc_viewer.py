@@ -46,7 +46,9 @@ def create_app(D):
     "rpeaks_biosppy" : 3 , # ndarray
     "filtered_biosppy" : 4, # ndarray
     "signals": 5, # signals_neurokit # DataFrame
-    "filter_mask": 6
+    "filter_mask": 6,
+    'qc_success': 7,
+    'is_flipped': 8
   }
   print("Data Loaded!!!")
 
@@ -256,7 +258,7 @@ def create_app(D):
         row=2, col=1
       )
       fig.add_trace(
-        go.Scatter(x=time_ax, y=filter_mask, name='quality_nk2'),
+        go.Scatter(x=time_ax, y=filter_mask.astype(float), name='quality_nk2'),
         row=3, col=1
       )
 
@@ -265,22 +267,35 @@ def create_app(D):
         row=3, col=1
       )
 
-    def plot_points(metric_name, color='black'):
+    def plot_points(
+      metric_name, y=crv, color='black', size=12,
+      mask=None, color_false='red',
+      row=1):
       metric = out[metric_name]
       marker_index = metric[metric == 1].index.tolist()
       marker_ts = time_ax[marker_index]
+
+      args = dict(
+        y=y[marker_index],
+        name=metric_name, mode='markers',
+        marker=dict(
+          color=color,
+          size=size,
+          line=dict(
+            color='MediumPurple',
+            width=3
+          )
+        )
+      )
+
+      if mask is not None:
+        marker_mask = mask[marker_index]
+        colors = [color if i == True else color_false for i in marker_mask]
+        args['colors'] = colors
+
       fig.add_trace(
-        go.Scatter(x=marker_ts, y=crv[marker_index],
-          name=metric_name, mode='markers',
-          marker=dict(
-              color=color,
-              size=12,
-              line=dict(
-                  color='MediumPurple',
-                  width=3
-              )
-          )),
-        row=1, col=1
+        go.Scatter(x=marker_ts, **args),
+        row=row, col=1
       )
 
 
@@ -303,6 +318,11 @@ def create_app(D):
       #        'ECG_Phase_Completion_Ventricular'],
       #       dtype='object')
       plot_points('ECG_Q_Peaks', color='green')
+
+
+      plot_points('ECG_Q_Peaks',y=quality_nk2, color='green', row=3)
+      plot_points('ECG_Q_Peaks',y=rate_nk2, color='green', row=2)
+
       plot_points('ECG_S_Peaks', color='blue')
 
       plot_points('ECG_P_Peaks', color='orange')
@@ -340,12 +360,14 @@ def create_app(D):
       
 
 
-    fig.update_layout(margin={
-        'l': 40,
-        'b': 40,
-        't': 10,
-        'r': 0
-    }, hovermode='closest', height=700)
+    fig.update_layout(
+      margin={ 'l': 40, 'b': 40, 't': 10, 'r': 0 },
+      hovermode='closest',
+      height=700,
+      yaxis2=dict(
+        rangemode='tozero'
+      )
+    )
 
     return [fig]
 
@@ -366,6 +388,14 @@ def create_app(D):
       html.Tr([
         html.Td("Class"),
         html.Td(f"{D[int(data['id']), I['class_id']]}")
+      ]),
+      html.Tr([
+        html.Td("Quality Check"),
+        html.Td(f"{D[int(data['id']), I['qc_success']]}")
+      ]),
+      html.Tr([
+        html.Td("Flipping"),
+        html.Td(f"{D[int(data['id']), I['is_flipped']]}")
       ])
     ])
 
