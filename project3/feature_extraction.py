@@ -9,11 +9,13 @@ from biosppy.signals import ecg
 #from ecgdetectors import Detectors
 #from hrv import HRV
 import neurokit2 as nk
+from scipy.signal import resample
 
 import heartpy as hp
 from joblib import Parallel, delayed  
 from tqdm import tqdm  
 from preproc_viewer import create_app
+from .filter import create_filter_mask
 
 # Split Classes
 def split_classes(X,y):
@@ -351,26 +353,34 @@ def process_signal(sig_i_np, y,  sample_index,
   class_id = np.nan if y is None else y.iloc[sample_index].values[0] 
 
   # perform the data extraction / flipping / etc.
-  rpeaks_biosppy, filtered_biosppy, signals, peak_summary_neurokit, feat_i  = recursion(
-    sig_i_np, Fs, sample_index, class_id, feature_list,
+  rpeaks_biosppy, filtered_biosppy, signals, \
+  peak_summary_neurokit, feat_i, filter_mask, is_flipped  = recursion(
+    sig_i_np, Fs,
+    sample_index,
+    class_id,
+    feature_list,
     biosppy_enabled=biosppy_enabled,
     check_flipping=check_is_flipped
   )
+
   # calculate ecg signal HR indicators if nk2 was successful
+  qc_success = False
   if isinstance(signals, pd.DataFrame):
-    try: 
-      df_analyze = nk.ecg_analyze(signals, sampling_rate=Fs, method='auto')
-  
-      # TODO: regenerate peak summary before the statistics extraction
-      # compute relevant statistics on filtered signals
-      feat_i = nk2_signal_statistics(signals, peak_summary_neurokit, df_analyze, rpeaks_biosppy)
-    except AttributeError:
-      logging.info(f'neurokit2-analyze crashed for sample {sample_index} in class {class_id}')
-      
+    # try: 
+    df_analyze = nk.ecg_analyze(signals, sampling_rate=Fs, method='auto')
+
+    # TODO: regenerate peak summary before the statistics extraction
+    # compute relevant statistics on filtered signals
+    feat_i = nk2_signal_statistics(
+        signals, peak_summary_neurokit,
+        df_analyze, rpeaks_biosppy
+      )
+
+    # except AttributeError:
+    #   logging.info(f'neurokit2-analyze crashed for sample {sample_index} in class {class_id}')
+    #   filter_mask = np.ones(raw_signal.shape[0])
     
     
-  # exclude valid low quality segments
-  filter_mask = np.ones(raw_signal.shape[0])
 
   ######################### organize data for export #########################
   plot_data = [
@@ -380,11 +390,14 @@ def process_signal(sig_i_np, y,  sample_index,
     rpeaks_biosppy, # ndarray
     filtered_biosppy, # ndarray
     signals, # signals_neurokit # DataFrame
-    filter_mask
+    filter_mask,
+    qc_success,
+    is_flipped
   ]
   return feat_i, class_id, plot_data
 
   #return (np.array(feat_i, dtype=float), class_id, plot_data)
+
 
 
 def recursion(sig_i_np, Fs, sample_index, class_id, 
@@ -401,13 +414,14 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
   feat_i[5] = no_rpeaks_biosppy #maybe biosppy worked
   signals = np.nan #initialize with False will check and flip signals
   peak_summary_neurokit = np.nan
+  filter_mask = np.ones(sig_i_np.shape[0])
 
   ######################### 1. neurokit trial #########################
   try: 
     signals, info = nk2_ecg_process_AML(sig_i_np, sampling_rate=Fs)
 
     # filter signals for peak counts, amplitudes, and QRS event duration
-    peak_summary_neurokit, is_flipped = calc_peak_summary(
+    _ , is_flipped = calc_peak_summary(
       signals=signals, sampling_rate=Fs
     )
 
@@ -422,6 +436,17 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
           biosppy_enabled, check_flipping=False
         )
 
+
+    # Filter and create summary after flipping
+    filter_mask = create_filter_mask(sig_i_np, signals, Fs)
+
+    # filter signals for peak counts, amplitudes, and QRS event duration
+    peak_summary_neurokit, _ = calc_peak_summary(
+      signals=signals, sampling_rate=Fs
+    )
+
+
+
   except (ValueError, IndexError, AttributeError):
     if check_flipping == False:
       logging.info(f'neurokit crashed after flipping sample {sample_index} in class {class_id}')
@@ -430,16 +455,22 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
     signals = np.nan
     peak_summary_neurokit = np.nan
   
-  return rpeaks_biosppy, filtered_biosppy, signals, peak_summary_neurokit, feat_i
+  return rpeaks_biosppy, \
+    filtered_biosppy, \
+    signals, \
+    peak_summary_neurokit, \
+    feat_i, \
+    filter_mask, \
+    not check_flipping # is_flipped
 
 
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
-  #short_df_len = 150
-  #df = df.iloc[0:short_df_len]
-  #if isinstance(y, pd.DataFrame):
-  #  y = y.iloc[0:short_df_len]
+  short_df_len = 1000
+  df = df.iloc[0:short_df_len]
+  if isinstance(y, pd.DataFrame):
+    y = y.iloc[0:short_df_len]
 
   # Predefine important variables
   Fs = run_cfg['sampling_rate']
@@ -479,7 +510,7 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   # Define PD as a list array to aggregate extracted sample infos (for later plotting)
   # PD columns: [0:sample id | 1: class id | 2: raw signal| 3: r_peaks_biosspy | 4: filtered biosppy | 5: signals neurokit ]
   # PD rows: number of ecg signals
-  plotData = np.zeros(shape=(df.shape[0], 7), dtype=np.object)
+  plotData = np.zeros(shape=(df.shape[0], len(results[0][2])), dtype=np.object)
 
   for i, res in enumerate(results):
     if no_nan_mask[i] == True:
@@ -496,6 +527,6 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   n_failures = np.sum(np.logical_not(no_nan_mask))
   logging.warning(f'features of {n_failures} samples could not be extracted')
   logging.warning(f'{len(no_nan_mask)-df.shape[0]} samples lost')
-  # app = create_app(plotData)
-  # app.run_server(debug=False)
+  app = create_app(plotData)
+  app.run_server(debug=False)
   return(feat_df, y, plotData, no_nan_mask)

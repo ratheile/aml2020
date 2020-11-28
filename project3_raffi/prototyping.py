@@ -225,14 +225,6 @@ def calculate_num_bits(orig_sig, coeffs_scaled, binary_map, scaling_factors):
       
     return num_bits, PRD
 
-
-
-#%%
-
-crv = X_124.iloc[11, ]
-crv = X_3.iloc[24]
-crv = crv[~np.isnan(crv.values.astype(float))]
-
 #%%
 # coeffs = wavelet_decomposition(crv)
 # f, axes = plt.subplots(nrows=len(coeffs), ncols=1, figsize=(24, 12))
@@ -259,30 +251,37 @@ crv = crv[~np.isnan(crv.values.astype(float))]
 # f, ax = plt.subplots(nrows=1, ncols=1, figsize=(24, 12))
 # ax.plot(list(range(len(crv))), crv)
 
+#%%
 
+crv = X_124.iloc[12, ]
+# crv = X_3.iloc[24]
+crv = crv[~np.isnan(crv.values.astype(float))]
 
 # Automatically process the (raw) ECG signal
 ecg_orig_clean = nk.ecg_clean(crv.values.astype(float))
+#%%
+
 signals, info = nk.ecg_process(ecg_orig_clean, sampling_rate=sample_rate)
+# f, ax = plt.subplots(nrows=1, ncols=1, figsize=(24, 12))
+# ax.plot(list(range(len(ecg_orig_clean))), ecg_orig_clean)
+
 
 #%%
-f, ax = plt.subplots(nrows=1, ncols=1, figsize=(24, 12))
-ax.plot(list(range(len(ecg_orig_clean))), ecg_orig_clean)
-# %%
-
-# %%
 # run analysis
-wd, m = hp.process(ecg_orig_clean, sample_rate)
+hp_sig = ecg_orig_clean
+# hp_sig = hp.filter_signal(hp_sig, 0.9, sample_rate, filtertype='lowpass')
+
+
+hp_sig = hp.remove_baseline_wander(hp_sig, sample_rate)
+hp_sig = hp.scale_data(hp_sig)
+hp_sig = hp.filter_signal(hp_sig, 0.05, sample_rate, filtertype='highpass')
+wd, m = hp.process(hp_sig, sample_rate)
 # wd2, m2 = hp.process(crv, sample_rate)
 
 # visualise in plot of custom size
 plt.figure(figsize=(12, 4))
 hp.plotter(wd, m)
 
-# display computed measures
-for measure in m.keys():
-    print('%s: %f' % (measure, m[measure]))
-# %%
 # %%
 fig1 = nk.ecg_plot(signals, sampling_rate=sample_rate, show_type='default') 
 fig1.set_size_inches(18.5, 10.5)
@@ -296,4 +295,3 @@ peaks, info = nk.ecg_peaks(ecg_orig_clean, sampling_rate=sample_rate)
 fig1 = nk.hrv(peaks, sampling_rate=sample_rate, show=True)
 # %%
 
-# %%
