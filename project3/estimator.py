@@ -128,6 +128,16 @@ class Project3Estimator(BaseEstimator):
       logging.warning('preprocessing disabled for X in fit()')
       logging.warning('preprocessing disabled: this mode should only be used in GridSearchCV')
     
+
+    # delete plot data to free memory
+    X_plot_data = None
+
+    # drop features we don't need
+    drop_features=self.run_cfg['drop_features/enabled']
+    dropped_features_list=self.run_cfg['drop_features/dropped_features']
+    if drop_features:
+      X.drop(columns=dropped_features_list,inplace=True)
+
     #normalize
     flag_normalize = self.run_cfg['preproc/normalize/enabled']
     if flag_normalize:
@@ -175,6 +185,11 @@ class Project3Estimator(BaseEstimator):
     else:
       logging.warning('preprocessing disabled for unlabled X in predict()')
     
+    drop_features=self.run_cfg['drop_features/enabled']
+    dropped_features_list=self.run_cfg['drop_features/dropped_features']
+    if drop_features:
+      X_u.drop(columns=dropped_features_list,inplace=True)
+
     #normalize
     flag_normalize = self.run_cfg['preproc/normalize/enabled']
     if flag_normalize: 
@@ -308,7 +323,10 @@ class Project3Estimator(BaseEstimator):
     # Define features to extract
     feature_list = ['ECG_Quality_Mean', 'ECG_Quality_STD',
                     'ECG_Rate_Mean', 'ECG_HRV',
-                    'R_P_biosppy', 'P_P/R_P', 'Q_P/R_P', 'R_P_neurokit' , 'S_P/R_P', 'T_P/R_P',  #relative number of peaks TODO
+                    'R_P_biosppy', 
+                    'P_P/R_P', 'Q_P/R_P', 
+                    'R_P_neurokit' , 
+                    'S_P/R_P', 'T_P/R_P',  #relative number of peaks TODO
                     'P_Amp_Mean', 'P_Amp_STD', 
                     'Q_Amp_Mean', 'Q_Amp_STD',
                     'R_Amp_Mean', 'R_Amp_STD',
