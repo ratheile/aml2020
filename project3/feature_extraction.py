@@ -108,7 +108,7 @@ def nk2_ecg_process_AML(ecg_signal, sampling_rate=300):
   return signals, rpeaks_info
       
 # Extracted peaks summary
-def calc_peak_summary(signals, sampling_rate):
+def calc_peak_summary(signals, sampling_rate, mask):
 #  method which calculates a subset on entries in feature list  
 #  feature_list = ['ECG_Quality_Mean', 'ECG_Quality_STD',
 #                    'ECG_Rate_Mean', 'ECG_HRV',
@@ -209,84 +209,86 @@ def calc_peak_summary(signals, sampling_rate):
     abs(sig_ss['ECG_Clean'].mean()) > abs(sig_rr['ECG_Clean'].mean())
   ):
     is_flipped = True
-  
-  # QRS duration
-  sig_r_onset = signals[signals['ECG_R_Onsets'] == 1]
-  sig_r_offset = signals[signals['ECG_R_Offsets'] == 1]
-  if (len(sig_r_onset) == len(sig_r_offset)):
-    d_qrs_N = sig_r_offset.index.to_numpy().ravel() - sig_r_onset.index.to_numpy().ravel() #number of samples between R Onset and Offset
-    d_qrs_t = d_qrs_N / sampling_rate
-    d_qrs_t_mean = d_qrs_t.mean()
-    d_qrs_t_std = d_qrs_t.std()
-  else:
-    #TODO: algo in case of unenven peaks
-    d_qrs_t_mean = np.nan
-    d_qrs_t_std = np.nan
+
+
+
+  # # QRS duration
+  # sig_r_onset = signals[signals['ECG_R_Onsets'] == 1]
+  # sig_r_offset = signals[signals['ECG_R_Offsets'] == 1]
+  # if (len(sig_r_onset) == len(sig_r_offset)):
+  #   d_qrs_N = sig_r_offset.index.to_numpy().ravel() - sig_r_onset.index.to_numpy().ravel() #number of samples between R Onset and Offset
+  #   d_qrs_t = d_qrs_N / sampling_rate
+  #   d_qrs_t_mean = d_qrs_t.mean()
+  #   d_qrs_t_std = d_qrs_t.std()
+  # else:
+  #   #TODO: algo in case of unenven peaks
+  #   d_qrs_t_mean = np.nan
+  #   d_qrs_t_std = np.nan
     
-  summary.append(d_qrs_t_mean)
-  summary.append(d_qrs_t_std)
+  # summary.append(d_qrs_t_mean)
+  # summary.append(d_qrs_t_std)
   
-  # PR interval
-  sig_p_onset = signals[signals['ECG_P_Onsets'] == 1]
-  if (len(sig_p_onset) == len(sig_r_onset)):
-    d_pri_N = sig_r_onset.index.to_numpy().ravel() - sig_p_onset.index.to_numpy().ravel() #number of samples between R Onset and P Offset
-    d_pri_t = d_pri_N / sampling_rate
-    d_pri_t_mean = d_pri_t.mean()
-    d_pri_t_std = d_pri_t.std()
-  else:
-    #TODO: in case of unenven R Onset and Offset detection develop more sofisticated algo to check which peaks can be retained?
-    d_pri_t_mean = np.nan
-    d_pri_t_std = np.nan
+  # # PR interval
+  # sig_p_onset = signals[signals['ECG_P_Onsets'] == 1]
+  # if (len(sig_p_onset) == len(sig_r_onset)):
+  #   d_pri_N = sig_r_onset.index.to_numpy().ravel() - sig_p_onset.index.to_numpy().ravel() #number of samples between R Onset and P Offset
+  #   d_pri_t = d_pri_N / sampling_rate
+  #   d_pri_t_mean = d_pri_t.mean()
+  #   d_pri_t_std = d_pri_t.std()
+  # else:
+  #   #TODO: in case of unenven R Onset and Offset detection develop more sofisticated algo to check which peaks can be retained?
+  #   d_pri_t_mean = np.nan
+  #   d_pri_t_std = np.nan
   
-  summary.append(d_pri_t_mean)
-  summary.append(d_pri_t_std)
+  # summary.append(d_pri_t_mean)
+  # summary.append(d_pri_t_std)
   
-  # PR segment
-  sig_p_offset = signals[signals['ECG_P_Offsets'] == 1]
-  if (len(sig_p_offset) == len(sig_r_onset)):
-    d_prs_N = sig_r_onset.index.to_numpy().ravel() - sig_p_offset.index.to_numpy().ravel() #number of samples between P Offset and R Onset
-    d_prs_t = d_prs_N / sampling_rate
-    d_prs_t_mean = d_prs_t.mean()
-    d_prs_t_std = d_prs_t.std()
-  else:
-    #TODO: algo in case of unenven peaks
-    d_prs_t_mean = np.nan
-    d_prs_t_std = np.nan
+  # # PR segment
+  # sig_p_offset = signals[signals['ECG_P_Offsets'] == 1]
+  # if (len(sig_p_offset) == len(sig_r_onset)):
+  #   d_prs_N = sig_r_onset.index.to_numpy().ravel() - sig_p_offset.index.to_numpy().ravel() #number of samples between P Offset and R Onset
+  #   d_prs_t = d_prs_N / sampling_rate
+  #   d_prs_t_mean = d_prs_t.mean()
+  #   d_prs_t_std = d_prs_t.std()
+  # else:
+  #   #TODO: algo in case of unenven peaks
+  #   d_prs_t_mean = np.nan
+  #   d_prs_t_std = np.nan
   
-  summary.append(d_prs_t_mean)
-  summary.append(d_prs_t_std)
+  # summary.append(d_prs_t_mean)
+  # summary.append(d_prs_t_std)
   
-  # QT interval
-  sig_t_offset = signals[signals['ECG_T_Offsets'] == 1]
-  if (len(sig_t_offset) == len(sig_r_onset)):
-    d_qti_N = sig_t_offset.index.to_numpy().ravel() - sig_r_onset.index.to_numpy().ravel() #number of samples between T Offset and R Onset
-    d_qti_t = d_qti_N / sampling_rate
-    d_qti_t_mean = d_qti_t.mean()
-    d_qti_t_std = d_qti_t.std()
-  else:
-    #TODO: algo in case of unenven peaks
-    d_qti_t_mean = np.nan
-    d_qti_t_std = np.nan
+  # # QT interval
+  # sig_t_offset = signals[signals['ECG_T_Offsets'] == 1]
+  # if (len(sig_t_offset) == len(sig_r_onset)):
+  #   d_qti_N = sig_t_offset.index.to_numpy().ravel() - sig_r_onset.index.to_numpy().ravel() #number of samples between T Offset and R Onset
+  #   d_qti_t = d_qti_N / sampling_rate
+  #   d_qti_t_mean = d_qti_t.mean()
+  #   d_qti_t_std = d_qti_t.std()
+  # else:
+  #   #TODO: algo in case of unenven peaks
+  #   d_qti_t_mean = np.nan
+  #   d_qti_t_std = np.nan
   
-  summary.append(d_qti_t_mean)
-  summary.append(d_qti_t_std)
+  # summary.append(d_qti_t_mean)
+  # summary.append(d_qti_t_std)
   
-  # ST segment
-  sig_t_onset = signals[signals['ECG_T_Onsets'] == 1]
-  if (len(sig_t_onset) == len(sig_r_offset)):
-    d_sts_N = sig_t_onset.index.to_numpy().ravel() - sig_r_offset.index.to_numpy().ravel() #number of samples between T Onset and R Offset
-    d_sts_t = d_sts_N / sampling_rate
-    d_sts_t_mean = d_sts_t.mean()
-    d_sts_t_std = d_sts_t.std()
-  else:
-    #TODO: algo in case of unenven peaks
-    d_sts_t_mean = np.nan
-    d_sts_t_std = np.nan
+  # # ST segment
+  # sig_t_onset = signals[signals['ECG_T_Onsets'] == 1]
+  # if (len(sig_t_onset) == len(sig_r_offset)):
+  #   d_sts_N = sig_t_onset.index.to_numpy().ravel() - sig_r_offset.index.to_numpy().ravel() #number of samples between T Onset and R Offset
+  #   d_sts_t = d_sts_N / sampling_rate
+  #   d_sts_t_mean = d_sts_t.mean()
+  #   d_sts_t_std = d_sts_t.std()
+  # else:
+  #   #TODO: algo in case of unenven peaks
+  #   d_sts_t_mean = np.nan
+  #   d_sts_t_std = np.nan
   
-  summary.append(d_sts_t_mean)
-  summary.append(d_sts_t_std)
+  # summary.append(d_sts_t_mean)
+  # summary.append(d_sts_t_std)
   
-  return summary, is_flipped
+  return summary, is_flipped, feature_names
 
 
 def biosppy_preprocessor(sig_i_np, Fs, sample_index, class_id, enabled):
@@ -338,7 +340,7 @@ def nk2_signal_statistics(signals, peak_summary_neurokit, df_analyze, rpeaks_bio
 
 # TODO: remove_outlier, ecg_quality_check
 def process_signal(sig_i_np, y,  sample_index,
-                  sampling_rate, feature_list,
+                  sampling_rate, 
                   remove_outlier, biosppy_enabled, ecg_quality_check, check_is_flipped):
   
   ######################### Set Flags & Remove NaN etc #########################
@@ -355,11 +357,11 @@ def process_signal(sig_i_np, y,  sample_index,
 
   # perform the data extraction / flipping / etc.
   rpeaks_biosppy, filtered_biosppy, signals, \
-  peak_summary_neurokit, feat_i, filter_mask, is_flipped  = recursion(
+  peak_summary_neurokit, feat_i, \
+    filter_mask, is_flipped, feature_names = recursion(
     sig_i_np, Fs,
     sample_index,
     class_id,
-    feature_list,
     biosppy_enabled=biosppy_enabled,
     check_flipping=check_is_flipped
   )
@@ -402,7 +404,7 @@ def process_signal(sig_i_np, y,  sample_index,
 
 
 def recursion(sig_i_np, Fs, sample_index, class_id, 
-              feature_list, biosppy_enabled, check_flipping=True):
+              biosppy_enabled, check_flipping=True):
   ######################### 1. biosppy trial #########################
   # Try raw biosppy preprocessing first before we try to use neurokit
   rpeaks_biosppy, filtered_biosppy = biosppy_preprocessor(
@@ -410,7 +412,7 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
 
   # feat_i config using just the biosppy information (minimal config)
   no_rpeaks_biosppy = len(rpeaks_biosppy)
-  n = len(feature_list)
+  n = len(feature_list) # TODO FIX HARDCODE
   feat_i = [np.nan]*n
   feat_i[5] = no_rpeaks_biosppy #maybe biosppy worked
   signals = np.nan #initialize with False will check and flip signals
@@ -425,8 +427,9 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
       signals, info = nk2_ecg_process_AML(sig_i_np, sampling_rate=Fs)
 
     # filter signals for peak counts, amplitudes, and QRS event duration
-    _ , is_flipped = calc_peak_summary(
-      signals=signals, sampling_rate=Fs
+    filter_mask = np.ones(sig_i_np.shape[0], dtype=np.bool_)
+    _ , is_flipped, _ = calc_peak_summary(
+      signals=signals, sampling_rate=Fs, mask=filter_mask
     )
 
     #repeat feature extraction with flipped signal
@@ -436,17 +439,16 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
       #mirror the signal
       sig_i_np = -sig_i_np
       return recursion( 
-          sig_i_np, Fs, sample_index, class_id, feature_list,
+          sig_i_np, Fs, sample_index, class_id,
           biosppy_enabled, check_flipping=False
         )
-
 
     # Filter and create summary after flipping
     filter_mask = create_filter_mask(sig_i_np, signals, Fs)
 
     # filter signals for peak counts, amplitudes, and QRS event duration
-    peak_summary_neurokit, _ = calc_peak_summary(
-      signals=signals, sampling_rate=Fs
+    peak_summary_neurokit, _, feature_names = calc_peak_summary(
+      signals=signals, sampling_rate=Fs, mask=filter_mask
     )
 
 
@@ -465,11 +467,12 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
     peak_summary_neurokit, \
     feat_i, \
     filter_mask, \
-    not check_flipping # is_flipped
+    not check_flipping, \
+    feature_names
 
 
 # Extract features from ECGs
-def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
+def extract_features(run_cfg, env_cfg, df, y=None, verbose=False):
 
   # short_df_len = 1000
   # df = df.iloc[0:short_df_len]
@@ -497,7 +500,7 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
         df.iloc[i, :],
         y, 
         i, # sample index
-        Fs, feature_list, 
+        Fs, 
         remove_outlier, biosppy_enabled, ecg_quality_check, check_is_flipped # flags
       )
       
@@ -506,6 +509,8 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   # res is a touple (features, class_id)
   no_nan_mask =  [np.sum(np.isnan(res[0][0:14])) == 0 for res in results]
 
+  # take the feature list from the first sample because its  length is constant
+  feature_list = results[0][0].columns
   # Define F array to aggregate extracted sample features
   F=np.zeros([df.shape[0],len(feature_list)])
 

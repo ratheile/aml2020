@@ -143,3 +143,22 @@ def quality_check_old(sig, sample_rate):
     success = False
 
   return filter_mask, success
+
+
+
+def rpeaks_window(signals, filter_mask, sample_rate):
+  #%% hearbeat mask for francesco
+  signal_clean = signals["ECG_Clean"]
+  hb_peaks = np.where(signals["ECG_R_Peaks"] == 1)[0]
+  heartbeats = nk.ecg_segment(signal_clean, hb_peaks, sample_rate)
+  rpeaks_0_1 = signals['ECG_R_Peaks']
+  rpeaks_window_dict = {}
+  for key, df in heartbeats.items():
+    epoch_mask = np.zeros((signal_clean.shape[0]), dtype=np.bool_)
+    epoch_mask[df['Index'].values] = True
+    peak_ind = np.logical_and(epoch_mask, filter_mask)
+    peak_ind = np.logical_and(peak_ind, rpeaks_0_1)
+    where = np.where(peak_ind)[0]
+    if len(where) > 0:
+      assert len(where) == 1
+      rpeaks_window_dict[where[0]] = (key, df)
