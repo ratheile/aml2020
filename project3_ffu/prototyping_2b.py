@@ -281,7 +281,10 @@ rpeaks_0_1 = signals['ECG_R_Peaks']
 rpeaks_window_dict = {}
 for key, df in heartbeats.items():
   epoch_mask = np.zeros((crv.shape[0]), dtype=np.bool_)
-  epoch_mask[df['Index'].values] = True
+  unbounded_mask = df['Index'].values
+  bounded_mask = unbounded_mask[unbounded_mask < crv.shape[0]]
+  bounded_mask= bounded_mask[bounded_mask >= 0]
+  epoch_mask[bounded_mask] = True
   peak_ind = np.logical_and(epoch_mask, filter_mask)
   peak_ind = np.logical_and(peak_ind, rpeaks_0_1)
   where = np.where(peak_ind)[0]
@@ -435,11 +438,11 @@ fig.add_trace(
     go.Scatter(x=time_ax, y=crv, name='raw_signal'),
     row=1, col=1
 )
-for i in range(show_n_epochs):
-  fig.add_trace(
-      go.Scatter(x=time_ax, y=epoch_mask[:,i].astype(float) * 1000, name='epoch_mask'),
-      row=1, col=1
-  )
+# for i in range(show_n_epochs):
+#   fig.add_trace(
+#       go.Scatter(x=time_ax, y=epoch_mask[:,i].astype(float) * 1000, name='epoch_mask'),
+#       row=1, col=1
+#   )
 fig.add_trace(
     go.Scatter(x=time_ax, y=filtered_biosppy, name='filtered_bspy'),
     row=1, col=1
