@@ -483,8 +483,6 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   ecg_quality_check=run_cfg['preproc/ecg_quality_check/enabled']
   ecg_quality_threshold=run_cfg['preproc/ecg_quality_threshold']
   check_is_flipped=run_cfg['preproc/check_is_flipped/enabled']
-  drop_features=run_cfg['preproc/drop_features/enabled']
-  dropped_features_list=run_cfg['preproc/drop_features/dropped_features']
 
   if remove_outlier:
     logging.info('Removing ecg outliers with pyheart... NOT IMPLEMENTED YET!')
@@ -523,10 +521,6 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
   # TODO: maybe plot the failing ones as well
   feat_df = pd.DataFrame(data=F,columns=feature_list)
-  
-  # TODO: drop features we don't need
-  if drop_features:
-    feat_df.drop(columns=dropped_features_list,inplace=True)
 
   n_failures = np.sum(np.logical_not(no_nan_mask))
   logging.warning(f'features of {n_failures} samples could not be extracted')

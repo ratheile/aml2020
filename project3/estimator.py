@@ -132,6 +132,12 @@ class Project3Estimator(BaseEstimator):
     # delete plot data to free memory
     X_plot_data = None
 
+    # drop features we don't need
+    drop_features=self.run_cfg['drop_features/enabled']
+    dropped_features_list=self.run_cfg['drop_features/dropped_features']
+    if drop_features:
+      X.drop(columns=dropped_features_list,inplace=True)
+
     #normalize
     flag_normalize = self.run_cfg['preproc/normalize/enabled']
     if flag_normalize:
@@ -179,6 +185,11 @@ class Project3Estimator(BaseEstimator):
     else:
       logging.warning('preprocessing disabled for unlabled X in predict()')
     
+    drop_features=self.run_cfg['drop_features/enabled']
+    dropped_features_list=self.run_cfg['drop_features/dropped_features']
+    if drop_features:
+      X_u.drop(columns=dropped_features_list,inplace=True)
+
     #normalize
     flag_normalize = self.run_cfg['preproc/normalize/enabled']
     if flag_normalize: 
