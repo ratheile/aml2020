@@ -125,9 +125,9 @@ X_124 = X.iloc[y != 3]
 X_3 = X.iloc[y == 3]
 # crv = X_124.iloc[13, ]
 # crv = X_124.iloc[10, ] # T peaks onto R peaks
-# crv = X_124.iloc[11, ] # Filtering demo 
+crv = X_124.iloc[11, ] # Filtering demo 
 # crv = X_124.iloc[3, ]
-crv = X_3.iloc[2,]
+# crv = X_3.iloc[2,]
 crv = crv[~np.isnan(crv.values.astype(float))]
 
 crv_df = pd.DataFrame({
@@ -279,6 +279,20 @@ epoch_mask = np.zeros((crv.shape[0],show_n_epochs), dtype=np.bool_)
 
 for i in range(show_n_epochs):
   epoch_mask[heartbeats[str(i+1)]['Index'].values, i] = True
+
+#%% hearbeat mask for francesco
+rpeaks_0_1 = signals['ECG_R_Peaks']
+rpeaks_window_dict = {}
+for key, df in heartbeats.items():
+  epoch_mask = np.zeros((crv.shape[0]), dtype=np.bool_)
+  epoch_mask[df['Index'].values] = True
+  peak_ind = np.logical_and(epoch_mask, filter_mask)
+  peak_ind = np.logical_and(peak_ind, rpeaks_0_1)
+  where = np.where(peak_ind)[0]
+  if len(where) > 0:
+    assert len(where) == 1
+    rpeaks_window_dict[where[0]] = (key, df)
+
 #%%
 ###################### Extract Segment Lengths for one signal #################
 #define array where to store the data
@@ -414,11 +428,6 @@ for i in range(len(r_f)):
 
 # aggregate into dataframe and compute mean and std for the
 E_df = pd.DataFrame(data=E) 
-    
-    
-    
-  
-
     
     
 #%%
