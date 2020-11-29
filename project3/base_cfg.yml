@@ -7,7 +7,7 @@ persistence:
 sampling_rate: 300
 
 preproc:
-  enabled: true
+  enabled: true #set to false for cv and gridsearch
   verbose: true
   remove_outlier: #TODO: outlier detection to detect class 3
     enabled: true
@@ -24,6 +24,8 @@ preproc:
   imputer:
     type: 'knn' # 'simple' or 'knn'
     strategy: 'median' # works with 'mean', 'median', 'most_frequent'
+    n_neighbors: 5 #for knn, default is 5
+    weights: 'uniform' #for knn, default is 'uniform'
 
   filtering:
     enabled: True
@@ -37,14 +39,14 @@ preproc:
     method: standard
     use_pretrained_for_X_u: True
     
-fit_model: svc
+fit_model: 'svc'
 
 models:
   svc:
-    C: 1.0 
+    C: 10.0 
     kernel: 'rbf' 
     degree: 3 # ignored if kernel not poly
-    gamma: 'scale' 
+    gamma: 0.03 
 
     # Independent term in kernel function.
     # It is only significant in ‘poly’ and ‘sigmoid’.
@@ -63,10 +65,14 @@ models:
     learning_rate: 0.1 # default 0.1
     num_iterations: 1000 # default 100
     boosting_type: dart # default gbdt [dart, goss, rf]
-    class_weight:
-      0: 1
-      1: 1
-      2: 1
+    class_weight: balanced
+  
+  rfc: #random forest classifier
+    max_depth: 20 #default none: If None, then nodes are expanded until all leaves are pure or until all leaves contain less than min_samples_split samples.
+    #min_sample_split: 2 #default 2
+    n_estimators: 100   #default 100
+    max_features: 'auto' #max_features=sqrt(n_features), same as 'sqrt'
+    class_weight: 'balanced_subsample'
 
 # https://scikit-learn.org/stable/modules/model_evaluation.html
 scoring: 'f1_micro' 

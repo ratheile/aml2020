@@ -9,6 +9,8 @@ import os
 repopath = '/Users/francescofusaro/Documents/Github/aml2020'
 os.chdir(repopath)
 
+import hashlib
+
 from biosppy.signals import ecg
 #from ecgdetectors import Detectors
 #from hrv import HRV
@@ -55,7 +57,7 @@ def split_classes(X,y):
     
     return(df_X0, df_X1, df_X2, df_X3)
 
-##% Define more flexible ecg_process function
+#%% Define more flexible ecg_process function
 def ecg_process_AML(ecg_signal, sampling_rate=1000, method="neurokit"):
     """Process an ECG signal as original neurokit2 function, see:
     https://neurokit2.readthedocs.io/en/latest/_modules/neurokit2/ecg/ecg_process.html#ecg_process
@@ -93,7 +95,7 @@ def ecg_process_AML(ecg_signal, sampling_rate=1000, method="neurokit"):
     
     if ecg_preprocess_delineate_method != 'peak':
         # 'dwt' and 'cwt' Unlike the peak method, 'dwt' and 'cwt' does not idenfity the Q-peaks and S-peaks.
-        delineate_signal_peak, delineate_info = nk.ecg.ecg_delineate(
+        delineate_signal_peak, delineate_info_peak = nk.ecg.ecg_delineate(
         ecg_cleaned=ecg_cleaned, rpeaks=rpeaks, sampling_rate=sampling_rate, method='peak' 
         )
         delineate_signal['ECG_Q_Peaks'] = delineate_signal_peak['ECG_Q_Peaks']
@@ -332,6 +334,7 @@ X2_features, X2_plotData = extract_features(df=X2,
                                )
 X2_features.head()
 #%% Write pickle or similar
-#TODO: write to pickle or similar for the features dataframes and ecg prepocessing
-
-# %%
+save_pickle = True
+if save_pickle:
+    df_hash_f = lambda obj: hashlib.sha1(pd.util.hash_pandas_object(obj).values).hexdigest()
+    X2_features_hash = df_hash_f(X2_features)

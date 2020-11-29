@@ -183,7 +183,7 @@ wd_rejected_x = wd['removed_beats']
 # %% filtering using the above
 # find peaks who deviate from the median peak
 filter_mask = np.ones(crv.shape[0], dtype=np.bool_)
-rpeaks = vec_to_ind(signals['ECG_R_Peaks'])
+rpeaks = np.array(vec_to_ind(signals['ECG_R_Peaks'])
 rpeak_vals = crv[rpeaks] 
 rpeak_tshd = np.median(rpeak_vals) + rpeak_vals.std()
 
@@ -208,8 +208,8 @@ regions = np.zeros((len(all_rejected),2), dtype=np.int)
 regions[:,0] = all_rejected - delta
 regions[:,1] = all_rejected + delta
 
-p_ons = vec_to_ind(signals['ECG_P_Onsets'])
-t_off = vec_to_ind(signals['ECG_T_Offsets'])
+p_ons = np.array(vec_to_ind(signals['ECG_P_Onsets'])
+t_off = np.array(vec_to_ind(signals['ECG_T_Offsets'])
 
 # def rolling_window(a, window):
 #   shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
@@ -280,18 +280,37 @@ for i in range(show_n_epochs):
 #define array where to store the data
 #|0|1|2|3|4|5|6|7|8|9|10|
 #|p_ons|p|p_off|r_ons|q|r|s|r_off|t_ons|t|t_off|
-n_peak_types = 11
-ep_idx_init = np.array([np.nan]*n_peak_types)
-ep_i_p_idx = ep_idx_init
-ep_i_dist_init = np.array([np.nan]*55)
-
-def pick_a_peak(summary,idx,peak_list):
-  summary[idx] = peak_list[0]
-  peak_list = peak_list[1:]
+def init_arrays():
+  n_peak_types = 11
+  ep_idx_init = np.array([np.nan]*n_peak_types)
+  ep_i_dist_init = np.array([np.nan]*55)
   
-  return summary, peak_list
+  return ep_idx_init, ep_i_dist_init
 
-def calc_distances(peak_idx):
+def find_nearest(array, value):
+  array = np.asarray(array)
+  idx = (np.abs(array - value)).argmin()
+  return array[idx]
+
+def pick_a_peak(summary,idx,r_peak,sec_peaks_vec,to_the):
+  
+  #check for candidates
+  if to_the == 'left':
+    sec_peaks_vec[np.greater(r_peak,sec_peaks_vec)]
+    if len(sec_peaks_vec) > 0:
+      #find the the nearest
+      p_idx = find_nearest(sec_peaks_vec,r_peak)
+      summary[idx]=p_idx
+  elif to_the == 'right':
+    sec_peaks_vec[~np.greater(r_peak,sec_peaks_vec)]
+    if len(sec_peaks_vec) > 0:
+      #find the the nearest
+      p_idx = find_nearest(sec_peaks_vec,r_peak)
+      summary[idx]=p_idx
+    
+  return summary
+
+def calc_distances(ep_i_p_idx):
   #p_ons
   #|p|p_off|r_ons|q|r|s|r_off|t_ons|t|t_offs|  0:9 len10
   #p
@@ -324,68 +343,35 @@ killed_idx_ratio = 1-len(sig_filtered)/len(signals)
 #TODO: kill the sample if good to bad is below 10%?
 
 #extract indexes
-r_f = vec_to_ind(sig_filtered['ECG_R_Peaks'])
-p_ons_f = vec_to_ind(sig_filtered['ECG_P_Onsets'])
-p_f = vec_to_ind(sig_filtered['ECG_P_Peaks'])
-p_off_f = vec_to_ind(sig_filtered['ECG_P_Offsets'])
-r_ons_f = vec_to_ind(sig_filtered['ECG_R_Onsets'])
-q_f = vec_to_ind(sig_filtered['ECG_Q_Peaks'])
-s_f = vec_to_ind(sig_filtered['ECG_S_Peaks'])
-r_off_f = vec_to_ind(sig_filtered['ECG_R_Offsets'])
-t_ons_f = vec_to_ind(sig_filtered['ECG_T_Onsets'])
-t_f = vec_to_ind(sig_filtered['ECG_T_Peaks'])
-t_off_f = vec_to_ind(sig_filtered['ECG_T_Offsets'])
-
+r_f = np.array(vec_to_ind(sig_filtered['ECG_R_Peaks']))
+p_ons_f = np.array(vec_to_ind(sig_filtered['ECG_P_Onsets']))
+p_f = np.array(vec_to_ind(sig_filtered['ECG_P_Peaks']))
+p_off_f = np.array(vec_to_ind(sig_filtered['ECG_P_Offsets']))
+r_ons_f = np.array(vec_to_ind(sig_filtered['ECG_R_Onsets']))
+q_f = np.array(vec_to_ind(sig_filtered['ECG_Q_Peaks']))
+s_f = np.array(vec_to_ind(sig_filtered['ECG_S_Peaks']))
+r_off_f = np.array(vec_to_ind(sig_filtered['ECG_R_Offsets']))
+t_ons_f = np.array(vec_to_ind(sig_filtered['ECG_T_Onsets']))
+t_f = np.array(vec_to_ind(sig_filtered['ECG_T_Peaks']))
+t_off_f = np.array(vec_to_ind(sig_filtered['ECG_T_Offsets']))
+#%%
 #loop through each epoch (r_peaks) and extract corresponding secondary peaks
-E= np.zeros(shape=(len(r_f),55)) # r_peaks * 47 distances measure in each epoch
-for i in range(len(r_f)):
+E= np.zeros(shape=(len(r_f),55)) # r_peaks * 55 distances measure in each epoch
+for i in range(1):
+  init_ep_i_idx, _ = init_arrays()
+  ep_i_p_idx = init_ep_i_idx
   #to the left
-  if len(p_ons_f)>0 and np.sum(np.greater(r_f[i],p_ons_f))==1:
-    ep_i_p_idx, p_ons_f = pick_a_peak(ep_i_p_idx,0,p_ons_f)
-    
-  if len(p_f)>0 and np.sum(np.greater(r_f[i],p_f))==1:
-    ep_i_p_idx, p_f = pick_a_peak(ep_i_p_idx,1,p_f)
-  
-  if len(p_off_f)>0 and np.sum(np.greater(r_f[i],p_off_f))==1:
-    ep_i_p_idx, p_off_f = pick_a_peak(ep_i_p_idx,2,p_off_f)
-  
-  if len(r_ons_f)>0 and np.sum(np.greater(r_f[i],r_ons_f))==1:
-    ep_i_p_idx, r_ons_f = pick_a_peak(ep_i_p_idx,3,r_ons_f)
-  
-  if len(q_f)>0 and np.sum(np.greater(r_f[i],q_f))==1:
-    ep_i_p_idx, q_f = pick_a_peak(ep_i_p_idx,4,q_f)
+  sec_peaks_left = [p_ons_f,p_f,p_off_f,r_ons_f,q_f]
+  for idx, sec_peak_v in enumerate(sec_peaks_left):
+      ep_i_p_idx = pick_a_peak(ep_i_p_idx,idx,r_f[i],sec_peak_v,'left')
   
   ep_i_p_idx[5]=r_f[i]
   
   #to the right
-  if i < len(r_f)-1:
-    if len(s_f)>0 and np.sum(np.greater(r_f[i+1],s_f))==1:
-      ep_i_p_idx, s_f = pick_a_peak(ep_i_p_idx,6,s_f)
-    
-    if len(r_off_f)>0 and np.sum(np.greater(r_f[i+1],r_off_f))==1:
-      ep_i_p_idx, r_off_f = pick_a_peak(ep_i_p_idx,7,r_off_f)
-      
-    if len(t_ons_f)>0 and np.sum(np.greater(r_f[i+1],t_ons_f))==1:
-      ep_i_p_idx, t_ons_f = pick_a_peak(ep_i_p_idx,8,t_ons_f)
-      
-    if len(t_f)>0 and np.sum(np.greater(r_f[i+1],t_f))==1:
-      ep_i_p_idx, t_f = pick_a_peak(ep_i_p_idx,9,t_f)
-      
-    if len(t_off_f)>0 and np.sum(np.greater(r_f[i+1],t_off_f))==1:
-      ep_i_p_idx, t_off_f = pick_a_peak(ep_i_p_idx,10,t_off_f)
-    
-    else:
-      #TODO: assign the remaining secondary peaks if any
-      if len(s_f) > 0:
-        ep_i_p_idx[6]=s_f[0]
-      if len(r_off_f) > 0:
-        ep_i_p_idx[7]=r_off_f[0]
-      if len(t_ons_f) > 0:
-        ep_i_p_idx[8]=t_ons_f[0]
-      if len(t_f) > 0:
-        ep_i_p_idx[9]=t_f[0]
-      if len(t_off_f) > 0:
-        ep_i_p_idx[10]=t_off_f[0]
+  sec_peaks_right = [s_f,r_off_f,t_ons_f,t_f,t_off_f]
+  idx_offset = 6
+  for idx, sec_peak_v in enumerate(sec_peaks_right):
+      ep_i_p_idx = pick_a_peak(ep_i_p_idx,idx+idx_offset,r_f[i],sec_peak_v,'right')
         
   #TODO: count the nans and reject the epoch if too many are missing?
   #compute the distances
@@ -395,17 +381,17 @@ for i in range(len(r_f)):
   #set to nan
     
   #compute the distances in the epoch
-  if np.all(np.diff(ep_idx_init[~np.isnan(ep_i_p_idx)])) > 0:
+  if np.all(np.diff(ep_i_p_idx[~np.isnan(ep_i_p_idx)])) > 0:
     ep_i_dist = calc_distances(ep_i_p_idx)
   else:
     #logging.warning(f'secondary peak detection for epoch {i} failed')
+    _, ep_i_dist_init = init_arrays()
     ep_i_dist = ep_i_dist_init
     
   #store and go to the next epoch
   E[i]=-ep_i_dist[:]
-  ep_i_p_idx = ep_idx_init
 
-# aggregate into dataframe and compute mean and std for the
+# aggregate into dataframe and compute mean and std for the signal
 E_df = pd.DataFrame(data=E) 
     
     
@@ -521,8 +507,8 @@ plot_points(signals, 'ECG_P_Onsets', color='orange')
 plot_points(signals, 'ECG_T_Peaks', color='red')
 plot_points(signals, 'ECG_T_Offsets', color='red')
 
-p_ons = vec_to_ind(signals['ECG_P_Onsets'])
-t_off = vec_to_ind(signals['ECG_T_Offsets'])
+p_ons = np.array(vec_to_ind(signals['ECG_P_Onsets'])
+t_off = np.array(vec_to_ind(signals['ECG_T_Offsets'])
 plot_points(signals, 'ECG_P_Onsets', color='orange', y=quality_nk2, row=3 )
 plot_points(signals, 'ECG_T_Offsets', color='red', y=quality_nk2, row=3)
 
