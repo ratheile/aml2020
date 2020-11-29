@@ -327,8 +327,9 @@ def find_nearest(array, value):
   idx = (np.abs(array - value)).argmin()
   return array[idx]
 
-def pick_a_peak(summary,idx,r_peak,sec_peaks_vec,to_the,window_bounds):
+def pick_a_peak(summary,idx,r_peak,sec_peaks_vec,to_the,window_bounds,sb):
   
+  #TODO: what needs to be done with signal bound?
   #check for candidates
   if to_the == 'left':
     v = sec_peaks_vec[np.logical_and(np.greater_equal(r_peak,sec_peaks_vec),np.less(window_bounds[0],sec_peaks_vec))]
@@ -375,16 +376,23 @@ def rpeaks_window_bounds(r_peak_id,rpeaks_window_dict,eps):
     ub = df_wind.Index.max() + eps
     
     return np.array([lb,ub])
+
+def clean_signal_bounds(signals):
+  lb = 0
+  ub = max(signals.index)
+  
+  return np.array(lb,ub)
     
 E= np.zeros(shape=(len(r_f),55)) # r_peaks * 55 distances measure in each epoch
 for i in range(len(r_f)):
   init_ep_i_idx, _ = init_arrays()
   ep_i_p_idx = init_ep_i_idx
   window_bounds = rpeaks_window_bounds(r_f[i],rpeaks_window_dict,50)
+  signal_bounds = clean_signal_bounds(signals)
   #to the left
   sec_peaks_left = [p_ons_f,p_f,p_off_f,r_ons_f,q_f]
   for idx, sec_peak_v in enumerate(sec_peaks_left):
-      ep_i_p_idx = pick_a_peak(ep_i_p_idx,idx,r_f[i],sec_peak_v,'left', window_bounds)
+      ep_i_p_idx = pick_a_peak(ep_i_p_idx,idx,r_f[i],sec_peak_v,'left', window_bounds,signal_bounds)
   
   ep_i_p_idx[5]=r_f[i]
   
