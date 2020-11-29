@@ -122,12 +122,12 @@ y = df_y.iloc[:, 1:].values.ravel()
 X_u = df_X.iloc[:, 1:]
 
 X_124 = X.iloc[y != 3]
-X_3 = X.iloc[y == 3]
+#X_3 = X.iloc[y == 3]
 # crv = X_124.iloc[13, ]
 # crv = X_124.iloc[10, ] # T peaks onto R peaks
-# crv = X_124.iloc[11, ] # Filtering demo 
+crv = X_124.iloc[11, ] # Filtering demo 
 # crv = X_124.iloc[3, ]
-crv = X_3.iloc[2,]
+#crv = X_3.iloc[2,]
 crv = crv[~np.isnan(crv.values.astype(float))]
 
 crv_df = pd.DataFrame({
@@ -413,7 +413,38 @@ for i in range(len(r_f)):
   E[i]=-ep_i_dist[:]
 
 # aggregate into dataframe and compute mean and std for the signal
-E_df = pd.DataFrame(data=E) 
+E_df = pd.DataFrame(data=E)
+
+#%% create dataframe column names
+def dist_df_colnames(app):
+  #|0|1|2|3|4|5|6|7|8|9|10|
+  #|p_ons|p|p_off|r_ons|q|r|s|r_off|t_ons|t|t_off|
+  nk_names = ['ECG_P_Onsets','ECG_P_Peaks','ECG_P_Offsets',
+              'ECG_R_Onsets','ECG_Q_Peaks','ECG_R_Peaks',
+              'ECG_S_Peaks','ECG_R_Offsets','ECG_T_Onsets',
+              'ECG_T_Peaks', 'ECG_T_Offsets']
+  new_names = []
+  for n in range(0,len(nk_names)-1):
+    for i in range(n+1,len(nk_names)):
+      new_names.append("".join(nk_names[n]+'.'+nk_names[i]+app))
+  return new_names
+    
+#%% consolidate the distance data frame
+mean_ls = []
+std_ls = []
+for col_id in E_df.columns:
+  mean = E_df.iloc[:,col_id].mean()
+  std = E_df.iloc[:,col_id].std()
+  mean_ls.append(mean)
+  std_ls.append(std)
+
+mean_ls.extend(std_ls)
+res = np.array(mean_ls)
+col_name = dist_df_colnames('.mean')
+col_name_std = dist_df_colnames('.std')
+col_name.extend(col_name_std)
+Dist_i_df = pd.DataFrame([res],columns=col_name)
+
 #%%
 ########################### Plotting ##############################
 fig = make_subplots(rows=3, cols=1,
