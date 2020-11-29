@@ -155,7 +155,10 @@ def rpeaks_window(signals, filter_mask, sample_rate):
   rpeaks_window_dict = {}
   for key, df in heartbeats.items():
     epoch_mask = np.zeros((signal_clean.shape[0]), dtype=np.bool_)
-    epoch_mask[df['Index'].values] = True
+    unbounded_mask = df['Index'].values
+    bounded_mask = unbounded_mask[unbounded_mask < signal_clean.shape[0]]
+    bounded_mask= bounded_mask[bounded_mask >= 0]
+    epoch_mask[bounded_mask] = True
     peak_ind = np.logical_and(epoch_mask, filter_mask)
     peak_ind = np.logical_and(peak_ind, rpeaks_0_1)
     where = np.where(peak_ind)[0]
