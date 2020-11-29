@@ -2,7 +2,7 @@
 persistence:
   load_from_file: false
   save_to_file: true 
-  save_plot_data: true
+  save_plot_data: false
 
 sampling_rate: 300
 
