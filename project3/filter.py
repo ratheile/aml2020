@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+import warnings
 
 import heartpy as hp
 import neurokit2 as nk
@@ -26,18 +27,30 @@ def set_to_closest(indicies, in_arr, to_the):
 
 
 def heartpy_filter(hp_sig, sample_rate):
-  hp_sig = hp.remove_baseline_wander(hp_sig, sample_rate)
-  hp_sig = hp.scale_data(hp_sig)
-  wd, m = hp.process(hp_sig, sample_rate)
-  wd_rejected_x = wd['removed_beats']
-  return wd_rejected_x
+  with warnings.catch_warnings():
+    # The maximal number of iterations maxit (set to 20 by the program)
+    # allowed for finding a smoothing spline with fp=s has been reached: s
+    # too small.
+    # There is an approximation returned but the corresponding weighted sum
+    # of squared residuals does not satisfy the condition abs(fp-s)/s < tol.
+    warnings.simplefilter("ignore", category=UserWarning)
+    # RuntimeWarning: Mean of empty slice.
+    warnings.simplefilter("ignore", category=RuntimeWarning)
+    hp_sig = hp.remove_baseline_wander(hp_sig, sample_rate)
+    hp_sig = hp.scale_data(hp_sig)
+    wd, m = hp.process(hp_sig, sample_rate)
+    wd_rejected_x = wd['removed_beats']
+    return wd_rejected_x
 
 # Requirements
 # signals come from signals, info = nk2_ecg_process_AML(crv)
 def create_filter_mask(crv, signals, sample_rate):
   wd_rejected_x = None
   try:
-    ecg_orig_clean = nk.ecg_clean(crv)
+    with warnings.catch_warnings():
+      # RuntimeWarning: Mean of empty slice.
+      warnings.simplefilter("ignore", category=RuntimeWarning)
+      ecg_orig_clean = nk.ecg_clean(crv)
     wd_rejected_x = heartpy_filter(ecg_orig_clean, sample_rate)
   except hp.exceptions.BadSignalWarning:
     logging.error('Heartpy rejection filtering crashed')

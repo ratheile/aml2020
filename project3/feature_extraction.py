@@ -5,6 +5,7 @@ import logging
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import warnings
 from biosppy.signals import ecg
 #from ecgdetectors import Detectors
 #from hrv import HRV
@@ -366,19 +367,19 @@ def process_signal(sig_i_np, y,  sample_index,
   # calculate ecg signal HR indicators if nk2 was successful
   qc_success = False
   if isinstance(signals, pd.DataFrame):
-    # try: 
-    df_analyze = nk.ecg_analyze(signals, sampling_rate=Fs, method='auto')
+    try: 
+      df_analyze = nk.ecg_analyze(signals, sampling_rate=Fs, method='auto')
 
-    # TODO: regenerate peak summary before the statistics extraction
-    # compute relevant statistics on filtered signals
-    feat_i = nk2_signal_statistics(
-        signals, peak_summary_neurokit,
-        df_analyze, rpeaks_biosppy
-      )
+      # TODO: regenerate peak summary before the statistics extraction
+      # compute relevant statistics on filtered signals
+      feat_i = nk2_signal_statistics(
+          signals, peak_summary_neurokit,
+          df_analyze, rpeaks_biosppy
+        )
 
-    # except AttributeError:
-    #   logging.info(f'neurokit2-analyze crashed for sample {sample_index} in class {class_id}')
-    #   filter_mask = np.ones(raw_signal.shape[0])
+    except AttributeError:
+      logging.info(f'neurokit2-analyze crashed for sample {sample_index} in class {class_id}')
+      filter_mask = np.ones(raw_signal.shape[0])
     
     
 
@@ -418,7 +419,10 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
 
   ######################### 1. neurokit trial #########################
   try: 
-    signals, info = nk2_ecg_process_AML(sig_i_np, sampling_rate=Fs)
+    with warnings.catch_warnings():
+      # RuntimeWarning: Mean of empty slice.
+      warnings.simplefilter("ignore", category=RuntimeWarning)
+      signals, info = nk2_ecg_process_AML(sig_i_np, sampling_rate=Fs)
 
     # filter signals for peak counts, amplitudes, and QRS event duration
     _ , is_flipped = calc_peak_summary(
@@ -467,10 +471,10 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
 
-  short_df_len = 1000
-  df = df.iloc[0:short_df_len]
-  if isinstance(y, pd.DataFrame):
-    y = y.iloc[0:short_df_len]
+  # short_df_len = 1000
+  # df = df.iloc[0:short_df_len]
+  # if isinstance(y, pd.DataFrame):
+  #   y = y.iloc[0:short_df_len]
 
   # Predefine important variables
   Fs = run_cfg['sampling_rate']
@@ -527,6 +531,6 @@ def extract_features(run_cfg, env_cfg, df, feature_list, y=None, verbose=False):
   n_failures = np.sum(np.logical_not(no_nan_mask))
   logging.warning(f'features of {n_failures} samples could not be extracted')
   logging.warning(f'{len(no_nan_mask)-df.shape[0]} samples lost')
-  app = create_app(plotData)
-  app.run_server(debug=False)
+  # app = create_app(plotData)
+  # app.run_server(debug=False)
   return(feat_df, y, plotData, no_nan_mask)

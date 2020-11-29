@@ -125,6 +125,10 @@ class Project3Estimator(BaseEstimator):
       logging.warning('preprocessing disabled for X in fit()')
       logging.warning('preprocessing disabled: this mode should only be used in GridSearchCV')
     
+
+    # delete plot data to free memory
+    X_plot_data = None
+
     #normalize
     flag_normalize = self.run_cfg['preproc/normalize/enabled']
     if flag_normalize:
