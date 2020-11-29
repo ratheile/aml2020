@@ -203,10 +203,10 @@ def calc_peak_summary(signals, sampling_rate, mask):
   # check whether the signal is flipped
   is_flipped = False
   if (
-    len(sig_qq) > 0 and len(sig_rr) > 0 and
-    abs(sig_qq['ECG_Clean'].mean()) > abs(sig_rr['ECG_Clean'].mean()) or
-    len(sig_ss) > 0 and len(sig_rr) > 0 and
-    abs(sig_ss['ECG_Clean'].mean()) > abs(sig_rr['ECG_Clean'].mean())
+    (len(sig_qq) > 0 and len(sig_rr) > 0 and
+    abs(sig_qq['ECG_Clean'].mean()) > abs(sig_rr['ECG_Clean'].mean())) or
+    (len(sig_ss) > 0 and len(sig_rr) > 0 and
+    abs(sig_ss['ECG_Clean'].mean()) > abs(sig_rr['ECG_Clean'].mean()))
   ):
     is_flipped = True
 
