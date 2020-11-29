@@ -312,7 +312,10 @@ class Project3Estimator(BaseEstimator):
     # Define features to extract
     feature_list = ['ECG_Quality_Mean', 'ECG_Quality_STD',
                     'ECG_Rate_Mean', 'ECG_HRV',
-                    'R_P_biosppy', 'P_P/R_P', 'Q_P/R_P', 'R_P_neurokit' , 'S_P/R_P', 'T_P/R_P',  #relative number of peaks TODO
+                    'R_P_biosppy', 
+                    'P_P/R_P', 'Q_P/R_P', 
+                    'R_P_neurokit' , 
+                    'S_P/R_P', 'T_P/R_P',  #relative number of peaks TODO
                     'P_Amp_Mean', 'P_Amp_STD', 
                     'Q_Amp_Mean', 'Q_Amp_STD',
                     'R_Amp_Mean', 'R_Amp_STD',

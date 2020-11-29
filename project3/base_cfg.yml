@@ -1,6 +1,6 @@
 # Pipeline steps
 persistence:
-  load_from_file: false
+  load_from_file: true
   save_to_file: true 
   save_plot_data: false
 

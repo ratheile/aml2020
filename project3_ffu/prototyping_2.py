@@ -267,8 +267,12 @@ signal_names = ['ECG_R_Peaks',
  'ECG_Q_Peaks', 'ECG_S_Peaks']
 
 hb_peaks = np.where(signals["ECG_R_Peaks"] == 1)[0]
+# Dictionary[String, DataFrame] String is 1 2 3 4 .... 
+# TODO: filter dictionary
 heartbeats = nk.ecg_segment(signals["ECG_Clean"], hb_peaks, sample_rate)
 heartbeats_2 = nk.epochs.epochs_to_df(heartbeats)
+
+
 
 show_n_epochs = 5
 epoch_mask = np.zeros((crv.shape[0],show_n_epochs), dtype=np.bool_)
@@ -324,12 +328,15 @@ killed_idx_ratio = 1-len(sig_filtered)/len(signals)
 #TODO: kill the sample if good to bad is below 10%?
 
 #extract indexes
+# left
 r_f = vec_to_ind(sig_filtered['ECG_R_Peaks'])
+
 p_ons_f = vec_to_ind(sig_filtered['ECG_P_Onsets'])
 p_f = vec_to_ind(sig_filtered['ECG_P_Peaks'])
 p_off_f = vec_to_ind(sig_filtered['ECG_P_Offsets'])
 r_ons_f = vec_to_ind(sig_filtered['ECG_R_Onsets'])
 q_f = vec_to_ind(sig_filtered['ECG_Q_Peaks'])
+
 s_f = vec_to_ind(sig_filtered['ECG_S_Peaks'])
 r_off_f = vec_to_ind(sig_filtered['ECG_R_Offsets'])
 t_ons_f = vec_to_ind(sig_filtered['ECG_T_Onsets'])
