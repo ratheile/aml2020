@@ -16,6 +16,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.utils import shuffle
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer, KNNImputer
 from sklearn.metrics import f1_score
 
@@ -58,6 +59,8 @@ class Project3Estimator(BaseEstimator):
     
     preproc_enabled = self.run_cfg['preproc/enabled']
     if preproc_enabled:
+      logging.warning('preprocessing enabled for X in fit()')
+      logging.warning('preprocessing enabled: this mode should only be used in run')
       # Bypass Data Input
       hash_dir = self.env_cfg['datasets/project3/hash_dir']
       skip_preprocessing = False
@@ -259,13 +262,17 @@ class Project3Estimator(BaseEstimator):
   def fill_nan(self, run_cfg, X):
     imputers ={
       'simple': lambda: SimpleImputer(missing_values=np.nan, strategy=run_cfg['preproc/imputer/strategy']),
-      'knn': lambda: KNNImputer(missing_values=np.nan)
+      'knn': lambda: KNNImputer(
+        missing_values=np.nan,
+        n_neighbors=run_cfg['preproc/imputer/n_neighbors'],
+        weights=run_cfg['preproc/imputer/weights']
+        )
     }
     imputer = imputers[run_cfg['preproc/imputer/type']]
     return(imputer().fit_transform(X))
 
-  def normalize(self, X, method, use_pretrained=False):
-    if self._preprocessing_skipped_ and self._scaler_ is None:
+  def normalize(self, X, method, use_pretrained=False, preproc_enabled=False):
+    if preproc_enabled and self._preprocessing_skipped_ and self._scaler_ is None:
       logging.error('Preprocessing skipped: data is probalby normalized with a wrong (empty) scaler!')
 
     if use_pretrained and self._scaler_ is not None:
@@ -342,6 +349,11 @@ class Project3Estimator(BaseEstimator):
       },
       'svc': {
         'model': lambda : SVC(**run_cfg['models/svc']),
+        'fit': self.simple_fit,
+        'validate': lambda m,X,y: m.score(m,X,y)
+      },
+      'rfc': {
+        'model': lambda : RandomForestClassifier(**run_cfg['models/rfc']),
         'fit': self.simple_fit,
         'validate': lambda m,X,y: m.score(m,X,y)
       },
