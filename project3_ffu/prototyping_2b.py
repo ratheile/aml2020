@@ -335,9 +335,17 @@ def pick_a_peak(summary,idx,r_peak,sec_peaks_vec,to_the,window_bounds,sb):
   #TODO: what needs to be done with signal bound?
   #check for candidates
   if to_the == 'left':
-    v = sec_peaks_vec[np.logical_and(np.greater_equal(r_peak,sec_peaks_vec),np.less(window_bounds[0],sec_peaks_vec))]
+    v = sec_peaks_vec[np.logical_and(
+      np.greater_equal(r_peak,sec_peaks_vec),
+      np.less(window_bounds[0],sec_peaks_vec),
+      np.less(sb[0],sec_peaks_vec)
+      )]
   elif to_the == 'right':
-    v = sec_peaks_vec[np.logical_and(np.less_equal(r_peak,sec_peaks_vec),np.greater(window_bounds[1],sec_peaks_vec))]
+    v = sec_peaks_vec[np.logical_and(
+      np.less_equal(r_peak,sec_peaks_vec),
+      np.greater(window_bounds[1],sec_peaks_vec),
+      np.greater_equal(sb[1],sec_peaks_vec)
+      )]
 
   if len(v) > 0:
       #find the the nearest
