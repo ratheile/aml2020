@@ -4,7 +4,7 @@ persistence:
   save_to_file: true 
   save_plot_data: false
   save_x_unlabeled: false
-  load_x_unlabeled: false
+  load_x_unlabeled: true
 
 sampling_rate: 300
 

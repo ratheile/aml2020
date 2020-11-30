@@ -73,7 +73,7 @@ def create_filter_mask(crv, signals, sample_rate):
   # concatinate different faulty peak sources
   # may include the same peak twice
   
-
+  # wd_rejected_x = None
   if wd_rejected_x is not None:
     all_rejected = np.concatenate(
       (wd_rejected_x, outlier_rejected_x,

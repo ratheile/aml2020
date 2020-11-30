@@ -27,6 +27,7 @@ from .feature_extraction import \
   calc_peak_summary, \
   extract_features
 
+import lightgbm as lgbm
 
 
 class Project3Estimator(BaseEstimator):
@@ -170,6 +171,9 @@ class Project3Estimator(BaseEstimator):
 
     # X_u = self.df_sanitization(X_u) # TODO: check if still necessary
 
+    save_x_u = self.run_cfg['persistence/save_x_unlabeled']
+    load_x_u = self.run_cfg['persistence/load_x_unlabeled']
+
     preproc_enabled = self.run_cfg['preproc/enabled']
     if preproc_enabled:
       X_u, _, X_u_plotData, no_nan_mask = self.preprocess(X_u)
@@ -182,8 +186,25 @@ class Project3Estimator(BaseEstimator):
       # TODO (check why this happens): 
       # With median, we sometimes get negative durations for QRS_t_mean
       X_u[:] = self.fill_nan(run_cfg=self.run_cfg, X=X_u)
+
+      if save_x_u:
+        # hashes
+        hash_dir = self.env_cfg['datasets/project3/hash_dir']
+        df_hash_f = lambda df: hashlib.sha1(pd.util.hash_pandas_object(df).values).hexdigest()
+        fn_func = lambda hash_df, hash_cfg, postfix: f'{hash_dir}/{hash_df}_{hash_cfg}_{postfix}'
+        cfg_hash = hashlib.sha256(json.dumps(self.run_cfg['preproc']).encode()).hexdigest()
+        X_u_hash = df_hash_f(X_u)
+        # filenames
+        X_u_file = fn_func(X_u_hash, cfg_hash, 'X_u.joblib')
+        dump([no_nan_mask, X_u], X_u_file)
+
     else:
       logging.warning('preprocessing disabled for unlabled X in predict()')
+      # WARNING HACK X_U is preprocessed input
+      if load_x_u:
+        temp = X_u
+        X_u = temp[1]
+        no_nan_mask = temp[0]
     
     drop_features=self.run_cfg['drop_features/enabled']
     dropped_features_list=self.run_cfg['drop_features/dropped_features']
@@ -206,7 +227,7 @@ class Project3Estimator(BaseEstimator):
     # if we have done preprocessing, then we might have samples that failed 
     # (crashed) the preprocessor. this is not the case if we only use
     # successfully preprocessed data
-    if preproc_enabled:
+    if preproc_enabled or load_x_u:
       y_total = np.zeros(len(no_nan_mask))
       y_total[no_nan_mask] = y_u
       y_total[np.logical_not(no_nan_mask)] = 0

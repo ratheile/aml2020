@@ -407,7 +407,7 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
         )
 
     # Filter and create summary after flipping
-    filter_mask = create_filter_mask(sig_i_np, signals, Fs)
+    # filter_mask = create_filter_mask(sig_i_np, signals, Fs)
 
     # filter signals for peak counts, amplitudes, and QRS event duration
     peak_summary_neurokit, _, feature_names = calc_peak_summary(
