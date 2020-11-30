@@ -17,7 +17,10 @@ from joblib import Parallel, delayed
 from tqdm import tqdm  
 from preproc_viewer import create_app
 from .filter import create_filter_mask
+from .extended_features import calc_interconnection_summary, dist_df_colnames
 
+# from pandas_profiling import ProfileReport
+# from pathlib import Path
 # Split Classes
 def split_classes(X,y):
   class0_ls = y.index[y['y'] == 0].tolist() #healthy
@@ -108,7 +111,7 @@ def nk2_ecg_process_AML(ecg_signal, sampling_rate=300):
   return signals, rpeaks_info
       
 # Extracted peaks summary
-def calc_peak_summary(signals, sampling_rate, mask):
+def calc_peak_summary(signals, sampling_rate, filter_mask):
 #  method which calculates a subset on entries in feature list  
 #  feature_list = ['ECG_Quality_Mean', 'ECG_Quality_STD',
 #                    'ECG_Rate_Mean', 'ECG_HRV',
@@ -124,7 +127,20 @@ def calc_peak_summary(signals, sampling_rate, mask):
 #                    'PR_seg_Mean', 'PR_seg_STD',  >> in this function (2)                
 #                    'QT_int_Mean', 'QT_int_STD']  >> in this function (2)
 #                    'ST_seg_Mean', 'ST_seg_STD']  >> in this function (2)
-                    
+   
+      
+  feature_names = [
+        'P_P/R_P', 
+        'Q_P/R_P', 
+        'R_P_neurokit' , 
+        'S_P/R_P', 
+        'T_P/R_P',  #relative number of peaks TODO
+        'P_Amp_Mean', 'P_Amp_STD', 
+        'Q_Amp_Mean', 'Q_Amp_STD',
+        'R_Amp_Mean', 'R_Amp_STD',
+        'S_Amp_Mean', 'S_Amp_STD',
+        'T_Amp_Mean', 'T_Amp_STD',
+      ]
   
   # Peak summary
   summary = [] # needs to have len=25((2*10 = 20) + 5) at the end
@@ -211,83 +227,13 @@ def calc_peak_summary(signals, sampling_rate, mask):
     is_flipped = True
 
 
+  icon_values, icon_col_names = calc_interconnection_summary(
+    signals, sampling_rate, filter_mask
+  )
+  
+  summary.extend(icon_values)
+  feature_names.extend(icon_col_names)
 
-  # # QRS duration
-  # sig_r_onset = signals[signals['ECG_R_Onsets'] == 1]
-  # sig_r_offset = signals[signals['ECG_R_Offsets'] == 1]
-  # if (len(sig_r_onset) == len(sig_r_offset)):
-  #   d_qrs_N = sig_r_offset.index.to_numpy().ravel() - sig_r_onset.index.to_numpy().ravel() #number of samples between R Onset and Offset
-  #   d_qrs_t = d_qrs_N / sampling_rate
-  #   d_qrs_t_mean = d_qrs_t.mean()
-  #   d_qrs_t_std = d_qrs_t.std()
-  # else:
-  #   #TODO: algo in case of unenven peaks
-  #   d_qrs_t_mean = np.nan
-  #   d_qrs_t_std = np.nan
-    
-  # summary.append(d_qrs_t_mean)
-  # summary.append(d_qrs_t_std)
-  
-  # # PR interval
-  # sig_p_onset = signals[signals['ECG_P_Onsets'] == 1]
-  # if (len(sig_p_onset) == len(sig_r_onset)):
-  #   d_pri_N = sig_r_onset.index.to_numpy().ravel() - sig_p_onset.index.to_numpy().ravel() #number of samples between R Onset and P Offset
-  #   d_pri_t = d_pri_N / sampling_rate
-  #   d_pri_t_mean = d_pri_t.mean()
-  #   d_pri_t_std = d_pri_t.std()
-  # else:
-  #   #TODO: in case of unenven R Onset and Offset detection develop more sofisticated algo to check which peaks can be retained?
-  #   d_pri_t_mean = np.nan
-  #   d_pri_t_std = np.nan
-  
-  # summary.append(d_pri_t_mean)
-  # summary.append(d_pri_t_std)
-  
-  # # PR segment
-  # sig_p_offset = signals[signals['ECG_P_Offsets'] == 1]
-  # if (len(sig_p_offset) == len(sig_r_onset)):
-  #   d_prs_N = sig_r_onset.index.to_numpy().ravel() - sig_p_offset.index.to_numpy().ravel() #number of samples between P Offset and R Onset
-  #   d_prs_t = d_prs_N / sampling_rate
-  #   d_prs_t_mean = d_prs_t.mean()
-  #   d_prs_t_std = d_prs_t.std()
-  # else:
-  #   #TODO: algo in case of unenven peaks
-  #   d_prs_t_mean = np.nan
-  #   d_prs_t_std = np.nan
-  
-  # summary.append(d_prs_t_mean)
-  # summary.append(d_prs_t_std)
-  
-  # # QT interval
-  # sig_t_offset = signals[signals['ECG_T_Offsets'] == 1]
-  # if (len(sig_t_offset) == len(sig_r_onset)):
-  #   d_qti_N = sig_t_offset.index.to_numpy().ravel() - sig_r_onset.index.to_numpy().ravel() #number of samples between T Offset and R Onset
-  #   d_qti_t = d_qti_N / sampling_rate
-  #   d_qti_t_mean = d_qti_t.mean()
-  #   d_qti_t_std = d_qti_t.std()
-  # else:
-  #   #TODO: algo in case of unenven peaks
-  #   d_qti_t_mean = np.nan
-  #   d_qti_t_std = np.nan
-  
-  # summary.append(d_qti_t_mean)
-  # summary.append(d_qti_t_std)
-  
-  # # ST segment
-  # sig_t_onset = signals[signals['ECG_T_Onsets'] == 1]
-  # if (len(sig_t_onset) == len(sig_r_offset)):
-  #   d_sts_N = sig_t_onset.index.to_numpy().ravel() - sig_r_offset.index.to_numpy().ravel() #number of samples between T Onset and R Offset
-  #   d_sts_t = d_sts_N / sampling_rate
-  #   d_sts_t_mean = d_sts_t.mean()
-  #   d_sts_t_std = d_sts_t.std()
-  # else:
-  #   #TODO: algo in case of unenven peaks
-  #   d_sts_t_mean = np.nan
-  #   d_sts_t_std = np.nan
-  
-  # summary.append(d_sts_t_mean)
-  # summary.append(d_sts_t_std)
-  
   return summary, is_flipped, feature_names
 
 
@@ -318,8 +264,15 @@ def biosppy_preprocessor(sig_i_np, Fs, sample_index, class_id, enabled):
   return rpeaks_biosppy, filtered_biosppy
 
 
-def nk2_signal_statistics(signals, peak_summary_neurokit, df_analyze, rpeaks_biosppy):
-  
+def global_signal_statistics(signals, df_analyze, rpeaks_biosppy):
+  feature_names =  [ 
+    'ECG_Quality_Mean', 
+    'ECG_Quality_STD',
+    'ECG_Rate_Mean', 
+    'ECG_HRV',
+    'R_P_biosppy' 
+  ]
+
   # calculate the mean and standard devation of the signal quality
   ecg_q_mean = signals['ECG_Quality'].mean() 
   ecg_q_std = signals['ECG_Quality'].std()
@@ -334,8 +287,7 @@ def nk2_signal_statistics(signals, peak_summary_neurokit, df_analyze, rpeaks_bio
     len(rpeaks_biosppy), #no. of detected r-peaks in biosspy (R_P_biosppy)
   ]
   # extend: Extends list by appending elements from the iterable.
-  feat_i.extend(peak_summary_neurokit)
-  return feat_i
+  return feat_i, feature_names
 
 
 # TODO: remove_outlier, ecg_quality_check
@@ -356,15 +308,23 @@ def process_signal(sig_i_np, y,  sample_index,
   class_id = np.nan if y is None else y.iloc[sample_index].values[0] 
 
   # perform the data extraction / flipping / etc.
-  rpeaks_biosppy, filtered_biosppy, signals, \
-  peak_summary_neurokit, feat_i, \
-    filter_mask, is_flipped, feature_names = recursion(
-    sig_i_np, Fs,
-    sample_index,
-    class_id,
-    biosppy_enabled=biosppy_enabled,
-    check_flipping=check_is_flipped
+  rpeaks_biosppy, \
+  filtered_biosppy, \
+  signals, \
+  peak_summary_neurokit, \
+  default_feat_i, \
+  filter_mask, \
+  is_flipped, \
+  feature_names = recursion(
+      sig_i_np, Fs,
+      sample_index,
+      class_id,
+      biosppy_enabled=biosppy_enabled,
+      check_flipping=check_is_flipped
   )
+
+  # the minimum of what we know if we crash later on
+  feat_i = default_feat_i 
 
   # calculate ecg signal HR indicators if nk2 was successful
   qc_success = False
@@ -374,16 +334,17 @@ def process_signal(sig_i_np, y,  sample_index,
 
       # TODO: regenerate peak summary before the statistics extraction
       # compute relevant statistics on filtered signals
-      feat_i = nk2_signal_statistics(
-          signals, peak_summary_neurokit,
-          df_analyze, rpeaks_biosppy
+      glob_feat_i, glob_feature_names = global_signal_statistics(
+          signals, df_analyze, rpeaks_biosppy
         )
 
+      glob_feat_i.extend(peak_summary_neurokit)
+      glob_feature_names.extend(feature_names)      
+      feature_names = glob_feature_names
+      feat_i = glob_feat_i
     except AttributeError:
       logging.info(f'neurokit2-analyze crashed for sample {sample_index} in class {class_id}')
       filter_mask = np.ones(raw_signal.shape[0])
-    
-    
 
   ######################### organize data for export #########################
   plot_data = [
@@ -397,7 +358,7 @@ def process_signal(sig_i_np, y,  sample_index,
     qc_success,
     is_flipped
   ]
-  return feat_i, class_id, plot_data
+  return feat_i, class_id, plot_data, feature_names
 
   #return (np.array(feat_i, dtype=float), class_id, plot_data)
 
@@ -412,12 +373,14 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
 
   # feat_i config using just the biosppy information (minimal config)
   no_rpeaks_biosppy = len(rpeaks_biosppy)
-  n = len(feature_list) # TODO FIX HARDCODE
-  feat_i = [np.nan]*n
-  feat_i[5] = no_rpeaks_biosppy #maybe biosppy worked
+  n = 110 + 20 # TODO FIX HARDCODE
+  default_feat_i = [np.nan]*n
+  default_feat_i[4] = no_rpeaks_biosppy #maybe biosppy worked
   signals = np.nan #initialize with False will check and flip signals
   peak_summary_neurokit = np.nan
   filter_mask = np.ones(sig_i_np.shape[0])
+  feature_names = dist_df_colnames('.mean')
+  feature_names.extend(dist_df_colnames('.std'))
 
   ######################### 1. neurokit trial #########################
   try: 
@@ -429,7 +392,7 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
     # filter signals for peak counts, amplitudes, and QRS event duration
     filter_mask = np.ones(sig_i_np.shape[0], dtype=np.bool_)
     _ , is_flipped, _ = calc_peak_summary(
-      signals=signals, sampling_rate=Fs, mask=filter_mask
+      signals=signals, sampling_rate=Fs, filter_mask=filter_mask
     )
 
     #repeat feature extraction with flipped signal
@@ -448,7 +411,7 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
 
     # filter signals for peak counts, amplitudes, and QRS event duration
     peak_summary_neurokit, _, feature_names = calc_peak_summary(
-      signals=signals, sampling_rate=Fs, mask=filter_mask
+      signals=signals, sampling_rate=Fs, filter_mask=filter_mask
     )
 
 
@@ -460,12 +423,13 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
       logging.info(f'neurokit2 crashed for sample {sample_index} in class {class_id}')  
     signals = np.nan
     peak_summary_neurokit = np.nan
-  
+
+
   return rpeaks_biosppy, \
     filtered_biosppy, \
     signals, \
     peak_summary_neurokit, \
-    feat_i, \
+    default_feat_i, \
     filter_mask, \
     not check_flipping, \
     feature_names
@@ -474,7 +438,7 @@ def recursion(sig_i_np, Fs, sample_index, class_id,
 # Extract features from ECGs
 def extract_features(run_cfg, env_cfg, df, y=None, verbose=False):
 
-  # short_df_len = 1000
+  # short_df_len = 10
   # df = df.iloc[0:short_df_len]
   # if isinstance(y, pd.DataFrame):
   #   y = y.iloc[0:short_df_len]
@@ -510,7 +474,7 @@ def extract_features(run_cfg, env_cfg, df, y=None, verbose=False):
   no_nan_mask =  [np.sum(np.isnan(res[0][0:14])) == 0 for res in results]
 
   # take the feature list from the first sample because its  length is constant
-  feature_list = results[0][0].columns
+  feature_list = results[0][3]
   # Define F array to aggregate extracted sample features
   F=np.zeros([df.shape[0],len(feature_list)])
 
@@ -526,7 +490,8 @@ def extract_features(run_cfg, env_cfg, df, y=None, verbose=False):
 
   # TODO: maybe plot the failing ones as well
   feat_df = pd.DataFrame(data=F,columns=feature_list)
-
+  # profile = ProfileReport(feat_df, title="Pandas Profiling Report", explorative=True)
+  # profile.to_file(Path("feature_extraction_report.html"))
   n_failures = np.sum(np.logical_not(no_nan_mask))
   logging.warning(f'features of {n_failures} samples could not be extracted')
   logging.warning(f'{len(no_nan_mask)-df.shape[0]} samples lost')

@@ -335,17 +335,9 @@ def pick_a_peak(summary,idx,r_peak,sec_peaks_vec,to_the,window_bounds,sb):
   #TODO: what needs to be done with signal bound?
   #check for candidates
   if to_the == 'left':
-    v = sec_peaks_vec[np.logical_and(
-      np.greater_equal(r_peak,sec_peaks_vec),
-      np.less(window_bounds[0],sec_peaks_vec),
-      np.less(sb[0],sec_peaks_vec)
-      )]
+    v = sec_peaks_vec[np.logical_and(np.greater_equal(r_peak,sec_peaks_vec),np.less(window_bounds[0],sec_peaks_vec))]
   elif to_the == 'right':
-    v = sec_peaks_vec[np.logical_and(
-      np.less_equal(r_peak,sec_peaks_vec),
-      np.greater(window_bounds[1],sec_peaks_vec),
-      np.greater_equal(sb[1],sec_peaks_vec)
-      )]
+    v = sec_peaks_vec[np.logical_and(np.less_equal(r_peak,sec_peaks_vec),np.greater(window_bounds[1],sec_peaks_vec))]
 
   if len(v) > 0:
       #find the the nearest
@@ -392,7 +384,7 @@ def clean_signal_bounds(signals):
   lb = 0
   ub = max(signals.index)
   
-  return np.array(lb,ub)
+  return np.array([lb,ub])
     
 E= np.zeros(shape=(len(r_f),55)) # r_peaks * 55 distances measure in each epoch
 for i in range(len(r_f)):
@@ -411,7 +403,7 @@ for i in range(len(r_f)):
   sec_peaks_right = [s_f,r_off_f,t_ons_f,t_f,t_off_f]
   idx_offset = 6
   for idx, sec_peak_v in enumerate(sec_peaks_right):
-      ep_i_p_idx = pick_a_peak(ep_i_p_idx,idx+idx_offset,r_f[i],sec_peak_v,'right',window_bounds)
+      ep_i_p_idx = pick_a_peak(ep_i_p_idx,idx+idx_offset,r_f[i],sec_peak_v,'right',window_bounds, signal_bounds)
         
   #TODO: count the nans and reject the epoch if too many are missing?
   #compute the distances
