@@ -136,7 +136,7 @@ class Project3Estimator(BaseEstimator):
     drop_features=self.run_cfg['drop_features/enabled']
     dropped_features_list=self.run_cfg['drop_features/dropped_features']
     if drop_features:
-      X.drop(columns=dropped_features_list,inplace=True)
+      X = X.drop(columns=dropped_features_list)
 
     #normalize
     flag_normalize = self.run_cfg['preproc/normalize/enabled']
@@ -188,7 +188,7 @@ class Project3Estimator(BaseEstimator):
     drop_features=self.run_cfg['drop_features/enabled']
     dropped_features_list=self.run_cfg['drop_features/dropped_features']
     if drop_features:
-      X_u.drop(columns=dropped_features_list,inplace=True)
+      X_u = X_u.drop(columns=dropped_features_list)
 
     #normalize
     flag_normalize = self.run_cfg['preproc/normalize/enabled']
