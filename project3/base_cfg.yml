@@ -21,8 +21,8 @@ preproc:
   imputer:
     type: 'knn' # 'simple' or 'knn'
     strategy: 'median' # works with 'mean', 'median', 'most_frequent'
-    n_neighbors: 5 #for knn, default is 5
-    weights: 'uniform' #for knn, default is 'uniform'
+    n_neighbors: 10 #for knn, default is 5
+    weights: 'distance' #for knn, default is 'uniform'
 
   filtering:
     enabled: True
