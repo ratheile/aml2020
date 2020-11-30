@@ -87,7 +87,7 @@ def load_preprocessed_pickle(env_cfg):
   datapath = env_cfg['datasets/project3/path']
   X = pd.read_pickle(f'{datapath}/X_train.pkl')
   y = pd.read_pickle(f'{datapath}/y_train.pkl')
-  X_u = joblib.load(f'{datapath}/X_test.joblib')
+  X_u = joblib.load(f'{datapath}/X_u.joblib')
 
   end_time = time.time()
   logging.info(f'Pickle loading done in {end_time - begin_time}')
@@ -113,13 +113,13 @@ def run(run_cfg, env_cfg):
   '''
 
   # Load training dataset from joblib files 
-  X, y, X_u = load_data(env_cfg)
-  # X, y, X_u = load_preprocessed_pickle(env_cfg)
-  
+  # X, y, X_u = load_data(env_cfg)
   # Remove ID column
-  y = y.iloc[:, 1:]
-  X = X.iloc[:, 1:]
-  X_u = X_u.iloc[:, 1:]
+  # y = y.iloc[:, 1:]
+  # X = X.iloc[:, 1:]
+  # X_u = X_u.iloc[:, 1:]
+  
+  X, y, X_u = load_preprocessed_pickle(env_cfg)
   logging.info('Training dataset imported')
 
   p3e = Project3Estimator(run_cfg, env_cfg)

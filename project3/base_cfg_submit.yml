@@ -72,10 +72,10 @@ models:
     break_ties: False 
 
   lightgbm:
-    max_bin: 512
+    # max_bin: 512
     num_leaves: 63 # default 31
-    learning_rate: 0.05 # default 0.1
-    num_iterations: 400 # default 100
+    learning_rate: 0.02 # default 0.1
+    num_iterations: 800 # default 100
     boosting_type: gbdt # default gbdt [dart, goss, rf]
     is_unbalance: True
   
